@@ -1,0 +1,44 @@
+# ISSUE: currently cant rename the columns of dataframe so they are just random vars
+using DataFrames
+function save_data(data::Array, head::Vector, simsettings::Vector, data_val::String)
+  # data_val here is what kind of data --> pos, est, unk, ctrl, rew, unc
+  if simsettings[2]== "mcts"
+    (prob,sim,rollout,processNoise,run_num) = simsettings
+    fname = string(data_val,"_",prob,sim,"_",rollout,"_","PN_",processNoise,"_Trial_",run_num,".csv")
+  elseif simsettings[2]== "mpc"
+    (prob,sim,processNoise,run_num) = simsettings
+    fname = string(data_val,"_",prob,sim,"_","PN_",processNoise,"_Trial_",run_num,".csv")
+  end
+  df = convert(DataFrame,data')
+  #rename!(df, [head[i] for i in 1:length(head)])
+  #@show df
+  writetable(fname,df)
+end
+
+#=
+# test example
+a = ["1D","mpc","0.1","1"] # sim params
+c = ["x","y","z","w"] # header
+b = rand(4,100) # data
+save_data(b,c,a,"rand")
+=#
+
+# Matrices of data, state names in hs, and settings
+function save_simulation_data(s::Matrix, est::Matrix, ctrl::Matrix, rew::Array,
+                              unc::Matrix, hs::Vector, settings::Vector)
+  # get simulation properties from settings
+  (sim_save_name,prob,sim,rollout,processNoise,run_num) = settings
+  indset = settings[2:end] # to pass to each save_data command
+  # Make folder for simulation
+  newFolder = string(sim_save_name,"_",prob,sim,"_","PN_",processNoise)
+  try mkdir(newFolder)
+  end
+  cd(newFolder) # go into new folder to save files
+  # Store data for states, est, control, reward, and unc
+  save_data(s,hs,indset,"states")
+  save_data(est,hs,indset,"est")
+  save_data(ctrl,hs,indset,"ctrl")
+  save_data(rew,hs,indset,"rew")
+  save_data(unc,hs,indset,"unc")
+  cd("..") # go back to main folder
+end

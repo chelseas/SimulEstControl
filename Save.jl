@@ -3,11 +3,11 @@ using DataFrames
 function save_data(data::Array, head::Vector, simsettings::Vector, data_val::String)
   # data_val here is what kind of data --> pos, est, unk, ctrl, rew, unc
   if simsettings[2]== "mcts"
-    (prob,sim,rollout,processNoise,run_num) = simsettings
-    fname = string(data_val,"_",prob,sim,"_",rollout,"_","PN_",processNoise,"_Trial_",run_num,".csv")
+    (prob,sim,rollout,processNoise,paramNoise,numtrails,run_num) = simsettings
+    fname = string(data_val," ",prob," ",sim," ",rollout," PN ",processNoise," VARN ",paramNoise," Trial ",run_num,".csv")
   elseif simsettings[2]== "mpc"
-    (prob,sim,processNoise,run_num) = simsettings
-    fname = string(data_val,"_",prob,sim,"_","PN_",processNoise,"_Trial_",run_num,".csv")
+    (prob,sim,processNoise,paramNoise,numtrials,run_num) = simsettings
+    fname = string(data_val," ",prob," ",sim," fobs ","PN ",processNoise," VARN ",paramNoise," Trial ",run_num,".csv")
   end
   df = convert(DataFrame,data')
   #rename!(df, [head[i] for i in 1:length(head)])
@@ -27,10 +27,14 @@ save_data(b,c,a,"rand")
 function save_simulation_data(s::Matrix, est::Matrix, ctrl::Matrix, rew::Array,
                               unc::Matrix, hs::Vector, settings::Vector)
   # get simulation properties from settings
-  (sim_save_name,prob,sim,rollout,processNoise,run_num) = settings
+  (sim_save_name,prob,sim,rollout,processNoise,paramNoise,numtrials,run_num) = settings
   indset = settings[2:end] # to pass to each save_data command
   # Make folder for simulation
-  newFolder = string(sim_save_name,"_",prob,sim,"_","PN_",processNoise)
+  cd("data")
+  try mkdir(sim_save_name)
+  end
+  cd(sim_save_name)
+  newFolder = string(prob," ",sim," PN ",processNoise," VARN ",paramNoise," RUNS ",numtrials)
   try mkdir(newFolder)
   end
   cd(newFolder) # go into new folder to save files
@@ -40,5 +44,5 @@ function save_simulation_data(s::Matrix, est::Matrix, ctrl::Matrix, rew::Array,
   save_data(ctrl,hs,indset,"ctrl")
   save_data(rew,hs,indset,"rew")
   save_data(unc,hs,indset,"unc")
-  cd("..") # go back to main folder
+  cd("../../..") # go back to main folder
 end

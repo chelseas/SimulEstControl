@@ -1,5 +1,5 @@
 <### control limiting
-control_limit = fRange+10.0
+control_limit = 1.05*fRange
 control_lim = fRange
 
 function control_check(u::Array{Float64,1}, x::Array{Float64,1}, flag::Bool)
@@ -18,8 +18,8 @@ end
 
 ### debu[g checker for the states
 function state_check(x::Array{Float64,1}, flag::Bool)
-    if(x[3] < 1.0)
-        x[3] = 1.0
+    if(x[3] < state_init*state_min_tol)
+        x[3] = state_init*state_min_tol
         if(flag)
             @show "mass here"
         end
@@ -29,10 +29,8 @@ end
 
 ### debug checker for the estimated parameters
 function est_check(xNew::Array{Float64,1}, flag::Bool)
-    bound = 1.0
-    upper_b = 1
-    if(xNew[3] < bound)
-        xNew[3] = bound
+    if(xNew[3] < state_init*state_min_tol)
+        xNew[3] = state_init*state_min_tol
         if(flag)
             @show "state bounded"
         end

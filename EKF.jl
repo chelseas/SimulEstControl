@@ -68,7 +68,7 @@ end
 
 ### Predict step in algo
 # takes in a state space model, previous guess, and action, to predict new state distribution
-function predict(m::NonLinearSSM,x_prev::MvNormal,u::Array=zeros(m.nu,1))
+function predict(m::NonLinearSSM,x_prev::MvNormal,Q::Array{Float64,2},u::Array=zeros(m.nu,1))
     mu0 = mean(x_prev)'';
     P0 = cov(x_prev)'';
     newF(x) = ssm.f(x, u) # newF(x::Matrix) = ssm.f(x,u)
@@ -79,7 +79,7 @@ function predict(m::NonLinearSSM,x_prev::MvNormal,u::Array=zeros(m.nu,1))
     mu_pred = ssm.f(mu0,u) # mu_pred::Array{Float64,2} = ssm.f(mu0,u) # getting any on this var
     #@show mu_pred = ssm.f(mu0,u)
     #conversion from 1 type always same to another not that bad -- conversion from any to 1 type
-    P_pred::Array{Float64,2} = convert(Array{Float64,2},Hermitian(F*P0*F' + m.Q)) #getting any on this var
+    P_pred::Array{Float64,2} = convert(Array{Float64,2},Hermitian(F*P0*F' + Q)) #getting any on this var
     P_pred = nearestSPD(P_pred)
     return MvNormal(mu_pred,P_pred) # MvNormal(mu_pred[:],P_pred)
 end
@@ -87,10 +87,10 @@ end
 ### Extended Kalman Filter update
 #Given a model, observation, previous distribution, and action, updates the Kalman filter
 #to generate a new distribution over the state space
-function filter(m::NonLinearSSM,obs::Array{Float64,1},x0::MvNormal,u::Array=zeros(m.nu,size(obs,2)))
+function filter(m::NonLinearSSM,obs::Array{Float64,1},x0::MvNormal,Q::Array{Float64,2},R::Array{Float64,2},u::Array=zeros(m.nu,size(obs,2)))
     x_new = x0
     for i = 1:size(obs,2)
-        x_pred = predict(m,x_new,u[:,i]'')
+        x_pred = predict(m,x_new,Q,u[:,i]'')
         #@show "here"
         x_pred_mean = mean(x_pred)
         #@show u
@@ -100,11 +100,11 @@ function filter(m::NonLinearSSM,obs::Array{Float64,1},x0::MvNormal,u::Array=zero
         #@show "here newH"
         H = ForwardDiff.jacobian(newH,x_pred_mean)
         #@show H = ForwardDiff.jacobian!(zeros(11,11),newH,x_pred_mean)
-        S = H*cov(x_pred)*H' + m.R
+        S = H*cov(x_pred)*H' + R
         tol = sqrt(eps(real(float(one(eltype(S))))))
         K = cov(x_pred)*H'*pinv(S, tol);
         mean_new = mean(x_pred)+ K*residual
-        Pnew = (eye(size(cov(x_new),1))-K*H)*cov(x_pred)*(eye(size(cov(x_new),1))-K*H)'+K*m.R*K';
+        Pnew = (eye(size(cov(x_new),1))-K*H)*cov(x_pred)*(eye(size(cov(x_new),1))-K*H)'+K*R*K';
         cov_new = (1/2)*(Pnew+Pnew')
         cov_new = nearestSPD(cov_new)
         x_new = MvNormal(mean_new[:,1],cov_new)

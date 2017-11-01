@@ -1,5 +1,5 @@
 ### control limiting
-control_limit = fRange+10.0
+control_limit = 1.05*fRange
 control_lim = fRange
 
 function control_check(u::Array{Float64,1}, x::Array{Float64,1}, flag::Bool)
@@ -53,32 +53,32 @@ end
 
 ### debu[g checker for the states
 function state_check(x::Array{Float64,1}, flag::Bool)
-    if(x[7] < 1.0)
-        x[7] = 1.0
+    if(x[7] < state_init*state_min_tol)
+        x[7] = state_init*state_min_tol
         if(flag)
             @show "mass here"
         end
     end
-    if(x[8] < 1.0)
-        x[8] = 1.0
+    if(x[8] < state_init*state_min_tol)
+        x[8] = state_init*state_min_tol
         if(flag)
             @show "Inertia here"
         end
     end
-    if(x[9] < 1.0)
-        x[9] = 1.0
+    if(x[9] < state_init*state_min_tol)
+        x[9] = state_init*state_min_tol
         if(flag)
             @show "Fr here"
         end
     end
-    if(x[10] < 1.0)
-        x[10] = 1.0
+    if(x[10] < state_init*state_min_tol)
+        x[10] = state_init*state_min_tol
         if(flag)
             @show "Rx here"
         end
     end
-    if(x[11] < 1.0)
-        x[11] = 1.0
+    if(x[11] < state_init*state_min_tol)
+        x[11] = state_init*state_min_tol
         if(flag)
             @show "Ry here"
         end
@@ -89,7 +89,6 @@ end
 ### debug checker for the estimated parameters
 function est_check(xNew::Array{Float64,1}, flag::Bool)
     bound = 100000.0
-    upper_b = 1000.0
     if(xNew[1] < -bound)
         xNew[1] = -bound
         if(flag)
@@ -139,46 +138,46 @@ function est_check(xNew::Array{Float64,1}, flag::Bool)
         xNew[6] = bound
     end
 
-    if(xNew[7] < 1.0)
-        xNew[7] = 1.0
+    if(xNew[7] < state_init*state_min_tol)
+        xNew[7] = state_init*state_min_tol
         if(flag)
             @show "7 here"
         end
-    elseif(xNew[7] > upper_b)
-        xNew[7] = upper_b
+    elseif(xNew[7] > bound)
+        xNew[7] = bound
     end
-    if(xNew[8] < 1.0)
-        xNew[8] = 1.0
+    if(xNew[8] < state_init*state_min_tol)
+        xNew[8] = state_init*state_min_tol
         if(flag)
             @show "8 here"
         end
-    elseif(xNew[8] > upper_b)
-        xNew[8] = upper_b
+    elseif(xNew[8] > bound)
+        xNew[8] = bound
     end
-    if(xNew[9] < 1.0)
-        xNew[9] = 1.0
+    if(xNew[9] < state_init*state_min_tol)
+        xNew[9] = state_init*state_min_tol
         if(flag)
             @show "9 here"
         end
-    elseif(xNew[9] > upper_b)
-        xNew[9] = upper_b
+    elseif(xNew[9] > bound)
+        xNew[9] = bound
     end
 
-    if(xNew[10] < -50.0)
-        xNew[10] = -50.0
+    if(xNew[10] < -bound)
+        xNew[10] = -bound
         if(flag)
             @show "10 here"
         end
-    elseif(xNew[10] > 50.0)
-        xNew[10] = 50.0
+    elseif(xNew[10] > bound)
+        xNew[10] = bound
     end
-    if(xNew[11] < -50.0)
-        xNew[11] = -50.0
+    if(xNew[11] < -bound)
+        xNew[11] = -bound
         if(flag)
             @show "11 here"
         end
-    elseif(xNew[11] > 50.0)
-        xNew[11] = 50.0
+    elseif(xNew[11] > bound)
+        xNew[11] = bound
     end
 
     return xNew

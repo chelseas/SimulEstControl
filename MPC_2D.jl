@@ -29,12 +29,13 @@ function MPCAction(x0::MvNormal, n::Int)
     Qp = diag(Qg)
     u = Variable(3, n - 1)
     xs = Variable(6, n)
-
+    Rp = diag(Rg)
     a = Float64
 
     # this should reflect the same cost function as the MCTS
     # need to add penalties to other states and actions
-    problem = minimize(sum(abs.(xs[4,:])*Qp[4]) + sum(abs.(xs[5,:])*Qp[5]) + sum(abs.(xs[6,:])*Qp[6]))
+    problem = minimize(sum(abs.(u[1,:])*Rp[1]) + sum(abs.(u[2,:])*Rp[2]) + sum(abs.(u[3,:])*Rp[3]) + sum(abs.(xs[1,:])*Qp[1]) + sum(abs.(xs[2,:])*Qp[2]) + sum(abs.(xs[3,:])*Qp[3]) + sum(abs.(xs[4,:])*Qp[4]) + sum(abs.(xs[5,:])*Qp[5]) + sum(abs.(xs[6,:])*Qp[6]))
+    #problem = minimize(sum(abs.(xs[1,:])*Qp[1]) + sum(abs.(xs[2,:])*Qp[2]) + sum(abs.(xs[3,:])*Qp[3]) + sum(abs.(xs[4,:])*Qp[4]) + sum(abs.(xs[5,:])*Qp[5]) + sum(abs.(xs[6,:])*Qp[6]))
 
     #sum(abs(xs[1,:])*Q[1]) + sum(abs(xs[2,:])*Q[2]) + sum(abs(xs[3,:])*Q[3]) + sum(abs(u[1,:])*R[1]) +sum(abs(u[2,:])*R[2]) + sum(abs(u[3,:])*R[3])
     problem.constraints += xs[1,1] == x[1] # init condition

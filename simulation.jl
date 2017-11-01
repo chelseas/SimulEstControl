@@ -1,26 +1,23 @@
 # TODO:
-# check to make sure the Q and R values updated in the noise_setting loop actually are updating for MCTS
 # merge the POMDP dfeinition files for all problems
 # create a modified MDP to include the previous action in the state to account for the smoothness term
-# make a data parsing function which will take folder of sim data and compute avg and standard deviation for state,est,actions,rews
 # parallelize
 # figure out why UKF is performing so poorly when used in MCTS exploration
-# fix MPC 2D cost function
 # check all cases to see how the performance is for various conditions
 # add another outer loop to specify the simulations to run for all the conditions including roll-outs
-# check to see if I'm clipping the position/vel/vla
+# is 1D MCTS sampling from a normal distriution for actions?
 
 # cd("C:/Users/patty/Box Sync/SimulEstControl/SimulEstV0") # change to your path
 # include("simulation.jl") # runs this file
 # specify simulation parameters
 
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mpc"
+sim = "mcts"
 rollout = "position"
-fullobs = true # set to true if you want to use actual state params in place of the belief
+quick_run = false
 numtrials = 1 # number of simulation runs
 processNoiseList = [0.001]#, 0.1]
-paramNoiseList = [3.0]#, 10.0]
+paramNoiseList = [0.1]#, 10.0]
 #processNoise = 10.0 # standard deviation of process noise in system
 #paramNoise = 10.0 # standard deviation of initial parameter estimate
 
@@ -29,7 +26,11 @@ printing = true # set to true to print simple information
 plotting = true # set to true to output plots of the data
 saving = false # set to true to save simulation data to a folder
 sim_save_name = "test2" # name appended to sim settings for simulation folder to store data from runs
-quick_run = false # set the simulation iterations to 10 for quickly debugging
+if sim == "mpc"
+  fullobs = true
+else
+  fullobs = false
+end
 
 # all parameter variables, packages, etc are defined here
 include("Setup.jl")
@@ -103,7 +104,7 @@ for sim_setting = 1:length(sim_set)
               if sim == "mcts"
                 u[:,i] = action(policy,xNew) # take an action MCTS
               elseif sim == "mpc"
-                u[:,i] = MPCAction(xNew,n)#n) # take an action MPC (n: # length of prediction horizon)
+                u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding controls
@@ -189,6 +190,7 @@ for sim_setting = 1:length(sim_set)
           display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))
           #savefig(join(["test " string(j) ".png"])) # save plots for each run
         end
+        gc() # clear data?
     end
   end
 #end

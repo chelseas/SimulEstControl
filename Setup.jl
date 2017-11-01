@@ -34,7 +34,7 @@ if prob == "1D"
     pos_control_gain = -4.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
-    n = 100 # horizon steps
+    n = 20 # horizon steps
   end
 elseif prob == "2D"
   # Settings for simulation
@@ -58,7 +58,7 @@ elseif prob == "2D"
     pos_control_gain = -8.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
-    n = 100 # horizon steps
+    n = 20 # horizon steps
   end
 end
 
@@ -71,6 +71,10 @@ end
 using ForwardDiff # for EKF
 if saving
   include("Save.jl")
+end
+if plotting
+  using Plots
+  plotly()#js()
 end
 #using PyPlot #broken?
 

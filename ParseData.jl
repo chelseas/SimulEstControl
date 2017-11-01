@@ -1,5 +1,5 @@
 using DataFrames
-folder = "test"# give data folder name to compute averages from
+folder = "test2"# give data folder name to compute averages from
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through
 
@@ -12,10 +12,12 @@ sim_cases = readdir() # list of filenames in this directory
 f1 = sim_cases[1]
 runs = parse(Int64,f1[end]) # number of runs
 
+# CREATE AVERAGES AND STD OF DATA FOR PLOTTING
 for i = 1:length(sim_cases) # go through each data folder to compute averages
   curFolder = sim_cases[i]
   cd(curFolder)
   dataFiles = readdir() # all names of .csv files in this directory
+  @show curFolder
   #@show dataFiles
   #@show dataFiles
   #@show length(dataFiles)
@@ -50,7 +52,8 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
     fname = join([fname_temp ".csv"])
     #@show fname
     cd("../..")
-    newF = join([folder," processed data"])
+    pdata = " processed data"
+    newF = join([folder,pdata])
     try mkdir(newF)
     end
     cd(newF) # go into processed data file
@@ -59,6 +62,10 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
 
     # and for reward just overall trail sum (avg, sum, processN, paramN)
     if j == 3 # corresponding to the reward
+      tot_dir = "total rewards"
+      try mkdir(tot_dir)
+      end
+      cd(tot_dir)
       avgtot = mean(data,[1,3])[1,1,1] # return just the value for the mean
       stdtot = (var(mean(data,3),1)[1,1,1].^0.5)/runs # sum data along all numSteps and take std among runs
       PN = parse(Float64,sim_sets[6])
@@ -67,6 +74,7 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
       df2 = convert(DataFrame, [rew_ret rew_ret]')
       fname2 = join(["tot " fname])
       writetable(fname2,df2)
+      cd("..")
     end
 
     cd("..")
@@ -77,7 +85,7 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
   cd("..") # back out of this folder
 end
 
-# put into 4 new files (ignore unc) with len numSamples, avg in col 1, std in col 2
-# have plotter function add all groups of these files into a PGFPlot
-
 cd("../..") # change directory back to main folder
+
+# Call PGFPlotting.jl here if I wnat
+# include("PGFPlotting.jl")

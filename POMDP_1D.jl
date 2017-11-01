@@ -6,13 +6,13 @@ type MassMDP <: MDP{MvNormal, Float64} # POMD{State,Action,Observation(1x2 hardc
     discount_factor::Float64 # default 0.99
     goal_state::Float64
     force_range::LinSpace{Float64}
-    v_noise::MvNormal{Float64}
-    w_noise::MvNormal{Float64}
+    #v_noise::MvNormal{Float64}
+    #w_noise::MvNormal{Float64}
 end
 
 #default constructor
 function MassMDP()
-    return MassMDP(0.99,0.0,fDist,ssm.v,ssm.w)
+    return MassMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
 end
 
 mdp = MassMDP()
@@ -26,13 +26,13 @@ hash(s::EKFState, h::UInt=zero(UInt)) = hash(mean(s), hash(cov(s), h))
 #implementing the functions for GenerativeModels: https://github.com/JuliaPOMDP/GenerativeModels.jl/blob/master/src/GenerativeModels.jl
 #good example: https://github.com/JuliaPOMDP/POMDPModels.jl/blob/master/src/InvertedPendulum.jl
 create_state(::MassMDP) = MvNormal(zeros(ssm.nx),eye(ssm.nx))
-create_action(::MassMDP) = 0.0
+#create_action(::MassMDP) = 0.0
 create_observation(::MassMDP) = zeros(ssm.states)
 
 function transition(mdp::MassMDP,s::EKFState,a::Float64)
     obs = observation(mdp,s,a,s)
-    sp = filter(ssm, obs, s, [a])
-    #sp = ukf(ssm,obs,s,cov(ssm.w),cov(ssm.v), [a]) # is it correct to pass cov(w and v) here rather than s cov?
+    sp = filter(ssm, obs, s, Q, R,[a]) # will this get the correct w and v from global context?
+    #sp = ukf(ssm,obs,s,Q,R, [a]) # is it correct to pass cov(w and v) here rather than s cov?
     return sp
 end
 
@@ -55,7 +55,6 @@ function POMDPs.reward(mdp::MassMDP,s::EKFState,a::Float64,sp::EKFState) #is s o
     #gv = -3
     (gv, gp) = diag(-Qg)
     r = abs(mean(s)[2])*gp + abs(mean(s)[1])*gv + abs(a)*-Rg[1]# trace(cov(s))^2*gu +
-
     return r
 end
 

@@ -1,25 +1,22 @@
 
 if quick_run
-  nSamples = 10 # quick amount of steps for debug_bounds
+  nSamples = 5 # quick amount of steps for debug_bounds
 else
   nSamples = 100
 end
 
 # Settings for simulation
-processNoise = 10.0 # standard deviation of process noise in system
 measNoise = 0.00001 # standard deviation of measurement noise
+deltaT = 0.1 # timestep for simulation --> decrease for complex systems?
+debug_bounds = false # set to 1 to print out commands to see when limits of state and estimation hit
+cov_thresh = 1000 # threshold where trace(cov) of estimate will be discarded in MCTS
+state_init = 10.0 # gain for teh initial state
+state_min_tol = 0.1 # prevent states from growing less than X% of original value
 
 if prob == "1D"
   # Settings for simulation
-  cov_thresh = 10000
-  paramNoise = 10 # standard deviation of initial parameter estimate
   fRange = 300.0 # bounds on controls allowed within +- fRange
-  numtrials = 1 # number of simulations run
-  debug_bounds = false # set to 1 to print out commands to see when limits of state and estimation hit
-  example_plot = true # set to 1 to print out an example plot of the system states
-  deltaT = 0.1 # timestep for simulation --> decrease for complex systems?
-  est_init = 11 # gain for the initial estimate
-  state_init = 10 # gain for teh initial state
+  #est_init = 11 # gain for the initial estimate
   fDist_disc = 1000 # discrete points in fDist force linspace
   # Reward shaping
   Qg = diagm([3;10])
@@ -41,13 +38,8 @@ if prob == "1D"
   end
 elseif prob == "2D"
   # Settings for simulation
-  paramNoise = 100 # standard deviation of initial parameter estimate
   fRange = 100.0 # bounds on controls allowed within +- fRange
-  numtrials = 1 # number of simulations run
-  debug_bounds = false # set to 1 to print out commands to see when limits of state and estimation hit
-  example_plot = true # set to 1 to print out an example plot of the system states
-  deltaT = 0.1 # timestep for simulation --> decrease for complex systems?
-  est_init = 11 # gain for the initial estimate
+  #est_init = 11 # gain for the initial estimate
   state_init = 10 # gain for teh initial state
   fDist_disc = 1000 # discrete points in fDist force linspace
   # Reward shaping
@@ -85,11 +77,11 @@ end
 # First have to load SSM to define params for rest of the setup
 include("SSM.jl") # contains SSM definitions and functions
 if prob == "2D"
-  ssm = build2DSSM(deltaT,processNoise,measNoise) # building state-space
+  ssm = build2DSSM(deltaT)#,processNoise,measNoise) # building state-space
   prob_params = ["vx","vy","w","x","y","theta","m","uv","J","rx","ry"]
   control_params = ["Fx", "Fy", "T"]
 elseif prob == "1D"
-  ssm = buildDoubleIntSSM(deltaT,processNoise,measNoise) # building 1D state-space
+  ssm = buildDoubleIntSSM(deltaT)#,processNoise,measNoise) # building 1D state-space
   prob_params = ["v","p","m"]
   control_params = ["u"]
 end
@@ -105,6 +97,12 @@ if startState == ssm.states
 else
   pos_range = startState:ssm.states # range of indeces in state mean for positions used in propotional controller
 end
+
+# initialize first process and param noises and Q,R
+processNoise = processNoiseList[1]
+paramNoise = paramNoiseList[1]
+Q = diagm(processNoise*ones(ssm.nx))
+R = diagm(measNoise*ones(ssm.ny))
 
 # Loading scripts based on simulation and problem conditions
 include("UKF.jl") # contains UKF
@@ -147,7 +145,3 @@ if sim == "mcts"
   end
   policy = solve(solver,mdp) # policy setup for POMDP
 end
-
-# Initializing states
-x0_est = MvNormal(est_init*ones(ssm.nx),paramNoise*eye(ssm.nx,ssm.nx)) #initial belief # should all states have the paramNoise for the covariance?
-x0_state = state_init*ones(ssm.nx) # actual initial state

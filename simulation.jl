@@ -15,21 +15,21 @@
 # specify simulation parameters
 
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mcts"
+sim = "mpc"
 rollout = "position"
-fullobs = false # set to true if you want to use actual state params in place of the belief
-numtrials = 3 # number of simulation runs
-processNoiseList = [1.0, 0.1]
-paramNoiseList = [10.0, 10.0]
+fullobs = true # set to true if you want to use actual state params in place of the belief
+numtrials = 1 # number of simulation runs
+processNoiseList = [0.001]#, 0.1]
+paramNoiseList = [3.0]#, 10.0]
 #processNoise = 10.0 # standard deviation of process noise in system
 #paramNoise = 10.0 # standard deviation of initial parameter estimate
 
 # output settings
 printing = true # set to true to print simple information
-plotting = false # set to true to output plots of the data
-saving = true # set to true to save simulation data to a folder
-sim_save_name = "test" # name appended to sim settings for simulation folder to store data from runs
-quick_run = true # set the simulation iterations to 10 for quickly debugging
+plotting = true # set to true to output plots of the data
+saving = false # set to true to save simulation data to a folder
+sim_save_name = "test2" # name appended to sim settings for simulation folder to store data from runs
+quick_run = false # set the simulation iterations to 10 for quickly debugging
 
 # all parameter variables, packages, etc are defined here
 include("Setup.jl")
@@ -103,13 +103,13 @@ for sim_setting = 1:length(sim_set)
               if sim == "mcts"
                 u[:,i] = action(policy,xNew) # take an action MCTS
               elseif sim == "mpc"
-                u[:,i] = MPCAction(xNew,n) # take an action MPC (n: # length of prediction horizon)
+                u[:,i] = MPCAction(xNew,n)#n) # take an action MPC (n: # length of prediction horizon)
               end
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding controls
             x[:,i+1] = ssm.f(x[:,i],u[:,i]) + rand(w) # propagating the state
             x[:,i+1] = state_check(x[:,i+1], debug_bounds) # reality check --> see if values of parameters have gotten too small --> limit
-            rewrun[i] += sum(abs.(x[1:ssm.states,i])'*Qr) + sum(abs.(u[:,i])'*Rg) # sum rewards
+            rewrun[i] = -sum(abs.(x[1:ssm.states,i])'*Qr) + -sum(abs.(u[:,i])'*Rg) # sum rewards
 
             if !fullobs # if system isn't fully observable update the belief
               # take observation of the new state
@@ -155,24 +155,39 @@ for sim_setting = 1:length(sim_set)
         if plotting
           # for multiple runs these variables will have to be averaged for t!!!
           #include("Plot.jl")
-          using Plots
-          plotly()
           lwv = 2
           # Plot position states and estimates
-          pos_pl_data = vcat(x[startState:ssm.states,:],est[startState:ssm.states,:])
+          #pos_pl_data = vcat(x[startState:ssm.states,:],est[startState:ssm.states,:])
+          pos_pl_data = x[startState:ssm.states,:]
+          posest_pl_data = est[startState:ssm.states,:]
+
           pos_pl = plot(pos_pl_data', linewidth=2, title="Position")
+          pos_est = plot(posest_pl_data', linewidth=2, title="Position Est")
           # Plot velocity states and estimates
-          vel_pl_data = vcat(x[1:startState-1,:],est[1:startState-1,:])
-          vel_pl = plot(vel_pl_data, lw = lwv, title = "Velocity")
+          #vel_pl_data = vcat(x[1:startState-1,:],est[1:startState-1,:])
+          vel_pl_data = x[1:startState-1,:]
+          velest_pl_data = est[1:startState-1,:]
+
+          vel_pl = plot(vel_pl_data', lw = lwv, title = "Velocity")
+          vel_est = plot(velest_pl_data', lw = lwv, title = "Velocity Est")
+
           # Plot unknown param states and estimates
-          unk_pl_data = vcat(x[ssm.states+1:end,:],est[ssm.states+1:end,:])
-          unk_pl = plot(unk_pl_data, lw = lwv, title = "Unknown Params")
+          #unk_pl_data = vcat(x[ssm.states+1:end,:],est[ssm.states+1:end,:])
+          unk_pl_data = x[ssm.states+1:end,:]
+          unkest_pl_data = est[ssm.states+1:end,:]
+          @show x[ssm.states+1:end,:]
+          @show ssm.states
+          unk_pl = plot(unk_pl_data', lw = lwv, title = "Unknown Params")
+          unk_est = plot(unkest_pl_data', lw = lwv, title = "Unknown Params Est")
+
           # Plot control effort
           control_pl = plot(u', lw = lwv, title = "Control")
           # Plot rewards
-          rew_pl = plot(rewrun', lw = lwv, title = "Reward")
+          @show rewrun
+          rew_pl = plot(rewrun, lw = lwv, title = "Reward")
           # Subplot all of them together
-          plot(pos_pl,vel_pl,unk_pl,control_pl,rew_pl,layout=(5,1))
+          display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))
+          #savefig(join(["test " string(j) ".png"])) # save plots for each run
         end
     end
   end

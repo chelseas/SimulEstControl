@@ -70,6 +70,11 @@ if sim == "mcts"
   using Distributions, POMDPs, MCTS, POMDPToolbox # for MCTS
 elseif sim == "mpc"
   using Distributions, Convex, SCS, ECOS# for MPC
+  if fullobs
+    rollout = "fobs"
+  else
+    rollout = "unk"
+  end
 end
 using ForwardDiff # for EKF
 if saving
@@ -146,6 +151,9 @@ if sim == "mcts"
   if rollout == "smooth"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll), next_action=heur)#-4 before
+  elseif rollout == "random"
+    solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
+    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#-4 before
   else
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#-4 before

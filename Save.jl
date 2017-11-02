@@ -6,8 +6,8 @@ function save_data(data::Array, head::Vector, simsettings::Vector, data_val::Str
     (prob,sim,rollout,processNoise,paramNoise,numtrails,run_num) = simsettings
     fname = string(data_val," ",prob," ",sim," ",rollout," PN ",processNoise," VARN ",paramNoise," Trial ",run_num,".csv")
   elseif simsettings[2]== "mpc"
-    (prob,sim,processNoise,paramNoise,numtrials,run_num) = simsettings
-    fname = string(data_val," ",prob," ",sim," fobs ","PN ",processNoise," VARN ",paramNoise," Trial ",run_num,".csv")
+    (prob,sim,rollout,processNoise,paramNoise,numtrials,run_num) = simsettings
+    fname = string(data_val," ",prob," ",sim," ",rollout, " PN ",processNoise," VARN ",paramNoise," Trial ",run_num,".csv")
   end
   df = convert(DataFrame,data')
   #rename!(df, [head[i] for i in 1:length(head)])
@@ -34,7 +34,7 @@ function save_simulation_data(s::Matrix, est::Matrix, ctrl::Matrix, rew::Array,
   try mkdir(sim_save_name)
   end
   cd(sim_save_name)
-  newFolder = string(prob," ",sim," PN ",processNoise," VARN ",paramNoise," RUNS ",numtrials)
+  newFolder = string(prob," ",sim, " ",rollout," PN ",processNoise," VARN ",paramNoise," RUNS ",numtrials)
   try mkdir(newFolder)
   end
   cd(newFolder) # go into new folder to save files

@@ -23,10 +23,7 @@ import Base.==
 import Base.hash #might not need
 hash(s::EKFState, h::UInt=zero(UInt)) = hash(mean(s), hash(cov(s), h))
 
-#implementing the functions for GenerativeModels: https://github.com/JuliaPOMDP/GenerativeModels.jl/blob/master/src/GenerativeModels.jl
-#good example: https://github.com/JuliaPOMDP/POMDPModels.jl/blob/master/src/InvertedPendulum.jl
 create_state(::MassMDP) = MvNormal(zeros(ssm.nx),eye(ssm.nx))
-#create_action(::MassMDP) = 0.0
 create_observation(::MassMDP) = zeros(ssm.states)
 
 function transition(mdp::MassMDP,s::EKFState,a::Float64)
@@ -37,22 +34,13 @@ function transition(mdp::MassMDP,s::EKFState,a::Float64)
 end
 
 function observation(mdp::MassMDP,s::EKFState,a::Float64,sp::EKFState) # do i need to call rand here or does it do it for me?
-    #sample the multivariate gaussian -- #"true val" for pos vel mass
-    x_assume = mean(s) #sample this randomly
-    x_p = ssm.f(x_assume,a) #+ rand(mdp.w_noise)
-    obs =  ssm.h(x_p,a) #+ rand(mdp.v_noise)# assuming sp updated prev, arg for ssm.h need a? did I pass in v correct?
+    x_assume = rand(s)
+    x_p = ssm.f(x_assume,a) # do I need noise here?
+    obs =  ssm.h(x_p,a)
     return obs
 end
 
-function POMDPs.reward(mdp::MassMDP,s::EKFState,a::Float64,sp::EKFState) #is s or sp the where i should pull x from?
-    #can define these constants in MassPOMDP for more efficiency?
-    #ga = -.008#0.01  -10 w/ fDist at 50; #gain for force cost  #force^2 maxes at 25000
-    #gu = -10#-50;5 #gain for uncertainty #trace^2 maxes at 9
-    #gp = -10#3   -20; #gain for position    #pos^2 starts 400 goes to 0
-    #gv = -0.3#-0.3 normally, -10/-3 for good velocity tracking; #gain for veloc    #veloc^2 ranges 0 to 250s
-    #ga = -1#0.01  -10 w/ fDist at 50; #gain for force cost  #force^2 maxes at 25000
-    #gp = -10#3   -20; #gain for position    #pos^2 starts 400 goes to 0
-    #gv = -3
+function POMDPs.reward(mdp::MassMDP,s::EKFState,a::Float64,sp::EKFState)
     (gv, gp) = diag(-Qg)
     r = abs(mean(s)[2])*gp + abs(mean(s)[1])*gv + abs(a)*-Rg[1]# trace(cov(s))^2*gu +
     return r

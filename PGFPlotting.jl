@@ -58,7 +58,8 @@ if vary
         mcts_rand = vcat(mcts_rand,curVec)
       end
     elseif sim == "mpc"
-      mpc = vcat(mpc, curVec)
+      if rollout == "true"
+        mpc = vcat(mpc, curVec)
     end
     #@show mcts_pos
   end

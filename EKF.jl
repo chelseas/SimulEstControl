@@ -12,7 +12,7 @@ function nearestSPD(A::Matrix{Float64})
     B = (A+A')./2
 
     if isnan(B[1])
-        B = 0.01*ones(11,11)
+        B = 0.01*ones(ssm.nx,ssm.nx)
        @show B
     end
     # Compute the symmetric polar factor of B. Call it H.

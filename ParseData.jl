@@ -1,5 +1,5 @@
 using DataFrames
-folder = "test2"# give data folder name to compute averages from
+folder = "10TrialTest"#"test2"# give data folder name to compute averages from
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through
 
@@ -10,8 +10,8 @@ cd(folder)
 sim_cases = readdir() # list of filenames in this directory
 #@show sim_cases
 f1 = sim_cases[1]
-runs = parse(Int64,f1[end]) # number of runs
-
+runs = parse(Int64,split(f1)[end]) # number of runs
+@show runs
 # CREATE AVERAGES AND STD OF DATA FOR PLOTTING
 for i = 1:length(sim_cases) # go through each data folder to compute averages
   curFolder = sim_cases[i]
@@ -39,6 +39,8 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
     avg = mean(data,1)
     #@show size(avg)
     std = (var(data,1).^0.5)/runs # standard error of the mean
+    #@show j
+    #@show sum(std)
     # cat avg and std matrices together to make it easier to bring in to plots
     data = cat(2,avg[1,:,:], std[1,:,:]) # size of num trials x nvars*2
     #@show size(data)

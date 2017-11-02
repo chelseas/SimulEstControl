@@ -1,18 +1,15 @@
 # TODO:
+# ask zach how I can sample from a linear distribution rather than Normal{Float64} in POMDPs.actions for 1D prob
 # merge the POMDP dfeinition files for all problems
 # create a modified MDP to include the previous action in the state to account for the smoothness term
 # parallelize
 # figure out why UKF is performing so poorly when used in MCTS exploration
-# check all cases to see how the performance is for various conditions
 # add another outer loop to specify the simulations to run for all the conditions including roll-outs
 # is 1D MCTS sampling from a normal distriution for actions?
 # check if using right 2D dynamics and if MPC is the same
-# for MPC case add the ability to save if its fully observable or not
-# for plotter make a conditoinal plotting input at the top to determine which variables are present
 # add the standard deviation lines as well and shade the region of it instead of error for profiles
 
 # Tests to run:
-# add not full obs 2D MPC for "10TrialTest" and 2D MCTS w/ rand
 # run EKF and UKF for a variety of process noises and do performance comp --> MPC then maybe mcts
 
 # To use:
@@ -21,21 +18,21 @@
 
 # Specify simulation parameters
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mpc"
-rollout = "position"
+sim = "mcts"
+rollout = "random"
 quick_run = false
 numtrials = 10 # number of simulation runs
 processNoiseList = [0.001]#, 0.1]
 paramNoiseList = [0.1]#, 10.0]
-ukf = true # use ukf as the update method when computing mcts predictions
+ukf_flag = false # use ukf as the update method when computing mcts predictions
 
 # Output settings
 printing = false # set to true to print simple information
-plotting = true # set to true to output plots of the data
-saving = false # set to true to save simulation data to a folder
+plotting = false # set to true to output plots of the data
+saving = true # set to true to save simulation data to a folder
 sim_save_name = "10TrialTest" # name appended to sim settings for simulation folder to store data from runs
 if sim == "mpc"
-  fullobs = true
+  fullobs = true # set to false for mpc without full obs
 else
   fullobs = false
 end
@@ -125,8 +122,12 @@ for sim_setting = 1:length(sim_set)
               obs[:,i] = ssm.h(x[:,i],u[:,i]) #+ rand(v) #<-- no measurement noise
               # update belief with current measurment, input
               # take actual dynamics into ukf for oracle (deal with this later)
-              #xNew = filter(ssm,obs[:,i],xNew,Q,R,u[:,i]) # for EKF
-              xNew = ukf(ssm,obs[:,i],xNew,cov(w),cov(v),u[:,i]) # for UKF
+              #if ukf_flag
+                xNew = ukf(ssm,obs[:,i],xNew,cov(w),cov(v),u[:,i]) # for UKF
+              #else
+                #xNew = filter(ssm,obs[:,i],xNew,Q,R,u[:,i]) # for EKF
+              #end
+
 
               # reality check --> see if estimates have gotten too extreme --> limit
               x_temp = mean(xNew)
@@ -143,6 +144,7 @@ for sim_setting = 1:length(sim_set)
 
             else # make xNew equivalent to exact state
               xNew = MvNormal(x[:,i+1],eye(ssm.nx,ssm.nx)) # exact update no covariance --> using eye cuz zeros not PSD
+              est[:,i+1] = x[:,i+1]
             end
         end
 

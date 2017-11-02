@@ -28,8 +28,11 @@ create_observation(::MassMDP) = zeros(ssm.states)
 
 function transition(mdp::MassMDP,s::EKFState,a::Float64)
     obs = observation(mdp,s,a,s)
-    sp = filter(ssm, obs, s, Q, R,[a]) # will this get the correct w and v from global context?
-    #sp = ukf(ssm,obs,s,Q,R, [a]) # is it correct to pass cov(w and v) here rather than s cov?
+    if ukf_flag
+      sp = ukf(ssm,obs,s,Q,R,[a]) # this is using UKF and causing divergence during simulation ERR
+    else
+      sp = filter(ssm, obs, s, Q, R, [a])#was [a] before DIF for EKF
+    end
     return sp
 end
 

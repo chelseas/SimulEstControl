@@ -32,7 +32,7 @@ create_observation(::MassMDP) = zeros(ssm.states)
 
 function transition(mdp::MassMDP,s::EKFState,a::Array{Float64,1})
     obs = observation(mdp,s,a,s)
-    if ukf
+    if ukf_flag
       sp = ukf(ssm,obs,s,Q,R,a) # this is using UKF and causing divergence during simulation ERR
     else
       sp = filter(ssm, obs, s, Q, R, a)#was [a] before DIF for EKF
@@ -127,15 +127,18 @@ if rollout == "position"
   roll = PositionController(pos_control_gain)
   heur = nothing
 elseif rollout == "random"
+  #=
   type RandomController <: Policy # Policy{MvNormal}
+      gain::Float64
   end
   function POMDPs.action(policy::RandomController, x::EKFState, a::Array{Float64,1}=zeros(ssm.nu))
       #xAssume = mean(x)
       #return policy.gain*xAssume[4:6]#,xAssume[5],xAssume[6]] #reason for using this variable?
-      return fRange*(2*rand()-1) # is this defined somewhere? fix this
+      return rand()#fRange*(2*rand()-1) # is this defined somewhere? fix this
   end
-  roll = RandomController()
+  roll = RandomController(pos_control_gain)
   heur = nothing
+  =#
 elseif rollout == "smooth"
   type SmoothController <: Policy # Policy{MvNormal}
       step::Float64

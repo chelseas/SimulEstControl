@@ -1,35 +1,44 @@
 # TODO:
-# check to make sure the Q and R values updated in the noise_setting loop actually are updating for MCTS
 # merge the POMDP dfeinition files for all problems
 # create a modified MDP to include the previous action in the state to account for the smoothness term
-# make a data parsing function which will take folder of sim data and compute avg and standard deviation for state,est,actions,rews
 # parallelize
 # figure out why UKF is performing so poorly when used in MCTS exploration
-# fix MPC 2D cost function
 # check all cases to see how the performance is for various conditions
 # add another outer loop to specify the simulations to run for all the conditions including roll-outs
-# check to see if I'm clipping the position/vel/vla
+# is 1D MCTS sampling from a normal distriution for actions?
+# check if using right 2D dynamics and if MPC is the same
+# for MPC case add the ability to save if its fully observable or not
+# for plotter make a conditoinal plotting input at the top to determine which variables are present
+# add the standard deviation lines as well and shade the region of it instead of error for profiles
 
+# Tests to run:
+# add not full obs 2D MPC for "10TrialTest" and 2D MCTS w/ rand
+# run EKF and UKF for a variety of process noises and do performance comp --> MPC then maybe mcts
+
+# To use:
 # cd("C:/Users/patty/Box Sync/SimulEstControl/SimulEstV0") # change to your path
 # include("simulation.jl") # runs this file
-# specify simulation parameters
 
+# Specify simulation parameters
 prob = "2D" # set to the "1D" or "2D" problems defined
 sim = "mpc"
 rollout = "position"
-fullobs = true # set to true if you want to use actual state params in place of the belief
-numtrials = 1 # number of simulation runs
+quick_run = false
+numtrials = 10 # number of simulation runs
 processNoiseList = [0.001]#, 0.1]
-paramNoiseList = [3.0]#, 10.0]
-#processNoise = 10.0 # standard deviation of process noise in system
-#paramNoise = 10.0 # standard deviation of initial parameter estimate
+paramNoiseList = [0.1]#, 10.0]
+ukf = true # use ukf as the update method when computing mcts predictions
 
-# output settings
-printing = true # set to true to print simple information
+# Output settings
+printing = false # set to true to print simple information
 plotting = true # set to true to output plots of the data
 saving = false # set to true to save simulation data to a folder
-sim_save_name = "test2" # name appended to sim settings for simulation folder to store data from runs
-quick_run = false # set the simulation iterations to 10 for quickly debugging
+sim_save_name = "10TrialTest" # name appended to sim settings for simulation folder to store data from runs
+if sim == "mpc"
+  fullobs = true
+else
+  fullobs = false
+end
 
 # all parameter variables, packages, etc are defined here
 include("Setup.jl")
@@ -72,7 +81,7 @@ for sim_setting = 1:length(sim_set)
     v = MvNormal(zeros(ssm.ny),measNoise*eye(ssm.ny,ssm.ny)) #measurement noise distribution
 
     ### outer loop running for each simulation of the system
-    for j = 1:numtrials # number of simulation trials run
+    @time for j = 1:numtrials # number of simulation trials run
 
         # Initialize saving variables between each run
         obs = zeros(ssm.ny,nSamples) #measurement history
@@ -95,7 +104,7 @@ for sim_setting = 1:length(sim_set)
 
         ### inner loop running for each step in the simulation
         @time for i = 1:nSamples #for all samples
-            @show i
+            if printing @show i end
             if trace(cov(xNew)) > cov_thresh # input to action is exploding state
               u[:,i] = zeros(ssm.nu) # return action of zeros because unstable
               @show "COV THRESH INPUT EXCEEDED"
@@ -103,7 +112,7 @@ for sim_setting = 1:length(sim_set)
               if sim == "mcts"
                 u[:,i] = action(policy,xNew) # take an action MCTS
               elseif sim == "mpc"
-                u[:,i] = MPCAction(xNew,n)#n) # take an action MPC (n: # length of prediction horizon)
+                u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding controls
@@ -147,10 +156,10 @@ for sim_setting = 1:length(sim_set)
           @show processNoise
           @show avgcost = sum(rewrun)/numtrials # avg tot rewards for the runs
           @show sum(u)/nSamples # avg control effort
-          @show est[3,:]#sum(est[3,:])/nSamples # all mass est
+          #@show est[3,:]#sum(est[3,:])/nSamples # all mass est
           @show est[:,nSamples+1] # last estimate
           @show x[:,nSamples+1] # last element of states
-          @show sum(uncertainty,1)
+          #@show sum(uncertainty,1)
         end
         if plotting
           # for multiple runs these variables will have to be averaged for t!!!
@@ -175,20 +184,19 @@ for sim_setting = 1:length(sim_set)
           #unk_pl_data = vcat(x[ssm.states+1:end,:],est[ssm.states+1:end,:])
           unk_pl_data = x[ssm.states+1:end,:]
           unkest_pl_data = est[ssm.states+1:end,:]
-          @show x[ssm.states+1:end,:]
-          @show ssm.states
           unk_pl = plot(unk_pl_data', lw = lwv, title = "Unknown Params")
           unk_est = plot(unkest_pl_data', lw = lwv, title = "Unknown Params Est")
 
           # Plot control effort
           control_pl = plot(u', lw = lwv, title = "Control")
           # Plot rewards
-          @show rewrun
           rew_pl = plot(rewrun, lw = lwv, title = "Reward")
           # Subplot all of them together
-          display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))
+          #label = join([sim," ","Rew ",sum(rew_pl)," PN ", string(processNoise), " VARN ",string(paramNoise)])
+          display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))#,xlabel=label)
           #savefig(join(["test " string(j) ".png"])) # save plots for each run
         end
+        gc() # clear data?
     end
   end
 #end

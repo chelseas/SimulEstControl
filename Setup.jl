@@ -2,20 +2,20 @@
 if quick_run
   nSamples = 5 # quick amount of steps for debug_bounds
 else
-  nSamples = 100
+  nSamples = 50
 end
 
 # Settings for simulation
-measNoise = 0.00001 # standard deviation of measurement noise
+measNoise = 0.000001 # standard deviation of measurement noise
 deltaT = 0.1 # timestep for simulation --> decrease for complex systems?
 debug_bounds = false # set to 1 to print out commands to see when limits of state and estimation hit
 cov_thresh = 1000 # threshold where trace(cov) of estimate will be discarded in MCTS
-state_init = 10.0 # gain for teh initial state
+state_init = 1.0 # gain for teh initial state
 state_min_tol = 0.1 # prevent states from growing less than X% of original value
 
 if prob == "1D"
   # Settings for simulation
-  fRange = 300.0 # bounds on controls allowed within +- fRange
+  fRange = 1.0 # bounds on controls allowed within +- fRange
   #est_init = 11 # gain for the initial estimate
   fDist_disc = 1000 # discrete points in fDist force linspace
   # Reward shaping
@@ -34,21 +34,24 @@ if prob == "1D"
     pos_control_gain = -4.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
-    n = 20 # horizon steps
+    n = 20 # horizon steps # using receding horizon now
   end
 elseif prob == "2D"
   # Settings for simulation
-  fRange = 100.0 # bounds on controls allowed within +- fRange
+  fRange = 5.0 # bounds on controls allowed within +- fRange
   #est_init = 11 # gain for the initial estimate
-  state_init = 10 # gain for teh initial state
+  state_init = 1.0 # gain for teh initial state
   fDist_disc = 1000 # discrete points in fDist force linspace
   # Reward shaping
-  Qg = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # for use in POMDP reward funct
-  Qr = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0]) # for computing reward below just for measured states
-  Rg = 0.3*diagm([10.0, 10.0, 8.0])
+  Qg = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 50.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # for use in POMDP reward funct
+  Qr = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 50.0]) # for computing reward below just for measured states
+  Rg = 0.25*diagm([10.0, 10.0, 10.0])
+  # Qg = 1.0*eye(11,11)#*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # for use in POMDP reward funct
+  # Qr = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0]) # for computing reward below just for measured states
+  # Rg = 1.0*eye(3,3)#0.3*diagm([10.0, 10.0, 8.0])
   if sim == "mcts"
     # Parameters for the POMDP
-    n_iters = 50 # total number of iterations
+    n_iters = 500 # total number of iterations
     depths = 20 # depth of tree
     expl_constant = 100.0 #exploration const
     k_act = 8.0 # k for action
@@ -58,7 +61,7 @@ elseif prob == "2D"
     pos_control_gain = -8.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
-    n = 20 # horizon steps
+    n = 50 # horizon steps
   end
 end
 

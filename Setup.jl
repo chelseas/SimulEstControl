@@ -118,7 +118,7 @@ R = diagm(measNoise*ones(ssm.ny))
 
 # Loading scripts based on simulation and problem conditions
 include("UKF.jl") # contains UKF
-include("EKF.jl") # contains EKF
+# include("EKF.jl") # contains EKF
 if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
   if sim == "mcts"

@@ -24,7 +24,7 @@ quick_run = false
 numtrials = 10 # number of simulation runs
 processNoiseList = [0.001]#, 0.1]
 paramNoiseList = [0.1]#, 10.0]
-ukf_flag = false # use ukf as the update method when computing mcts predictions
+ukf_flag = true # use ukf as the update method when computing mcts predictions
 
 # Output settings
 printing = false # set to true to print simple information

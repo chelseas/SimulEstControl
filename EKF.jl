@@ -40,6 +40,7 @@ function nearestSPD(A::Matrix{Float64})
             worked = true
         catch
             ## ERR: matrix wasn't able to be fixed!
+            println("here ekf?")
             @show msg = "failed"
         end
 

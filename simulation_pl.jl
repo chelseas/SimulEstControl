@@ -1,10 +1,4 @@
 # TODO:
-# tune the tree growth for the 2D problem
-# make position controller gain larger and tune that
-# fix the issues with the state propagation error where it explodes at some points --> limit expectations as well
-# add the state check for a bounded case (implement on both MCTS versions for large bound allowance). Or should it be a separate version?
-# either make MCTS shrinking horizon or make MPC fixed horizon --> can be 50. 
-
 # ask zach how I can sample from a linear distribution rather than Normal{Float64} in POMDPs.actions for 1D prob
 # merge the POMDP dfeinition files for all problems
 # create a modified MDP to include the previous action in the state to account for the smoothness term
@@ -23,21 +17,29 @@
 # cd("C:/Users/patty/Box Sync/SimulEstControl/SimulEstV0") # change to your path
 # include("simulation.jl") # runs this file
 
+@everywhere begin
+  # cd to absolute path -->
+cd("C:/Users/patty/Box Sync/SimulEstControl/v0.6_SimulEstV0.1")
+
 # Specify simulation parameters
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mcts" # mcts, mpc, ..
-rollout = "random"
+sim = "mpc" # mcts, mpc, ..
+rollout = "position"
 quick_run = false
-numtrials = 10 # number of simulation runs
-processNoiseList = [0.1]# 0.1 0.1]#, 0.1]#, 0.1]
-paramNoiseList = [0.01]# 0.1 0.5]#, 0.1]#, 10.0]
+numtrials = 1 # number of simulation runs
+processNoiseList = Vector{Float64}(2)
+for i = 1:2
+  processNoiseList[i] = 0.1
+end
+@show processNoiseList
+paramNoiseList = [0.1, 0.1]#, 10.0]
 ukf_flag = false # use ukf as the update method when computing mcts predictions
 
 # Output settings
 printing = false # set to true to print simple information
 plotting = false # set to true to output plots of the data
-saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
-sim_save_name = "VaryMassHighProcess" # name appended to sim settings for simulation folder to store data from runs
+saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+sim_save_name = "ParallelTest" # name appended to sim settings for simulation folder to store data from runs
 if sim == "mpc"
   fullobs = true # set to false for mpc without full obs
 else
@@ -68,12 +70,13 @@ for sim_setting = 1:length(sim_set)
   end
   =#
   ### processNoise and paramNoise pairs to be fed into numtrials worth simulations each
-  for noise_setting = 1:length(paramNoiseList)
-    processNoise = processNoiseList[noise_setting]
-    paramNoise = paramNoiseList[noise_setting]
-
+  #for noise_setting = 1:length(paramNoiseList)
+  function evaluate(paramNoise::Float64)#,processNoise::Float64)
+    #processNoise = processNoiseList[noise_setting]
+    #paramNoise = paramNoiseList[noise_setting]
+    processNoise = 0.1
     # Initializing an array of psuedo-random start states and actual state
-    srand(13) # seeding the est_list values so they will all be the same
+    #srand(13) # seeding the est_list values so they will all be the same
     paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
     x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
     est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
@@ -207,7 +210,10 @@ for sim_setting = 1:length(sim_set)
         end
         gc() # clear data?
     end
+    return "done :)"
   end
+end #@everywhere
+evals = pmap(evaluate,processNoiseList)#,paramNoiseList)
 #end
 # this prints, plots, and saves data
 #include(Outputs.jl)

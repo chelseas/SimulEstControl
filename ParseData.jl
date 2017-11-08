@@ -1,5 +1,5 @@
 using DataFrames
-folder = "10TrialTest"#"test2"# give data folder name to compute averages from
+folder = "5k"#"test2"# give data folder name to compute averages from
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through
 

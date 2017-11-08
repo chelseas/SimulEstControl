@@ -24,14 +24,14 @@ if prob == "1D"
   Rg = [1]
   if sim == "mcts"
     # Parameters for the POMDP
-    n_iters = 500 # total number of iterations
-    depths = 20 # depth of tree
-    expl_constant = 300.0 #exploration const
+    n_iters = 5000 # total number of iterations # want k*n_iters^alpha to be roughly 20
+    depths = 30 # depth of tree
+    expl_constant = 10#300.0 #exploration const
     k_act = 8.0 # k for action
     alpha_act = 1.0/5.0 # alpha for action
     k_st = 8.0 # k for state
     alpha_st = 1.0/5.0 # alpha for state
-    pos_control_gain = -4.0 # gain to drive position rollout --> higher = more aggressive
+    pos_control_gain = -40.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
     n = 20 # horizon steps # using receding horizon now
@@ -58,7 +58,7 @@ elseif prob == "2D"
     alpha_act = 1.0/5.0 # alpha for action
     k_st = 8.0 # k for state
     alpha_st = 1.0/5.0 # alpha for state
-    pos_control_gain = -8.0 # gain to drive position rollout --> higher = more aggressive
+    pos_control_gain = -80.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
     n = 50 # horizon steps

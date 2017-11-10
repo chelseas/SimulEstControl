@@ -18,12 +18,12 @@
 
 # Specify simulation parameters
 prob = "1D" # set to the "1D" or "2D" problems defined
-sim = "mcts"  # "qmdp"
+sim = "qmdp"  # "qmdp"
 rollout = "random"
 quick_run = false
 numtrials = 1 # number of simulation runs
-processNoiseList = [0.001]#, 0.1]
-paramNoiseList = [0.001]#, 10.0]
+processNoiseList = [0.001] #, 0.1]
+paramNoiseList = [0.001] #, 10.0]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
 
 # Output settings
@@ -106,10 +106,8 @@ for sim_setting = 1:length(sim_set)
               u[:,i] = zeros(ssm.nu) # return action of zeros because unstable
               @show "COV THRESH INPUT EXCEEDED"
             else # compute actions as normal for safe states
-              if sim == "mcts"
+              if (sim == "mcts") || (sim == "mpc")
                 u[:,i] = action(policy,xNew) # take an action MCTS
-              elseif sim = "qmdp"
-              	u[:,i] = action(policy, xNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end

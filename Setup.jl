@@ -22,7 +22,7 @@ if prob == "1D"
   Qg = diagm([3;10])
   Qr = Qg
   Rg = [1]
-  if sim == "mcts"
+  if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
     n_iters = 500 # total number of iterations
     depths = 20 # depth of tree
@@ -49,7 +49,7 @@ elseif prob == "2D"
   # Qg = 1.0*eye(11,11)#*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # for use in POMDP reward funct
   # Qr = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0]) # for computing reward below just for measured states
   # Rg = 1.0*eye(3,3)#0.3*diagm([10.0, 10.0, 8.0])
-  if sim == "mcts"
+  if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
     n_iters = 500 # total number of iterations
     depths = 20 # depth of tree
@@ -66,7 +66,7 @@ elseif prob == "2D"
 end
 
 # Packages
-if sim == "mcts"
+if (sim == "mcts") || (sim == "qmdp")
   using Distributions, POMDPs, MCTS, POMDPToolbox # for MCTS
 elseif sim == "mpc"
   using Distributions, Convex, SCS, ECOS# for MPC
@@ -121,14 +121,14 @@ include("UKF.jl") # contains UKF
 # include("EKF.jl") # contains EKF
 if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
-  if sim == "mcts"
+  if (sim == "mcts") || (sim == "qmdp")
     include("POMDP_2D.jl") # functions for POMDP definition
   elseif sim == "mpc"
     include("MPC_2D.jl") # function to set up MPC opt and solve
   end
 elseif prob == "1D" # load files for 1D problem
   include("LimitChecks_1D.jl") # checks for control bounds and state/est values
-  if sim == "mcts"
+  if (sim == "mcts") || (sim == "qmdp")
     include("POMDP_1D.jl") # functions for POMDP definition
   elseif sim == "mpc"
     include("MPC_1D.jl") # function to set up MPC opt and solve
@@ -147,7 +147,7 @@ rewrun = Array{Float64,1}(nSamples) # total reward summed for each run
 
 #hist = HistoryRecorder() # necessary for POMDP setup #zach: is there a way to extract all actions and rewards for each step?
 # solver defined here with all settings
-if sim == "mcts"
+if (sim == "mcts") || (sim == "qmdp")
   if rollout == "smooth"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll), next_action=heur)#-4 before
@@ -159,12 +159,6 @@ if sim == "mcts"
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#-4 before
   end
   policy = solve(solver,mdp) # policy setup for POMDP
-elseif sim = "qmdp"
-  
-  # can we use same parameters as MCTS?
-  solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
-  k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#-4 before
-  policy = solve(solver, mdp)
 end
 
 

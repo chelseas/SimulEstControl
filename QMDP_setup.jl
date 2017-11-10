@@ -1,26 +1,38 @@
 # ------------ SETUP FILE FOR QMDP ------------- #
+using StaticArrays
 
 # NOTE: EKFState is still used for ukf
 const EKFState = MvNormal{Float64,PDMats.PDMat{Float64,Array{Float64,2}},Array{Float64,1}}
 
-# ---- Define POMDP ---- #
-type MassMDP <: MDP{MvNormal, Float64} # POMD{State,Action,Observation(1x2 hardcode)}
-    discount_factor::Float64 # default 0.99
-    goal_state::Float64
-    force_range::LinSpace{Float64}
-    #v_noise::MvNormal{Float64}
-    #w_noise::MvNormal{Float64}
+# --- Define Augmented State Type --- #
+# allows us to check if using using belief state or not
+type AugState
+  beliefState::Nullable{EKFState}()
+  trueState::SVector  # from StaticArrays.jl
 end
 
-#default constructor
-function MassMDP()
-    return MassMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+# --- Define Augmented MDP for QMDP --- #
+
+type AugMDP <: MDP{AugState, Array{Float64, 1}}
+  discount_factor::Float64 # default 0.99
+  goal_state::Float64
+  force_range::LinSpace{Float64}
 end
 
-mdp = MassMDP()
+
+# --- Define Constructor and Anstantiate AugMDP --- #
+# constructor
+function AugMDP()
+  return AugMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+end
+
+mdp = AugMDP()
+
+
+# --- Operator Overloading to Check Equality of EKF States --- #
 
 # redefining == for checking EKF states with logic
-import Base.==
+import Base.==2
 ==(a::EKFState,b::EKFState) = mean(a) == mean(b) && cov(a) == cov(b)
 # redefining hash for using with EKF states
 import Base.hash #might not need
@@ -29,23 +41,39 @@ hash(s::EKFState, h::UInt=zero(UInt)) = hash(mean(s), hash(cov(s), h))
 
 # ---- Create State and Observation Space ---- # 
 
-# here we need to create a state 
-
-create_state(::MassMDP) = MvNormal(zeros(ssm.nx),eye(ssm.nx))
-create_observation(::MassMDP) = zeros(ssm.states)
+# default values fed into other functions
+create_state(::AugMDP) = MvNormal(zeros(ssm.nx),eye(ssm.nx))
+create_observation(::AugMDP) = zeros(ssm.states)
 
 
 # ---- Define Transition and Observation Distributions --- #
 
+
+# TO DO:
+# - define a new state, depending on if current state is belief or not
+
 # change this to check whether we are belief state or not
-function transition(mdp::MassMDP,s::EKFState,a::Float64)
+function transition(mdp::AugMDP,s::AugState,a::Float64)
+
+  # check if "true state"
+  if isnull(s.beliefState)
+
+    # regular MDP setup
+     sp = ssm.f(s.trueState, a)
+
+  # check if belief state
+  elseif 
+
     obs = observation(mdp,s,a,s)
     if ukf_flag
       sp = ukf(ssm,obs,s,Q,R,[a]) # this is using UKF and causing divergence during simulation ERR
     else
-      sp = filter(ssm, obs, s, Q, R, [a])#was [a] before DIF for EKF
+      sp = filter(ssm, obs, s, Q, R, [a]) #was [a] before DIF for EKF
     end
     return sp
+
+  end
+
 end
 
 function observation(mdp::MassMDP,s::EKFState,a::Float64,sp::EKFState) # do i need to call rand here or does it do it for me?
@@ -133,11 +161,6 @@ function POMDPs.generate_sr(mdp::MassMDP, s::EKFState, a::Array{Float64,1}, rng:
 end
 
 # ---- Define Action --- # in our case, we just do random rollout for MCTS?
-
-function 
-
-
-
 
 
 

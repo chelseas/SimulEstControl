@@ -17,18 +17,18 @@
 # include("simulation.jl") # runs this file
 
 # Specify simulation parameters
-prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mcts"
+prob = "1D" # set to the "1D" or "2D" problems defined
+sim = "mcts"  # "qmdp"
 rollout = "random"
 quick_run = false
-numtrials = 10 # number of simulation runs
+numtrials = 1 # number of simulation runs
 processNoiseList = [0.001]#, 0.1]
-paramNoiseList = [0.1]#, 10.0]
-ukf_flag = false # use ukf as the update method when computing mcts predictions
+paramNoiseList = [0.001]#, 10.0]
+ukf_flag = true # use ukf as the update method when computing mcts predictions
 
 # Output settings
 printing = false # set to true to print simple information
-plotting = false # set to true to output plots of the data
+plotting = true # set to true to output plots of the data
 saving = true # set to true to save simulation data to a folder
 sim_save_name = "10TrialTest" # name appended to sim settings for simulation folder to store data from runs
 if sim == "mpc"
@@ -108,6 +108,8 @@ for sim_setting = 1:length(sim_set)
             else # compute actions as normal for safe states
               if sim == "mcts"
                 u[:,i] = action(policy,xNew) # take an action MCTS
+              elseif sim = "qmdp"
+              	u[:,i] = action(policy, xNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end

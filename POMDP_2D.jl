@@ -48,6 +48,12 @@ function observation(mdp::MassMDP,s::EKFState,a::Array{Float64,1},sp::EKFState)
     return obs
 end
 
+# 2D.jl vs 2D_RL.jl
+# no way to generalize POMDPs.actions and POMDPs.reward to 1D and 2D?
+# why define POMDPs
+
+# what exactly is the rand function?
+
 if prob == "2D"
   ### Calculate the reward for the current state and action
   function POMDPs.reward(mdp::MassMDP,s::EKFState,a::Array{Float64,1},sp::EKFState)
@@ -126,7 +132,7 @@ if rollout == "position"
   end
   roll = PositionController(pos_control_gain)
   heur = nothing
-elseif rollout == "random"
+elseif rollout == "random"  # already defined, don't need to define RandomController
   #=
   type RandomController <: Policy # Policy{MvNormal}
       gain::Float64

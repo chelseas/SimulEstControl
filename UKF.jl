@@ -3,7 +3,7 @@
 ### Correction term for trying to avoid Kalman numerical errors
 function nearestSPD(A::Matrix{Float64})
     #Ahat and mineig are any
-    Ahat::Array{Float64,2}
+    # Ahat::Array{Float64,2}
     #mineig::Array{Float64,1}
     n = size(A, 1)
     @assert(n == size(A, 2)) # ensure it is square
@@ -42,7 +42,7 @@ function nearestSPD(A::Matrix{Float64})
             worked = true
         catch
             ## ERR: matrix wasn't able to be fixed!
-            @show msg = "failed"
+            @show msg = "ukf failed"
         end
 
         if !worked

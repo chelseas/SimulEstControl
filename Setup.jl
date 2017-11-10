@@ -118,7 +118,7 @@ R = diagm(measNoise*ones(ssm.ny))
 
 # Loading scripts based on simulation and problem conditions
 include("UKF.jl") # contains UKF
-include("EKF.jl") # contains EKF
+# include("EKF.jl") # contains EKF
 if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
   if sim == "mcts"
@@ -159,4 +159,24 @@ if sim == "mcts"
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#-4 before
   end
   policy = solve(solver,mdp) # policy setup for POMDP
+elseif sim = "qmdp"
+  
+  # can we use same parameters as MCTS?
+  solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
+  k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#-4 before
+  policy = solve(solver, mdp)
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+

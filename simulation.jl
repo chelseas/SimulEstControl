@@ -88,6 +88,11 @@ for sim_setting = 1:length(sim_set)
         uncertainty = Array{Float64,2}(ssm.nx*ssm.nx,nSamples+1) #store covariance of state estimate
         rewrun = Array{Float64,1}(nSamples) # total reward summed for each run
 
+        # TO DO:
+        # - work with AugState state
+        # - call action(policy, AugState), do we actually need to create a new action fxn
+        #   because AugState is different?
+
         # initialize the state, belief, and stored values
         if fullobs
           xNew = MvNormal(x0_state,paramCov) # initialize the belief to exact state, param covariance because 0's throws error
@@ -106,8 +111,11 @@ for sim_setting = 1:length(sim_set)
               u[:,i] = zeros(ssm.nu) # return action of zeros because unstable
               @show "COV THRESH INPUT EXCEEDED"
             else # compute actions as normal for safe states
-              if (sim == "mcts") || (sim == "mpc")
+              if sim == "mcts"
                 u[:,i] = action(policy,xNew) # take an action MCTS
+              elseif sim == "qmdp"
+              	# EDIT THIS
+                u[:, i] = action(policy, xNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end

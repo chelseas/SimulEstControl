@@ -133,18 +133,20 @@ if rollout == "position"
   roll = PositionController(pos_control_gain)
   heur = nothing
 elseif rollout == "random"  # already defined, don't need to define RandomController
-  #=
-  type RandomController <: Policy # Policy{MvNormal}
-      gain::Float64
-  end
-  function POMDPs.action(policy::RandomController, x::EKFState, a::Array{Float64,1}=zeros(ssm.nu))
-      #xAssume = mean(x)
-      #return policy.gain*xAssume[4:6]#,xAssume[5],xAssume[6]] #reason for using this variable?
-      return rand()#fRange*(2*rand()-1) # is this defined somewhere? fix this
-  end
-  roll = RandomController(pos_control_gain)
-  heur = nothing
-  =#
+
+# where is action defined here?
+
+  # type RandomController <: Policy # Policy{MvNormal}
+  #     gain::Float64
+  # end
+  # function POMDPs.action(policy::RandomController, x::EKFState, a::Array{Float64,1}=zeros(ssm.nu))
+  #     #xAssume = mean(x)
+  #     #return policy.gain*xAssume[4:6]#,xAssume[5],xAssume[6]] #reason for using this variable?
+  #     return rand()#fRange*(2*rand()-1) # is this defined somewhere? fix this
+  # end
+  # roll = RandomController(pos_control_gain)
+  # heur = nothing
+
 elseif rollout == "smooth"
   type SmoothController <: Policy # Policy{MvNormal}
       step::Float64

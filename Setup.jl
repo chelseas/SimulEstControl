@@ -119,17 +119,22 @@ R = diagm(measNoise*ones(ssm.ny))
 # Loading scripts based on simulation and problem conditions
 include("UKF.jl") # contains UKF
 # include("EKF.jl") # contains EKF
+
 if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
-  if (sim == "mcts") || (sim == "qmdp")
+  if sim == "mcts"
     include("POMDP_2D.jl") # functions for POMDP definition
+  elseif sim == "qmdp"
+    include("QMDP_setup.jl")
   elseif sim == "mpc"
     include("MPC_2D.jl") # function to set up MPC opt and solve
   end
 elseif prob == "1D" # load files for 1D problem
   include("LimitChecks_1D.jl") # checks for control bounds and state/est values
-  if (sim == "mcts") || (sim == "qmdp")
+  if sim == "mcts"
     include("POMDP_1D.jl") # functions for POMDP definition
+  elseif sim == "qmdp"
+    include("QMDP_setup.jl")
   elseif sim == "mpc"
     include("MPC_1D.jl") # function to set up MPC opt and solve
   end

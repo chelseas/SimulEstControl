@@ -95,9 +95,15 @@ for sim_setting = 1:length(sim_set)
 
         # initialize the state, belief, and stored values
         if fullobs
-          xNew = MvNormal(x0_state,paramCov) # initialize the belief to exact state, param covariance because 0's throws error
-        else
-          xNew = MvNormal(est_list[:,j],paramCov) # initialize the belief state to wrong values
+        	# if sim == "mcts"
+        	xNew = MvNormal(x0_state,paramCov) # initialize the belief to exact state, param covariance because 0's throws error
+        	# elseif sim == "qmdp"
+        	#	xNew = AugState(MvNormal(x0_state,paramCov), x0_state)
+      	else
+        	# if sim == "mcts"
+        	xNew = MvNormal(est_list[:,j],paramCov) # initialize the belief state to wrong values
+        	# elseif sim == "qmdp"
+
         end
         x[:,1] = x0_state # set actual initial state # make random? zach
         uncertainty[:,1] = reshape(cov(xNew),ssm.nx*ssm.nx) #store covariance
@@ -115,7 +121,8 @@ for sim_setting = 1:length(sim_set)
                 u[:,i] = action(policy,xNew) # take an action MCTS
               elseif sim == "qmdp"
               	# EDIT THIS
-                u[:, i] = action(policy, xNew)
+              	AugNew = AugState(xNew, mean(xNew))
+                u[:, i] = action(policy, AugNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end

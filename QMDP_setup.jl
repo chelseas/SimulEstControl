@@ -16,8 +16,8 @@ const EKFState = MvNormal{Float64,PDMats.PDMat{Float64,Array{Float64,2}},Array{F
 # --- Define Augmented State Type --- #
 # allows us to check if using using belief state or not
 type AugState
-  beliefState::Nullable{EKFState}()
-  trueState::SVector  # from StaticArrays for better memory efficiency
+  beliefState::Nullable{EKFState}
+  trueState::SVector{ssm.nx}  # from StaticArrays for better memory efficiency
 end
 
 # --- Define Augmented MDP for QMDP --- #
@@ -74,7 +74,7 @@ function transition(mdp::AugMDP,s::AugState,a::Float64)
     sp = AugState(Nullable{EKFState}(), trueState)  # return AugState with no belief
 
   # IF BELIEF STATE
-  elseif 
+  else 
 
     obs = observation(mdp,s,a,s)
 
@@ -169,7 +169,7 @@ end
 
 ### Checking for terminal case to stop solving --> setting so it never stops
 # No reason to terminate early, want it to control continuously for given horizon
-function POMDPs.isterminal(mdp::MassMDP, s::AugState) # just for a leaf --> reach terminal state won't
+function POMDPs.isterminal(mdp::AugMDP, s::AugState) # just for a leaf --> reach terminal state won't
   # for states where the trace of the covariance is really high stop looking --> diverging EKF/UKF
 
   # DEAL WITH BELIEF STATE/TRUE STATE CASES
@@ -180,9 +180,11 @@ function POMDPs.isterminal(mdp::MassMDP, s::AugState) # just for a leaf --> reac
       return true
     end
 
-  else if trace(cov(s.beliefState)) > cov_thresh # add or for the estimates below thresh
-      #@show "out"
+  else #if trace(cov(s.beliefState)) > cov_thresh # add or for the estimates below thresh
+    
+    if s.trueState[2] > 8000000000.0 #(mean(s)[2] < mdp.goal_state) || (mean(s)[2] > 80.0)) #position is past the goal state
       return true
+    end
   end
 
   return false
@@ -210,7 +212,12 @@ end
 
 # do we need to define an action for random rollout? Patrick says no,
 # already implemented in MCTS package, but I am skeptical
-function POMDPs.action(policy::RandomController, x::EKFState, a::Array{Float64,1}=zeros(ssm.nu))
+
+type RandomController <: Policy # Policy{MvNormal}
+    gain::Float64
+end
+
+function POMDPs.action(policy::RandomController, x::AugState, a::Array{Float64,1}=zeros(ssm.nu))
     #xAssume = mean(x)
     #return policy.gain*xAssume[4:6]#,xAssume[5],xAssume[6]] #reason for using this variable?
     return rand()#fRange*(2*rand()-1) # is this defined somewhere? fix this

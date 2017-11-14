@@ -17,8 +17,8 @@
 # include("simulation.jl") # runs this file
 
 # Specify simulation parameters
-prob = "1D" # set to the "1D" or "2D" problems defined
-sim = "qmdp"  # "qmdp"
+prob = "2D" # set to the "1D" or "2D" problems defined
+sim = "qmdp"  # "mcts"
 rollout = "random"
 quick_run = false
 numtrials = 1 # number of simulation runs
@@ -30,7 +30,7 @@ ukf_flag = true # use ukf as the update method when computing mcts predictions
 printing = false # set to true to print simple information
 plotting = true # set to true to output plots of the data
 saving = true # set to true to save simulation data to a folder
-sim_save_name = "10TrialTest" # name appended to sim settings for simulation folder to store data from runs
+sim_save_name = "1TrialTest" # name appended to sim settings for simulation folder to store data from runs
 if sim == "mpc"
   fullobs = true # set to false for mpc without full obs
 else
@@ -121,8 +121,11 @@ for sim_setting = 1:length(sim_set)
                 u[:,i] = action(policy,xNew) # take an action MCTS
               elseif sim == "qmdp"
               	# EDIT THIS
-              	AugNew = AugState(xNew, mean(xNew))
+
+              	AugNew = AugState(xNew)
                 u[:, i] = action(policy, AugNew)
+
+                # u[:,i] = action(policy,xNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end
@@ -137,11 +140,11 @@ for sim_setting = 1:length(sim_set)
               obs[:,i] = ssm.h(x[:,i],u[:,i]) #+ rand(v) #<-- no measurement noise
               # update belief with current measurment, input
               # take actual dynamics into ukf for oracle (deal with this later)
-              #if ukf_flag
+              if ukf_flag
                 xNew = ukf(ssm,obs[:,i],xNew,cov(w),cov(v),u[:,i]) # for UKF
-              #else
-                #xNew = filter(ssm,obs[:,i],xNew,Q,R,u[:,i]) # for EKF
-              #end
+              else
+                xNew = filter(ssm,obs[:,i],xNew,Q,R,u[:,i]) # for EKF
+              end
 
 
               # reality check --> see if estimates have gotten too extreme --> limit
@@ -211,6 +214,7 @@ for sim_setting = 1:length(sim_set)
           # Subplot all of them together
           #label = join([sim," ","Rew ",sum(rew_pl)," PN ", string(processNoise), " VARN ",string(paramNoise)])
           display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))#,xlabel=label)
+          gui()  # need this for some reason to render browser plots on mac
           #savefig(join(["test " string(j) ".png"])) # save plots for each run
         end
         gc() # clear data?

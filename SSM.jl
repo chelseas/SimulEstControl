@@ -90,7 +90,7 @@ function build2DSSM(deltaT::Float64)
         r = [0.0; 0.0; 0.0;
             rx; ry; 0.0;
             0.0; 0.0; 0.0];
-        return C*x + D*u + r;
+        return C*x + D*u + r;  # adding some nonlinearity due to inertia offsets
     end
 
     # Defining observability of system --> measuring all outputs

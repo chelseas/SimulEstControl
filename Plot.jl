@@ -9,6 +9,7 @@ save("myfile.svg", p)
 
 using Plots
 plotly()
+# pyplot()
 #plot(rand(3,5)) # plots 5 lines of 3 data points
 
 # assuming we want to plot the individual rows of data
@@ -22,7 +23,7 @@ end
 
 
 
-  # assuming we want to plot the individual rows of data
+# assuming we want to plot the individual rows of data
 function plot_tuple(data::Tuple)#, names::Vector, title::String, xlabel::String, ylabel::String)
   num_matrices = length(data) # m rows, n columns of data
   (a,b,c,d) = data#@show names

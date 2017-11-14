@@ -76,13 +76,17 @@ elseif sim == "mpc"
     rollout = "unk"
   end
 end
+
 using ForwardDiff # for EKF
+
 if saving
   include("Save.jl")
 end
+
 if plotting
-  using Plots
-  plotly()#js()
+  # using PyPlot
+  using Plots  # metapackage bringing lots of plotting packages together
+  plotly()  # turns on plotly as backend
 end
 #using PyPlot #broken?
 
@@ -117,8 +121,11 @@ Q = diagm(processNoise*ones(ssm.nx))
 R = diagm(measNoise*ones(ssm.ny))
 
 # Loading scripts based on simulation and problem conditions
-include("UKF.jl") # contains UKF
-# include("EKF.jl") # contains EKF
+if ukf_flag
+  include("UKF.jl") # contains UKF
+else
+  include("EKF.jl") # contains EKF
+end
 
 if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values

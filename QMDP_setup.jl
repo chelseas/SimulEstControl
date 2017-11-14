@@ -1,12 +1,6 @@
-# TO DO
-# this file:
-#   - action function
-# simulation.jl
-#   - how to get MCTS to take in AugState instead of just xNew?
-
-
 # ------------ SETUP FILE FOR QMDP ------------- #
 # using StaticArrays
+using AutoHashEquals
 
 # NOTE: EKFState is still used for ukf
 const EKFState = MvNormal{Float64,PDMats.PDMat{Float64,Array{Float64,2}},Array{Float64,1}}
@@ -14,7 +8,7 @@ const EKFState = MvNormal{Float64,PDMats.PDMat{Float64,Array{Float64,2}},Array{F
 # --- Define Augmented State Type --- #
 # allows us to check if using using belief state or not
 
-struct AugState  # struct = immutable, type = mutable
+@auto_hash_equals struct AugState  # struct = immutable, type = mutable
   beliefState::Nullable{EKFState}
   trueState::Array{Float64,1}
   # trueState::SVector{ssm.nx}  # from StaticArrays for better memory efficiency
@@ -45,19 +39,13 @@ mdp = AugMDP()
 
 # --- Operator Overloading to Check Equality of EKF States --- #
 
-# redefining == for checking EKF states with logic
+# adding == method for checking EKF states with logic
 import Base.==
 ==(a::EKFState,b::EKFState) = mean(a) == mean(b) && cov(a) == cov(b)
-# redefining hash for using with EKF states
-#import Base.hash #might not need
-# hash(s::EKFState, h::UInt=zero(UInt)) = hash(mean(s), hash(cov(s), h))
 
-# how to overload twice? can this check if null or EKFstate?
-# WILL THIS WORK? building off operator overloading up above
-import Base.==
-==(a::AugState, b::AugState) = a.beliefState == b.beliefState && a.trueState == b.trueState
-
-# check this, or try using AutoHashEquals.jl
+# NOTE: == method is added for checking equality of AugStates
+#       using @auto_hash_equals macro up above in AugState definition
+#       DO NOT remove EKF == method up above
 
 
 # ---- Create State and Observation Space ---- # 

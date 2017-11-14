@@ -120,12 +120,8 @@ for sim_setting = 1:length(sim_set)
               if sim == "mcts"
                 u[:,i] = action(policy,xNew) # take an action MCTS
               elseif sim == "qmdp"
-              	# EDIT THIS
-
               	AugNew = AugState(xNew)
                 u[:, i] = action(policy, AugNew)
-
-                # u[:,i] = action(policy,xNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end

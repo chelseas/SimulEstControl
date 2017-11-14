@@ -23,7 +23,7 @@ cd("C:/Users/patty/Box Sync/SimulEstControl/v0.6_SimulEstV0.1")
 
 # Specify simulation parameters
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mpc" # mcts, mpc, ..
+sim = "mcts" # mcts, mpc, ..
 rollout = "position"
 quick_run = false
 numtrials = 1 # number of simulation runs

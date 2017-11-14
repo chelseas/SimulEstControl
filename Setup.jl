@@ -12,6 +12,7 @@ debug_bounds = false # set to 1 to print out commands to see when limits of stat
 cov_thresh = 1000 # threshold where trace(cov) of estimate will be discarded in MCTS
 state_init = 1.0 # gain for teh initial state
 state_min_tol = 0.1 # prevent states from growing less than X% of original value
+friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
 
 if prob == "1D"
   # Settings for simulation
@@ -51,13 +52,16 @@ elseif prob == "2D"
   # Rg = 1.0*eye(3,3)#0.3*diagm([10.0, 10.0, 8.0])
   if sim == "mcts"
     # Parameters for the POMDP
-    n_iters = 500 # total number of iterations
+    #500 = 7s, 2000 = 30s, 5000 = 60s
+    n_iters = 3000#00 # total number of iterations
+    samples_per_state = 3 # want to be small
+    samples_per_act = 20 # want this to be ~20
     depths = 20 # depth of tree
-    expl_constant = 100.0 #exploration const
-    k_act = 8.0 # k for action
-    alpha_act = 1.0/5.0 # alpha for action
-    k_st = 8.0 # k for state
-    alpha_st = 1.0/5.0 # alpha for state
+    expl_constant = 1.0#100.0 #exploration const
+    alpha_act = 1.0/10.0 # alpha for action
+    alpha_st = 1.0/20.0 # alpha for state
+    k_act = samples_per_act/(n_iters^alpha_act) # k for action
+    k_st = samples_per_state/(n_iters^alpha_st) # k for state
     pos_control_gain = -80.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
@@ -68,6 +72,9 @@ end
 # Packages
 if sim == "mcts"
   using Distributions, POMDPs, MCTS, POMDPToolbox # for MCTS
+    if tree_vis
+      using D3Trees
+    end
 elseif sim == "mpc"
   using Distributions, Convex, SCS, ECOS# for MPC
   if fullobs
@@ -135,25 +142,35 @@ elseif prob == "1D" # load files for 1D problem
   end
 end
 
-# Initializing variables for the simulation to be stored
-#=
-obs = Array{Float64,2}(ssm.ny,nSamples) #measurement history
-u = Array{Float64,2}(ssm.nu,nSamples) #input history
-x = Array{Float64,2}(ssm.nx,nSamples+1) #state history
-est = Array{Float64,2}(ssm.nx,nSamples+1) #store mean of state estimate
-uncertainty = Array{Array{Float64,2},1}(nSamples+1) #store covariance of state estimate
-rewrun = Array{Float64,1}(nSamples) # total reward summed for each run
-=#
 
-#hist = HistoryRecorder() # necessary for POMDP setup #zach: is there a way to extract all actions and rewards for each step?
+if bounds
+  include("EllipseBounds.jl")
+  # will need to precompute this for each ProcessNoise case in the sim file so add it to main simulation.jl soon #TODO
+  @show desired_bounds = 5.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
+  n_w = 30
+  n_out_w = 10
+  F = 2.34
+  w_bound_samples = ellipsoid_bounds(MvNormal(zeros(ssm.nx),processNoiseList[1]eye(ssm.nx,ssm.nx)),n_w,n_out_w,F) # precompute the w_bound
+  w_bound_avg = mean(w_bound_samples,2) # average samples of the w_bound
+  @show w_bound = norm(w_bound_avg*sqrt(processNoiseList[1])) # compute the norm of the STD * the w_bound
+  max_action_count = 20
+  action_count = 1
+end
+
+if tree_vis
+  hist = HistoryRecorder() # necessary for POMDP setup #zach: is there a way to extract all actions and rewards for each step?
+end
 # solver defined here with all settings
 if sim == "mcts"
   if rollout == "smooth"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll), next_action=heur)#-4 before
+  elseif rollout == "random" && bounds == true
+    solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
+    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#, enable_tree_vis = tree_vis)#-4 before
   elseif rollout == "random"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
-    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#-4 before
+    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#, enable_tree_vis = tree_vis)#-4 before
   else
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#-4 before

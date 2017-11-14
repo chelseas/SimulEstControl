@@ -43,7 +43,7 @@ end
 ### Take a stochastic observation of the current state
 function observation(mdp::MassMDP,s::EKFState,a::Array{Float64,1},sp::EKFState)
     x_assume = rand(s)
-    x_p = ssm.f(x_assume,a) # do I need noise here?
+    x_p = ssm.f(x_assume,a) # WHY AM I PROPAGATING THIS?
     obs =  ssm.h(x_p,a)
     return obs
 end
@@ -101,6 +101,15 @@ function POMDPs.isterminal(mdp::MassMDP, s::EKFState) # just for a leaf --> reac
       #@show "out"
       return true
   end
+  #=
+  if bounds
+    # check if the next state given bounds are exceeded and terminate
+    total_bounds = overall_bounds([-100.0],s,zeros(ssm.nu),w_bound) # can I check if the state after the action is within
+    if desired_bounds < total_bounds
+      return true
+    end
+  end
+  =#
   return false
 end
 
@@ -127,18 +136,24 @@ if rollout == "position"
   roll = PositionController(pos_control_gain)
   heur = nothing
 elseif rollout == "random"
-  #=
   type RandomController <: Policy # Policy{MvNormal}
       gain::Float64
   end
   function POMDPs.action(policy::RandomController, x::EKFState, a::Array{Float64,1}=zeros(ssm.nu))
       #xAssume = mean(x)
       #return policy.gain*xAssume[4:6]#,xAssume[5],xAssume[6]] #reason for using this variable?
-      return rand()#fRange*(2*rand()-1) # is this defined somewhere? fix this
+      next_bound = desired_bounds + 1.0 # make more so it isn't true initially
+      action_count = 0
+      u_sample = zeros(ssm.nu)
+      while (next_bound > desired_bounds) && (action_count < max_action_count)
+        u_sample = fRange*(2*rand()-1)*ones(ssm.nu)
+        next_bound = overall_bounds([-100.0],x,u_sample,w_bound) # can I check if the state after the action is within
+        action_count = action_count + 1
+      end
+      return u_sample
   end
   roll = RandomController(pos_control_gain)
   heur = nothing
-  =#
 elseif rollout == "smooth"
   type SmoothController <: Policy # Policy{MvNormal}
       step::Float64

@@ -40,7 +40,9 @@ function nearestSPD(A::Matrix{Float64})
             worked = true
         catch
             ## ERR: matrix wasn't able to be fixed!
-            @show msg = "failed"
+            if iteration_count == 10
+              @show msg = "failed"
+            end
         end
 
         if !worked

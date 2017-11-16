@@ -64,6 +64,8 @@ function state_check(x::Array{Float64,1}, flag::Bool)
         if(flag)
             @show "Inertia here"
         end
+    elseif(x[8] > friction_lim) # capping the friction to prevent exploding unreal sys
+        x[8] = friction_lim
     end
     if(x[9] < state_init*state_min_tol)
         x[9] = state_init*state_min_tol

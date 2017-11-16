@@ -1,5 +1,5 @@
 # Take the data from ParseData and make a variety of plots --> these will be auto passed
-folder = "10TrialTest"
+folder = "10Trials"
 pdata = " processed data"
 tot_dir = "total rewards"
 plot_folder = "plots"
@@ -265,6 +265,7 @@ if profile # plot the profiles for the runs
   vertspace = "0.5"
   horizspace = "0.0"
   ht = "4cm"
+  ht2 = "6cm"
   wdth = "8cm"
 
   # determine if that type of data is available and then add it to the list to pass in if so
@@ -287,7 +288,7 @@ if profile # plot the profiles for the runs
 
   rew = Axis(profile_rew
       #Plots.Linear(0:nSamples-1,mcts_pos_rew[:,1],errorBars = ErrorBars(y=mcts_pos_rew[:,2]), style=mcts_pos_style,  mark=mark1)
-      ,xlabel=xaxis, ylabel=rewlab, legendPos="south east", width = wdth, height = ht)
+      ,xlabel=xaxis, ylabel=rewlab, legendPos="south east", width = wdth, height = ht2)
 
   g3 = GroupPlot(1,4, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
   push!(g3, st)

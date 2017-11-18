@@ -53,8 +53,8 @@ elseif prob == "2D"
   if sim == "mcts"
     # Parameters for the POMDP
     #500 = 7s, 2000 = 30s, 5000 = 60s
-    n_iters = 3000#00 # total number of iterations
-    samples_per_state = 3 # want to be small
+    n_iters = 500#3000#00 # total number of iterations
+    samples_per_state = 1#3 # want to be small
     samples_per_act = 20 # want this to be ~20
     depths = 20 # depth of tree
     expl_constant = 1.0#100.0 #exploration const
@@ -66,6 +66,10 @@ elseif prob == "2D"
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
     n = 50 # horizon steps
+  elseif sim == "drqn"
+    load_dir = "" # Path to load the saved file
+    epsilon = 0.5 # percentage to use EKF to update belief and draw sample to train from
+    training_epochs = 5 # counter for training epochs
   end
 end
 
@@ -82,6 +86,12 @@ elseif sim == "mpc"
   else
     rollout = "unk"
   end
+elseif sim == "drqn"
+  using Distributions, TensorFlow
+  if rollout == "train"
+      using Convex, SCS, ECOS
+  elseif rollout == "test"
+  end
 end
 using ForwardDiff # for EKF
 if saving
@@ -91,7 +101,6 @@ if plotting
   using Plots
   plotly()#js()
 end
-#using PyPlot #broken?
 
 # First have to load SSM to define params for rest of the setup
 include("SSM.jl") # contains SSM definitions and functions
@@ -132,6 +141,12 @@ if prob == "2D" # load files for 2D problem
     include("POMDP_2D.jl") # functions for POMDP definition
   elseif sim == "mpc"
     include("MPC_2D.jl") # function to set up MPC opt and solve
+  elseif sim == "drqn"
+    include("DRQN.jl")
+    if rollout == "train"
+        include("MPC_2D.jl")
+    elseif rollout == "test"
+    end
   end
 elseif prob == "1D" # load files for 1D problem
   include("LimitChecks_1D.jl") # checks for control bounds and state/est values
@@ -139,6 +154,12 @@ elseif prob == "1D" # load files for 1D problem
     include("POMDP_1D.jl") # functions for POMDP definition
   elseif sim == "mpc"
     include("MPC_1D.jl") # function to set up MPC opt and solve
+  elseif sim == "drqn"
+    include("DRQN.jl")
+    if rollout == "train"
+        include("MPC_1D.jl")
+    elseif rollout == "test"
+    end
   end
 end
 

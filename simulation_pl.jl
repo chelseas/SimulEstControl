@@ -19,35 +19,52 @@
 
 @everywhere begin
   # cd to absolute path -->
-cd("C:/Users/patty/Box Sync/SimulEstControl/v0.6_SimulEstV0.1")
+    dir = pwd()
+    cd(dir)
+    noiseList = []
+    processNoiseList = [0.001,0.0033,0.01,0.033,0.1]
+    paramNoiseList = [0.1,0.3,0.5,0.7]
+    for PRN in processNoiseList
+        for PMN in paramNoiseList
+            push!(noiseList,(PRN,PMN))
+        end
+    end
+    #processNoiseList = Vector{Float64}(2)
+    #for k = 1:2
+    #  processNoiseList[k] = 0.01*k
+    #end
+    #@show processNoiseList
+    #paramNoiseList = [0.1, 0.01]#, 10.0]
+    @show noiseList
 
-# Specify simulation parameters
-prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mcts" # mcts, mpc, ..
-rollout = "position"
-quick_run = false
-numtrials = 1 # number of simulation runs
-processNoiseList = Vector{Float64}(2)
-for i = 1:2
-  processNoiseList[i] = 0.1
-end
-@show processNoiseList
-paramNoiseList = [0.1, 0.1]#, 10.0]
-ukf_flag = false # use ukf as the update method when computing mcts predictions
+    prob = "2D" # set to the "1D" or "2D" problems defined
+    sim = "mcts" # mcts, mpc, qmdp, drqn
+    rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
+    bounds = false # set bounds for mcts solver
+    quick_run = false
+    numtrials = 10 # number of simulation runs
+    #processNoiseList = [0.1]#[0.001,0.005,0.01,0.05,0.1,0.2]#[0.05]#
+    #paramNoiseList = [0.1]#[0.1,0.3,0.5,0.7]#[0.3]#
+    ukf_flag = true # use ukf as the update method when computing mcts predictions
+    param_change = false # add a cosine term to the unknown param updates
+    param_type = "sine" # sine or steps
+    param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
+    param_freq = 0.3
 
-# Output settings
-printing = false # set to true to print simple information
-plotting = false # set to true to output plots of the data
-saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
-sim_save_name = "ParallelTest" # name appended to sim settings for simulation folder to store data from runs
-if sim == "mpc"
-  fullobs = true # set to false for mpc without full obs
-else
-  fullobs = false
-end
+    # Output settings
+    printing = true # set to true to print simple information
+    plotting = false # set to true to output plots of the data
+    saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+    tree_vis = false # visual MCTS tree
+    sim_save_name = "PL_test_double" # name appended to sim settings for simulation folder to store data from runs
+    fullobs = true # set to false for mpc without full obs
+    if sim != "mpc" # set fullobs false for any other sim
+      fullobs = false
+    end
 
-# all parameter variables, packages, etc are defined here
-include("Setup.jl")
+
+    # all parameter variables, packages, etc are defined here
+    include("Setup.jl")
 #=
 sim_set = ["mpc", "mcts", "mcts"] # set to "mpc" or "mcts"
 rollout_set = ["nobs","position","random"] # sets rollout policy for MCTS to "position", "random", or "smooth"
@@ -71,10 +88,12 @@ for sim_setting = 1:length(sim_set)
   =#
   ### processNoise and paramNoise pairs to be fed into numtrials worth simulations each
   #for noise_setting = 1:length(paramNoiseList)
-  function evaluate(paramNoise::Float64)#,processNoise::Float64)
+  function evaluate(params)#,processNoise::Float64)
     #processNoise = processNoiseList[noise_setting]
     #paramNoise = paramNoiseList[noise_setting]
-    processNoise = 0.1
+    processNoise = params[1]
+    paramNoise = params[2] # second element of tuple
+
     # Initializing an array of psuedo-random start states and actual state
     #srand(13) # seeding the est_list values so they will all be the same
     paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
@@ -86,10 +105,9 @@ for sim_setting = 1:length(sim_set)
     R = diagm(measNoise*ones(ssm.ny))
     w = MvNormal(zeros(ssm.nx),Q) # process noise distribution
     v = MvNormal(zeros(ssm.ny),measNoise*eye(ssm.ny,ssm.ny)) #measurement noise distribution
-
+    step = 1 # count steps
     ### outer loop running for each simulation of the system
     @time for j = 1:numtrials # number of simulation trials run
-
         # Initialize saving variables between each run
         obs = zeros(ssm.ny,nSamples) #measurement history
         u = Array{Float64,2}(ssm.nu,nSamples) #input history
@@ -97,6 +115,8 @@ for sim_setting = 1:length(sim_set)
         est = Array{Float64,2}(ssm.nx,nSamples+1) #store mean of state estimate
         uncertainty = Array{Float64,2}(ssm.nx*ssm.nx,nSamples+1) #store covariance of state estimate
         rewrun = Array{Float64,1}(nSamples) # total reward summed for each run
+        act_dep_bounds = Array{Float64,1}(nSamples) # bounds chosen based on the taken action
+        state_bounds = Array{Float64,1}(nSamples) # storing the bounds computed for each next state
 
         # initialize the state, belief, and stored values
         if fullobs
@@ -111,6 +131,7 @@ for sim_setting = 1:length(sim_set)
 
         ### inner loop running for each step in the simulation
         @time for i = 1:nSamples #for all samples
+            @show step = i # use to break out of some cases in the POMDP function
             if printing @show i end
             if trace(cov(xNew)) > cov_thresh # input to action is exploding state
               u[:,i] = zeros(ssm.nu) # return action of zeros because unstable
@@ -118,14 +139,47 @@ for sim_setting = 1:length(sim_set)
             else # compute actions as normal for safe states
               if sim == "mcts"
                 u[:,i] = action(policy,xNew) # take an action MCTS
+                if tree_vis # visualize the MCTS tree for 1 run and break
+                  inchrome(D3Tree(policy, title="whatever"))#,xNew)
+                  @show "Plotting Tree"
+                  break
+                end
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+              elseif sim == "drqn"
+                u[:,i] = MPCAction(xNew,nSamples+2-i)
               end
             end
-            u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding controls
+            u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding control
             x[:,i+1] = ssm.f(x[:,i],u[:,i]) + rand(w) # propagating the state
+            if param_change # add additional term to the unknown params
+              if param_type == "sine"
+                x[:,i+1] = x[:,i+1] + [zeros(ssm.states); param_magn*cos(param_freq*i)*ones(ssm.nx - ssm.states)]
+              elseif param_type == "steps"
+                if i < 10
+                  param_var = 0
+                elseif i < 20
+                  param_var = param_magn
+                elseif i < 30
+                  param_var = 0
+                elseif i < 40
+                  param_var = -param_magn
+                else
+                  param_var = 0
+                end
+                x[:,i+1] = [x[1:ssm.states,i+1]; (state_init+param_var)*ones(ssm.nx - ssm.states)] + rand(w)
+              end
+            end
             x[:,i+1] = state_check(x[:,i+1], debug_bounds) # reality check --> see if values of parameters have gotten too small --> limit
             rewrun[i] = -sum(abs.(x[1:ssm.states,i])'*Qr) + -sum(abs.(u[:,i])'*Rg) # sum rewards
+
+            # bounds testing
+            #@show state_temp = x[1:ssm.states,i] # first 6 "measured" values
+            #@show est_temp = MvNormal(mean(xNew)[ssm.states+1:end],cov(xNew)[ssm.states+1:end,ssm.states+1:end]) # MvNormal of Ests
+            if bounds # show the state_bounds and see if they are within the threshold
+              @show state_bounds[i] = norm(x[:,i+1])
+              @show act_dep_bounds[i] = overall_bounds([-100.0],xNew,u[:,i],w_bound) # setting state_temp = [-100.0] to just use belief
+            end
 
             if !fullobs # if system isn't fully observable update the belief
               # take observation of the new state
@@ -133,11 +187,38 @@ for sim_setting = 1:length(sim_set)
               # update belief with current measurment, input
               # take actual dynamics into ukf for oracle (deal with this later)
               #if ukf_flag
-                xNew = ukf(ssm,obs[:,i],xNew,cov(w),cov(v),u[:,i]) # for UKF
+              xNew = ukf(ssm,obs[:,i],xNew,cov(w),cov(v),u[:,i]) # for UKF
               #else
                 #xNew = filter(ssm,obs[:,i],xNew,Q,R,u[:,i]) # for EKF
               #end
-
+              if sim == "drqn"
+                  buffer[i,:,:] = [rewrun[i] x[:,i]] # should this be ith step or next?
+                  if rollout == "train" # epsilon greedy
+                    if j < training_epochs
+                        if i == nSamples # train on all data for this buffer
+                          cur_loss, _=run(sess,[Loss,minimize_op],Dict(X=>buffer[:,:,1:ssm.states+1],Y_obs=>buffer[:,:,ssm.states+2:end]))
+                          println(@sprintf("Current loss is %.2f.", cur_loss))
+                        end
+                    elseif rand() < epsilon # use UKF to make prediction # experience replay
+                      # sample previous experience from the
+                      rand_ind = convert(Int32,round(rand()*i)) # get random index to sample for data
+                      x_train = buffer[rand_ind,:,1:ssm.states+1]# separate elements to train on
+                      y_train = buffer[rand_ind,:,ssm.states+2:end]# separate the actual unknown vals
+                      cur_loss, _= run(sess, [Loss, minimize_op], Dict(X=>x_train, Y_obs=>y_train))
+                    else # use prediction of RNN to get unknown param estimates
+                      x_train = buffer[i,:,1:ssm.states+1]# separate elements to train on
+                      y_train = buffer[i,:,ssm.states+2:end]# separate the actual unknown vals
+                      cur_loss, _, xGuess = run(sess, [Loss, minimize_op,Y], Dict(X=>x_train, Y_obs=>y_train))
+                      xNew = MvNormal([mean(xNew)[1:ssm.states]; xGuess])
+                      # need to change the value that goes to MPC with xGuess
+                    end
+                    if i == nSamples # save at the end of each epoch
+                      train.save(saver, sess, joinpath(checkpoint_path, string("RNN epoch",j,".jld")))
+                    end
+                  elseif rollout == "test"
+                  else # handle the update normally
+                  end
+              end
 
               # reality check --> see if estimates have gotten too extreme --> limit
               x_temp = mean(xNew)
@@ -149,7 +230,7 @@ for sim_setting = 1:length(sim_set)
                 @show u[:,i]
                 @show x[:,i+1]
                 @show mean(xNew)
-                @show uncertainty[:,i+1]
+                @show sum(sum(uncertainty[:,i+1]))
               end
 
             else # make xNew equivalent to exact state
@@ -210,10 +291,9 @@ for sim_setting = 1:length(sim_set)
         end
         gc() # clear data?
     end
-    return "done :)"
   end
 end #@everywhere
-evals = pmap(evaluate,processNoiseList)#,paramNoiseList)
+evals = pmap(evaluate,noiseList)#,paramNoiseList)
 #end
 # this prints, plots, and saves data
 #include(Outputs.jl)

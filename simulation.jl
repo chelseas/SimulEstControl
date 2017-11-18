@@ -22,14 +22,14 @@
 
 # Specify simulation parameters
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mpc" # mcts, mpc, ..
-rollout = "random"
+sim = "mcts" # mcts, mpc, qmdp, drqn
+rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 bounds = false # set bounds for mcts solver
 quick_run = false
-numtrials = 30 # number of simulation runs
-processNoiseList = [0.001,0.005,0.01,0.05,0.1,0.2]#[0.05]#
-paramNoiseList = [0.1,0.3,0.5,0.7]#[0.3]#
-ukf_flag = false # use ukf as the update method when computing mcts predictions
+numtrials = 10 # number of simulation runs
+processNoiseList = [0.1]#[0.001,0.005,0.01,0.05,0.1,0.2]#[0.05]#
+paramNoiseList = [0.1]#[0.1,0.3,0.5,0.7]#[0.3]#
+ukf_flag = true # use ukf as the update method when computing mcts predictions
 param_change = false # add a cosine term to the unknown param updates
 param_type = "sine" # sine or steps
 param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
@@ -40,10 +40,9 @@ printing = false # set to true to print simple information
 plotting = false # set to true to output plots of the data
 saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
-sim_save_name = "MPC_FULL_SIMS_FOBS" # name appended to sim settings for simulation folder to store data from runs
-if sim == "mpc"
-  fullobs = true # set to false for mpc without full obs
-else
+sim_save_name = "UKF_quick_test2" # name appended to sim settings for simulation folder to store data from runs
+fullobs = true # set to false for mpc without full obs
+if sim != "mpc" # set fullobs false for any other sim
   fullobs = false
 end
 
@@ -127,6 +126,8 @@ for sim_setting = 1:length(sim_set)
                 end
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+              elseif sim == "drqn"
+                u[:,i] = MPCAction(xNew,nSamples+2-i)
               end
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding control
@@ -170,7 +171,34 @@ for sim_setting = 1:length(sim_set)
               #else
                 #xNew = filter(ssm,obs[:,i],xNew,Q,R,u[:,i]) # for EKF
               #end
-
+              if sim == "drqn"
+                  buffer[i,:,:] = [rewrun[i] x[:,i]] # should this be ith step or next?
+                  if rollout == "train" # epsilon greedy
+                    if j < training_epochs
+                        if i == nSamples # train on all data for this buffer
+                          cur_loss, _=run(sess,[Loss,minimize_op],Dict(X=>buffer[:,:,1:ssm.states+1],Y_obs=>buffer[:,:,ssm.states+2:end]))
+                          println(@sprintf("Current loss is %.2f.", cur_loss))
+                        end
+                    elseif rand() < epsilon # use UKF to make prediction # experience replay
+                      # sample previous experience from the
+                      rand_ind = convert(Int32,round(rand()*i)) # get random index to sample for data
+                      x_train = buffer[rand_ind,:,1:ssm.states+1]# separate elements to train on
+                      y_train = buffer[rand_ind,:,ssm.states+2:end]# separate the actual unknown vals
+                      cur_loss, _= run(sess, [Loss, minimize_op], Dict(X=>x_train, Y_obs=>y_train))
+                    else # use prediction of RNN to get unknown param estimates
+                      x_train = buffer[i,:,1:ssm.states+1]# separate elements to train on
+                      y_train = buffer[i,:,ssm.states+2:end]# separate the actual unknown vals
+                      cur_loss, _, xGuess = run(sess, [Loss, minimize_op,Y], Dict(X=>x_train, Y_obs=>y_train))
+                      xNew = MvNormal([mean(xNew)[1:ssm.states]; xGuess])
+                      # need to change the value that goes to MPC with xGuess
+                    end
+                    if i == nSamples # save at the end of each epoch
+                      train.save(saver, sess, joinpath(checkpoint_path, string("RNN epoch",j,".jld")))
+                    end
+                  elseif rollout == "test"
+                  else # handle the update normally
+                  end
+              end
 
               # reality check --> see if estimates have gotten too extreme --> limit
               x_temp = mean(xNew)

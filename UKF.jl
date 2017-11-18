@@ -79,7 +79,7 @@ function ukf(m::NonLinearSSM, # NL SSM
             u::Array=zeros(m.nu,size(z,2)))
 
     # Aliases (notations from UKF papers)
-    α = 1e-3
+    α = 0.9#1e-3
     κ = 0. # also try 1 here --> not sure why?
     β = 2.
     x = mean(x0)

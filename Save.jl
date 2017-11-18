@@ -30,6 +30,8 @@ function save_simulation_data(s::Matrix, est::Matrix, ctrl::Matrix, rew::Array,
   (sim_save_name,prob,sim,rollout,processNoise,paramNoise,numtrials,run_num) = settings
   indset = settings[2:end] # to pass to each save_data command
   # Make folder for simulation
+  try mkdir("data")
+  end
   cd("data")
   try mkdir(sim_save_name)
   end

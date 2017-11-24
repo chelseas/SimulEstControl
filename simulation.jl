@@ -17,7 +17,7 @@
 # include("simulation.jl") # runs this file
 
 # Specify simulation parameters
-prob = "2D" # set to the "1D" or "2D" problems defined
+prob = "Car" # set to the "1D" or "2D" problems defined
 sim = "qmdp"  # "mcts"
 rollout = "random"
 quick_run = false

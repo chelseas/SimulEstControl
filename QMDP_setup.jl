@@ -153,6 +153,58 @@ if prob == "2D"
       return diff*rand(rng, ssm.nu)+as.lower
   end
 
+
+elseif prob == "Car"
+
+  # Define shape of road -- in future, may want to add lane markers
+  PathX = collect(0:0.1:100);
+  PathY = sqrt.(100^2 - PathX.^2);
+  # Define speed limit -- speed matching goal
+  SpeedLimit = 10.0
+
+  function POMDPs.reward(mdp::AugMDP, s::AugState, a::Float64, sp::AugState)
+
+    # Get state estimate
+    if isnull(s.beliefState)
+      TrueState = s.trueState;
+    else
+      TrueState = mean(get(s.beliefState))
+    end
+
+    # Find closest point on the path
+    Dist2State = sqrt.((TrueState[1] - PathX).^2 + (TrueState[2] - PathY).^2);
+    DistErr = minimum(Dist2State);
+    # Find error in speed
+    SpeedErr = abs(SpeedLimit - TrueState[4]);
+    # reward nearness to path and speed limit - use exponents
+    # want to use inverse relationship, but zero division blows up
+    # instead, use a^err for a<1 so that a^err = 1 for err = 0 and a^err < 1 for err>0
+    # as a first guess, use a = 0.9 with coefficient 1
+    r = 0.9^DistErr + 0.9^SpeedErr;
+    return r
+  end
+
+  # Define action space
+  immutable FFTActionSpace
+      lower::Array{Float64, 1}
+      upper::Array{Float64, 1}
+  end
+
+  # Defines the action space as continuous in range of fRange
+  function POMDPs.actions(mdp::AugMDP)
+      # take rand action within force bounds
+      return FFTActionSpace(-fRange, fRange) # frange is [u1 range; u2 range]
+  end
+
+  # Define POMDPs actions with function
+  POMDPs.actions(mdp::AugMDP, s::AugState, as::Array{Float64,1}) = actions(mdp)
+
+  ### Define rand for using within the range defined in FFT
+  function Base.rand(rng::AbstractRNG, as::FFTActionSpace)
+      diff = as.upper-as.lower
+      return diff.*rand(rng, ssm.nu) + as.lower
+  end
+
 # -- 1D Case --- #
 elseif prob == "1D"
 

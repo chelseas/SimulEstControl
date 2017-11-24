@@ -63,6 +63,25 @@ elseif prob == "2D"
   elseif sim == "mpc"
     n = 50 # horizon steps
   end
+
+elseif prob == "Car"
+  fRange = [5; 1];
+  fDist_disc = [1000; 1000];
+
+  if (sim == "mcts") || (sim == "qmdp")
+    # Parameters for the POMDP
+    n_iters = 500 # total number of iterations
+    depths = 20 # depth of tree
+    expl_constant = 100.0 #exploration const
+    k_act = 8.0 # k for action
+    alpha_act = 1.0/5.0 # alpha for action
+    k_st = 8.0 # k for state
+    alpha_st = 1.0/5.0 # alpha for state
+    pos_control_gain = -8.0 # gain to drive position rollout --> higher = more aggressive
+    control_stepsize = 5.0 # maximum change in control effort from previous action
+  elseif sim == "mpc"
+    n = 50 # horizon steps
+  end
 end
 
 # Packages
@@ -96,6 +115,10 @@ if prob == "2D"
   ssm = build2DSSM(deltaT)#,processNoise,measNoise) # building state-space
   prob_params = ["vx","vy","w","x","y","theta","m","uv","J","rx","ry"]
   control_params = ["Fx", "Fy", "T"]
+elseif prob == "Car"
+  ssm = buildCarSSM(deltaT);
+  prob_params = ["x", "y", "theta", "v", "mu"];
+  control_params = ["u1", "u2"];
 elseif prob == "1D"
   ssm = buildDoubleIntSSM(deltaT)#,processNoise,measNoise) # building 1D state-space
   prob_params = ["v","p","m"]
@@ -103,15 +126,23 @@ elseif prob == "1D"
 end
 
 # Force limits in the problem --> need before defining MPC/POMDP
-FVar = fRange;
-TVar = fRange;
-fDist = linspace(-fRange, fRange, fDist_disc)
-uDist = MvNormal(zeros(ssm.nu),diagm(fRange*ones(ssm.nu)))
-startState = Int(ssm.states/2+1) # first position index
-if startState == ssm.states
-  pos_range = startState
+if prob == "Car"
+  Fvar = fRange;
+  TVar = fRange;
+  fDist = [linspace(-fRange[1], fRange[1], fDist_disc[1]); linspace(-fRange[2], fRange[2], fDist_disc[2])];
+  uDist = MvNormal(zeros(ssm.nu), diagm(fRange));
+  pos_range = 1:4;
 else
-  pos_range = startState:ssm.states # range of indeces in state mean for positions used in propotional controller
+  FVar = fRange;
+  TVar = fRange;
+  fDist = linspace(-fRange, fRange, fDist_disc)
+  uDist = MvNormal(zeros(ssm.nu),diagm(fRange*ones(ssm.nu)))
+  startState = Int(ssm.states/2+1) # first position index
+  if startState == ssm.states
+    pos_range = startState
+  else
+    pos_range = startState:ssm.states # range of indeces in state mean for positions used in propotional controller
+  end
 end
 
 # initialize first process and param noises and Q,R
@@ -136,6 +167,13 @@ if prob == "2D" # load files for 2D problem
   elseif sim == "mpc"
     include("MPC_2D.jl") # function to set up MPC opt and solve
   end
+elseif prob == "Car"
+
+  # Include Limit Checks? ###############################################################
+  if sim == "qmdp"
+    include("QMDP_setup.jl")
+  end
+  
 elseif prob == "1D" # load files for 1D problem
   include("LimitChecks_1D.jl") # checks for control bounds and state/est values
   if sim == "mcts"

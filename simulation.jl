@@ -55,7 +55,7 @@ if length(ARGS) > 2 # first arg for type of testing conditions
     end
 end
 if length(ARGS) > 3 # now if the params should be changed
-    cond2 = ARGS[5]
+    cond2 = ARGS[4]
     param_type = cond2
     if cond2 == "sine"
         param_change = true
@@ -66,7 +66,7 @@ if length(ARGS) > 3 # now if the params should be changed
     end
 end
 if length(ARGS) > 4 # set mpc to unknown if don't want fobs
-    if ARGS[4] == "unk"
+    if ARGS[5] == "unk"
         fullobs = false
     end
 end

@@ -3,7 +3,7 @@
 ### Correction term for trying to avoid Kalman numerical errors
 function nearestSPD(A::Matrix{Float64})
     #Ahat and mineig are any
-    Ahat::Array{Float64,2}
+    #Ahat::Array{Float64,2}
     #mineig::Array{Float64,1}
     n = size(A, 1)
     @assert(n == size(A, 2)) # ensure it is square
@@ -13,19 +13,19 @@ function nearestSPD(A::Matrix{Float64})
     # symmetrize A into B
     B = (A+A')./2
 
-    if isnan(B[1])
-        B = 0.01*ones(ssm.nx,ssm.nx)
+    if any(isnan, B)
+        B = cov_thresh*eye(ssm.nx,ssm.nx)
        @show B
     end
     # Compute the symmetric polar factor of B. Call it H.
     # Clearly H is itself SPD.
+
     U, σ, V = svd(B)
     H = V*diagm(σ)*V'
 
     # get Ahat in the above formula
     Ahat = (B+H)/2
-    typeof(Ahat)
-    Ahat
+
     # ensure symmetry
     Ahat = (Ahat + Ahat')/2;
 
@@ -36,7 +36,6 @@ function nearestSPD(A::Matrix{Float64})
     # tweak the matrix so that it avoids the numerical instability
     while !worked && iteration_count < 100
         iteration_count += 1
-
         try
             chol(Ahat)
             worked = true
@@ -97,7 +96,10 @@ function ukf(m::NonLinearSSM, # NL SSM
     Wc = [λ/(n+λ)+(1-α^2+β) 0.5/(n+λ)+zeros(1,2*n)]
     x_,P_,Ax,z_,Pz_,Az = ut(m,X,Q,R,u,Wm,Wc,n,l)   # unscented transform of process
     Pxy = Ax*cat([1,2],Wc...)*Az'  # Cross covariance
-    K = Pxy*inv(Pz_)   # Kalman gain
+    #try K = Pxy*inv(Pz_)   # Kalman gain #error on this inv(Pz_)
+    #catch
+    K = Pxy*inv(Pz_)   # Kalman gain #error on this inv(Pz_)
+    #end
 
     # state update
     a = x_ + K*(z-z_) # updated estimate

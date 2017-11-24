@@ -1,65 +1,85 @@
 # TODO:
-# ask zach how I can sample from a linear distribution rather than Normal{Float64} in POMDPs.actions for 1D prob
-# merge the POMDP dfeinition files for all problems
-# create a modified MDP to include the previous action in the state to account for the smoothness term
-# parallelize
-# figure out why UKF is performing so poorly when used in MCTS exploration
-# add another outer loop to specify the simulations to run for all the conditions including roll-outs
-# is 1D MCTS sampling from a normal distriution for actions?
-# check if using right 2D dynamics and if MPC is the same
-# add the standard deviation lines as well and shade the region of it instead of error for profiles
-# add code to loop through all the different simulation types and run them all --> will need to redefine MDP for each case
-
-# Tests to run:
-# run EKF and UKF for a variety of process noises and do performance comp --> MPC then maybe mcts
-# --> UKF + EKF was best --> what about only using EKF?
-# To use:
-# cd("C:/Users/patty/Box Sync/SimulEstControl/SimulEstV0") # change to your path
-# include("simulation.jl") # runs this file
+# make so can be parallel or not and run MPC if not
+# add args
+# check the svd in the UKF
+# ARGS (t/f or text): sim_type, PN list, PM list, saving, printing, parallel, ...
 
 @everywhere begin
   # cd to absolute path -->
     dir = pwd()
     cd(dir)
-    noiseList = []
-    processNoiseList = [0.001,0.0033,0.01,0.033,0.1]
-    paramNoiseList = [0.1,0.3,0.5,0.7]
-    for PRN in processNoiseList
-        for PMN in paramNoiseList
-            push!(noiseList,(PRN,PMN))
-        end
-    end
-    #processNoiseList = Vector{Float64}(2)
-    #for k = 1:2
-    #  processNoiseList[k] = 0.01*k
-    #end
-    #@show processNoiseList
-    #paramNoiseList = [0.1, 0.01]#, 10.0]
-    @show noiseList
 
     prob = "2D" # set to the "1D" or "2D" problems defined
     sim = "mcts" # mcts, mpc, qmdp, drqn
     rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
     bounds = false # set bounds for mcts solver
     quick_run = false
-    numtrials = 10 # number of simulation runs
-    #processNoiseList = [0.1]#[0.001,0.005,0.01,0.05,0.1,0.2]#[0.05]#
-    #paramNoiseList = [0.1]#[0.1,0.3,0.5,0.7]#[0.3]#
+    numtrials = 30 # number of simulation runs
+    noiseList = []
+    cond1 = "full"
+    processNoiseList = [0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
+    paramNoiseList = [0.1,0.3,0.5,0.7]
     ukf_flag = true # use ukf as the update method when computing mcts predictions
     param_change = false # add a cosine term to the unknown param updates
-    param_type = "sine" # sine or steps
+    param_type = "none" # sine or steps
     param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
     param_freq = 0.3
 
     # Output settings
-    printing = true # set to true to print simple information
+    printing = false # set to true to print simple information
     plotting = false # set to true to output plots of the data
     saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
     tree_vis = false # visual MCTS tree
-    sim_save_name = "PL_test_double" # name appended to sim settings for simulation folder to store data from runs
+    sim_save_name = "test" # name appended to sim settings for simulation folder to store data from runs
     fullobs = true # set to false for mpc without full obs
     if sim != "mpc" # set fullobs false for any other sim
       fullobs = false
+    end
+
+    # ARGS: sim, sim_save_name, params, param_varying cos/steps, fobs/unk for mpc
+    if length(ARGS) > 0
+        sim = ARGS[1]
+    end
+    if length(ARGS) > 1
+        sim_save_name = ARGS[2]
+    end
+    if length(ARGS) > 2 # first arg for type of testing conditions
+        cond1 = ARGS[3]
+        if cond1 == "full" # run all sims
+          processNoiseList = [0.001,0.0033,0.01,0.033,0.1,0.33]
+          paramNoiseList = [0.1,0.3,0.5,0.7]
+        elseif cond1 == "single" # run just one test case
+          processNoiseList = [0.1]#[0.001,0.0033,0.01,0.033,0.1]
+          paramNoiseList = [0.1]#,0.3,0.5,0.7]
+        elseif cond1 == "test" # final chosen test conditions
+          processNoiseList = [0.001,0.0033,0.01,0.033,0.1]
+          paramNoiseList = [0.1,0.3,0.5,0.7]
+        end
+    end
+    if length(ARGS) > 3 # now if the params should be changed
+        cond2 = ARGS[5]
+        param_type = cond2
+        if cond2 == "sine"
+            param_change = true
+            param_type = "sine"
+        elseif cond2 == "steps"
+            param_change = true
+            param_type = "steps"
+        end
+    end
+    if length(ARGS) > 4 # set mpc to unknown if don't want fobs
+        if ARGS[4] == "unk"
+            fullobs = false
+        end
+    end
+
+    # combine the total name for saving
+    sim_save_name = string(sim_save_name,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
+
+    for PRN in processNoiseList
+        for PMN in paramNoiseList
+            push!(noiseList,(PRN,PMN))
+        end
     end
 
 

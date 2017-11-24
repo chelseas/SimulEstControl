@@ -25,7 +25,7 @@ if prob == "1D"
   Rg = [1]
   if sim == "mcts"
     # Parameters for the POMDP
-    n_iters = 5000 # total number of iterations # want k*n_iters^alpha to be roughly 20
+    n_iters = 500 # total number of iterations # want k*n_iters^alpha to be roughly 20
     depths = 30 # depth of tree
     expl_constant = 10#300.0 #exploration const
     k_act = 8.0 # k for action
@@ -53,11 +53,11 @@ elseif prob == "2D"
   if sim == "mcts"
     # Parameters for the POMDP
     #500 = 7s, 2000 = 30s, 5000 = 60s
-    n_iters = 500#3000#00 # total number of iterations
+    n_iters = 10000#3000#00 # total number of iterations
     samples_per_state = 1#3 # want to be small
     samples_per_act = 20 # want this to be ~20
-    depths = 20 # depth of tree
-    expl_constant = 1.0#100.0 #exploration const
+    depths = 30 # depth of tree
+    expl_constant = 10.0#100.0 #exploration const
     alpha_act = 1.0/10.0 # alpha for action
     alpha_st = 1.0/20.0 # alpha for state
     k_act = samples_per_act/(n_iters^alpha_act) # k for action
@@ -93,7 +93,7 @@ elseif sim == "drqn"
   elseif rollout == "test"
   end
 end
-using ForwardDiff # for EKF
+#using ForwardDiff # for EKF
 if saving
   include("Save.jl")
 end
@@ -134,7 +134,7 @@ R = diagm(measNoise*ones(ssm.ny))
 
 # Loading scripts based on simulation and problem conditions
 include("UKF.jl") # contains UKF
-include("EKF.jl") # contains EKF
+#include("EKF.jl") # contains EKF
 if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
   if sim == "mcts"

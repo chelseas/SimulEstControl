@@ -8,7 +8,7 @@
 # include("simulation.jl") # runs this file
 # Specify simulation parameters
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mcts" # mcts, mpc, qmdp, drqn
+sim = "mpc" # mcts, mpc, qmdp, drqn
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 bounds = false # set bounds for mcts solver
 quick_run = false

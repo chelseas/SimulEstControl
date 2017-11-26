@@ -98,7 +98,7 @@ function ukf(m::NonLinearSSM, # NL SSM
     Pxy = Ax*cat([1,2],Wc...)*Az'  # Cross covariance
     #try K = Pxy*inv(Pz_)   # Kalman gain #error on this inv(Pz_)
     #catch
-    K = Pxy*inv(Pz_)   # Kalman gain #error on this inv(Pz_)
+    K = Pxy*pinv(Pz_)   # Kalman gain #error on this inv(Pz_)
     #end
 
     # state update

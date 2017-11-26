@@ -3,25 +3,26 @@
 # add args
 # check the svd in the UKF
 # ARGS (t/f or text): sim_type, PN list, PM list, saving, printing, parallel, ...
-
+#global input = ARGS
 @everywhere begin
   # cd to absolute path -->
     dir = pwd()
     cd(dir)
-
+    #@show ARGS
+    #@show length(ARGS)
     prob = "2D" # set to the "1D" or "2D" problems defined
     sim = "mcts" # mcts, mpc, qmdp, drqn
     rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
     bounds = false # set bounds for mcts solver
-    quick_run = false
+    quick_run = true
     numtrials = 30 # number of simulation runs
     noiseList = []
     cond1 = "full"
     processNoiseList = [0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
     paramNoiseList = [0.1,0.3,0.5,0.7]
     ukf_flag = true # use ukf as the update method when computing mcts predictions
-    param_change = false # add a cosine term to the unknown param updates
-    param_type = "none" # sine or steps
+    param_change = true # add a cosine term to the unknown param updates
+    param_type = "sine" # sine or steps
     param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
     param_freq = 0.3
 
@@ -30,82 +31,24 @@
     plotting = false # set to true to output plots of the data
     saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
     tree_vis = false # visual MCTS tree
-    sim_save_name = "test" # name appended to sim settings for simulation folder to store data from runs
+    sim_save = "test" # name appended to sim settings for simulation folder to store data from runs
     fullobs = true # set to false for mpc without full obs
     if sim != "mpc" # set fullobs false for any other sim
       fullobs = false
     end
 
-    # ARGS: sim, sim_save_name, params, param_varying cos/steps, fobs/unk for mpc
-    if length(ARGS) > 0
-        sim = ARGS[1]
-    end
-    if length(ARGS) > 1
-        sim_save_name = ARGS[2]
-    end
-    if length(ARGS) > 2 # first arg for type of testing conditions
-        cond1 = ARGS[3]
-        if cond1 == "full" # run all sims
-          processNoiseList = [0.001,0.0033,0.01,0.033,0.1,0.33]
-          paramNoiseList = [0.1,0.3,0.5,0.7]
-        elseif cond1 == "single" # run just one test case
-          processNoiseList = [0.1]#[0.001,0.0033,0.01,0.033,0.1]
-          paramNoiseList = [0.1]#,0.3,0.5,0.7]
-        elseif cond1 == "test" # final chosen test conditions
-          processNoiseList = [0.001,0.0033,0.01,0.033,0.1]
-          paramNoiseList = [0.1,0.3,0.5,0.7]
-        end
-    end
-    if length(ARGS) > 3 # now if the params should be changed
-        cond2 = ARGS[4]
-        param_type = cond2
-        if cond2 == "sine"
-            param_change = true
-            param_type = "sine"
-        elseif cond2 == "steps"
-            param_change = true
-            param_type = "steps"
-        end
-    end
-    if length(ARGS) > 4 # set mpc to unknown if don't want fobs
-        if ARGS[5] == "unk"
-            fullobs = false
-        end
-    end
-
     # combine the total name for saving
-    sim_save_name = string(sim_save_name,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
-
+    sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
+    @show sim_save_name
     for PRN in processNoiseList
         for PMN in paramNoiseList
             push!(noiseList,(PRN,PMN))
         end
     end
 
-
     # all parameter variables, packages, etc are defined here
     include("Setup.jl")
-#=
-sim_set = ["mpc", "mcts", "mcts"] # set to "mpc" or "mcts"
-rollout_set = ["nobs","position","random"] # sets rollout policy for MCTS to "position", "random", or "smooth"
-sim = sim_set[1]
-rollout = rollout_set[1]
 
-# run the different simulation conditions
-for sim_setting = 1:length(sim_set)
-  sim = sim_set[sim_setting]
-  roll_ind = rollout_set[sim_setting]
-  if sim == "mpc"
-    if roll_ind == "obs"
-      fullobs = true
-    else
-      fullobs = false
-    end
-  elseif sim == "mcts"
-    fullobs = false
-    rollout = rollout_ind
-  end
-  =#
   ### processNoise and paramNoise pairs to be fed into numtrials worth simulations each
   #for noise_setting = 1:length(paramNoiseList)
   function evaluate(params)#,processNoise::Float64)
@@ -261,6 +204,7 @@ for sim_setting = 1:length(sim_set)
 
         # for each trial save simulation data
         if saving
+          @show sim_save_name
           sim_names = [sim_save_name,prob,sim,rollout,string(processNoise),string(paramNoise),string(numtrials),string(j)]
           save_simulation_data(x,est,u,[rewrun rewrun]',uncertainty,prob_params,sim_names)
           # I'm putting two reward vectors to avoid vector error

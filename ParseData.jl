@@ -1,5 +1,5 @@
 using DataFrames
-folder = "UKF_quick_test3"#"test2"# give data folder name to compute averages from
+folder = "2D_0.7_step"#"test2"# give data folder name to compute averages from
 
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through
@@ -9,16 +9,18 @@ cd(folder)
 
 # go into all of these folders and compute average values and std devs of the trials
 sim_cases = readdir() # list of filenames in this directory
+@show sim_cases
 #@show sim_cases
 f1 = sim_cases[1]
 runs = parse(Int64,split(f1)[end]) # number of runs
-@show runs
 # CREATE AVERAGES AND STD OF DATA FOR PLOTTING
 for i = 1:length(sim_cases) # go through each data folder to compute averages
   curFolder = sim_cases[i]
+  runs = parse(Int64,split(curFolder)[end]) # number of runs
+  @show runs
   cd(curFolder)
   dataFiles = readdir() # all names of .csv files in this directory
-  @show curFolder
+  #@show dataFiles
   #@show dataFiles
   #@show dataFiles
   #@show length(dataFiles)
@@ -30,9 +32,12 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
     gen = readtable(dfr[1,j]) # load first table to get the size information
     nvars, numSteps = size(gen)
     data = Array{Float64,3}(runs, nvars, numSteps)
+    @show size(data)
     #std = Array{Float64,3}(runs, numSteps, nvars)
     for k = 1:runs # for each trial compute an average and std
+      @show dfr[k,j]
       temp = readtable(dfr[k,j]) # load individual file
+      @show size(temp)
       data[k,:,:] = Array(temp)
     end
     # save new avg and std values --> just stack next to each other
@@ -91,4 +96,4 @@ end
 cd("../..") # change directory back to main folder
 
 # Call PGFPlotting.jl here if I wnat
-# include("PGFPlotting.jl")
+#include("PGFPlotting.jl")

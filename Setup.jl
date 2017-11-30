@@ -67,7 +67,16 @@ elseif prob == "2D"
 elseif prob == "Car"
   fRange = [5; 1];
   fDist_disc = [1000; 1000];
-
+  #Qg = 1.0*diagm([1.0, 1.0, 1.0, 1.0, 0.0])
+  #Qr = 1.0*diagm([1.0, 1.0, 1.0, 1.0)]
+  #Rg = 1.0*diagm([1.0, 1.0])
+  Kdist = 1.0
+  Kspeed = 1.0
+  # Define shape of road -- in future, may want to add lane markers
+  PathX = collect(0:0.1:100);
+  PathY = sqrt.(100^2 - PathX.^2);
+  # Define speed limit -- speed matching goal
+  SpeedLimit = 10.0
   if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
     n_iters = 500 # total number of iterations
@@ -129,9 +138,18 @@ end
 if prob == "Car"
   Fvar = fRange;
   TVar = fRange;
-  fDist = [linspace(-fRange[1], fRange[1], fDist_disc[1]); linspace(-fRange[2], fRange[2], fDist_disc[2])];
+  fDist = linspace(-fRange[1], fRange[1], fDist_disc[1]), linspace(-fRange[2], fRange[2], fDist_disc[2]);
   uDist = MvNormal(zeros(ssm.nu), diagm(fRange));
-  pos_range = 1:4;
+  #pos_range = 1:4;
+  
+  x0 = PathX[1];
+  y0 = PathY[1];
+  theta0 = atan((PathY[2] - PathY[1])/(PathX[2] - PathX[1]));
+  v0 = 0.0;
+  mu0 = 0;
+  
+  startState = [x0; y0; theta0; v0; mu0];
+  
 else
   FVar = fRange;
   TVar = fRange;
@@ -168,8 +186,7 @@ if prob == "2D" # load files for 2D problem
     include("MPC_2D.jl") # function to set up MPC opt and solve
   end
 elseif prob == "Car"
-
-  # Include Limit Checks? ###############################################################
+  include("LimitChecks_Car.jl")
   if sim == "qmdp"
     include("QMDP_setup.jl")
   end
@@ -210,17 +227,4 @@ if (sim == "mcts") || (sim == "qmdp")
   end
   policy = solve(solver,mdp) # policy setup for POMDP
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
 

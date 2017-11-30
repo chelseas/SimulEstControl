@@ -128,8 +128,13 @@ for sim_setting = 1:length(sim_set)
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding controls
             x[:,i+1] = ssm.f(x[:,i],u[:,i]) + rand(w) # propagating the state
-            x[:,i+1] = state_check(x[:,i+1], debug_bounds) # reality check --> see if values of parameters have gotten too small --> limit
-            rewrun[i] = -sum(abs.(x[1:ssm.states,i])'*Qr) + -sum(abs.(u[:,i])'*Rg) # sum rewards
+            #x[:,i+1] = state_check(x[:,i+1], debug_bounds) # reality check --> see if values of parameters have gotten too small --> limit
+            if prob == "Car"
+              r = Car_reward(x[:, i], u[:, i])
+              rewrun[i] = r
+            else
+              rewrun[i] = -sum(abs.(x[1:ssm.states,i])'*Qr) + -sum(abs.(u[:,i])'*Rg) # sum rewards
+            end
 
             if !fullobs # if system isn't fully observable update the belief
               # take observation of the new state
@@ -145,7 +150,7 @@ for sim_setting = 1:length(sim_set)
 
               # reality check --> see if estimates have gotten too extreme --> limit
               x_temp = mean(xNew)
-              mean(xNew)[:] = est_check(x_temp, debug_bounds)
+              #mean(xNew)[:] = est_check(x_temp, debug_bounds)
               est[:,i+1] = mean(xNew) #store mean belief
               uncertainty[:,i+1] = reshape(cov(xNew),ssm.nx*ssm.nx) #store covariance
 

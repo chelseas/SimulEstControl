@@ -21,19 +21,35 @@ AugState(ts::Array{Float64,1}) = AugState(Nullable{EKFState}(), ts)
 
 # --- Define Augmented MDP for QMDP --- #
 
-type AugMDP <: MDP{AugState, Array{Float64, 1}}
-  discount_factor::Float64 # default 0.99
-  goal_state::Float64
-  force_range::LinSpace{Float64}
+if prob == "Car"
+  type AugMDP <: MDP{AugState, Array{Float64, 1}}
+    discount_factor::Float64
+    goal_state::Float64
+    force_range_1::LinSpace{Float64}
+    force_range_2::LinSpace{Float64}
+  end
+else
+  type AugMDP <: MDP{AugState, Array{Float64, 1}}
+    discount_factor::Float64 # default 0.99
+    goal_state::Float64
+    force_range::LinSpace{Float64}
+  end
 end
-
 
 # --- Define Constructor and Instantiate AugMDP --- #
 # constructor
-function AugMDP()
-  return AugMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+
+if prob == "Car"
+  function AugMDP()
+    return AugMDP(0.99, 0.0, fDist[1], fDist[2])
+  end
+else
+  function AugMDP()
+    return AugMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+  end
 end
 
+#show(fDist)
 mdp = AugMDP()
 
 
@@ -156,13 +172,7 @@ if prob == "2D"
 
 elseif prob == "Car"
 
-  # Define shape of road -- in future, may want to add lane markers
-  PathX = collect(0:0.1:100);
-  PathY = sqrt.(100^2 - PathX.^2);
-  # Define speed limit -- speed matching goal
-  SpeedLimit = 10.0
-
-  function POMDPs.reward(mdp::AugMDP, s::AugState, a::Float64, sp::AugState)
+  function POMDPs.reward(mdp::AugMDP, s::AugState, a::Array{Float64, 1}, sp::AugState)
 
     # Get state estimate
     if isnull(s.beliefState)
@@ -170,17 +180,7 @@ elseif prob == "Car"
     else
       TrueState = mean(get(s.beliefState))
     end
-
-    # Find closest point on the path
-    Dist2State = sqrt.((TrueState[1] - PathX).^2 + (TrueState[2] - PathY).^2);
-    DistErr = minimum(Dist2State);
-    # Find error in speed
-    SpeedErr = abs(SpeedLimit - TrueState[4]);
-    # reward nearness to path and speed limit - use exponents
-    # want to use inverse relationship, but zero division blows up
-    # instead, use a^err for a<1 so that a^err = 1 for err = 0 and a^err < 1 for err>0
-    # as a first guess, use a = 0.9 with coefficient 1
-    r = 0.9^DistErr + 0.9^SpeedErr;
+    r = Car_reward(TrueState[:], a[:])
     return r
   end
 

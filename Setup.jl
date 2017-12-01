@@ -1,6 +1,8 @@
 
-if quick_run
+if run == "quick"
   nSamples = 5 # quick amount of steps for debug_bounds
+elseif run == "long"
+  nSamples = 300
 else
   nSamples = 50
 end
@@ -65,18 +67,34 @@ elseif prob == "2D"
   end
 
 elseif prob == "Car"
-  fRange = [5; 1];
+  fRange = [20; 20];
   fDist_disc = [1000; 1000];
   #Qg = 1.0*diagm([1.0, 1.0, 1.0, 1.0, 0.0])
   #Qr = 1.0*diagm([1.0, 1.0, 1.0, 1.0)]
   #Rg = 1.0*diagm([1.0, 1.0])
+  Ktrack = 10.0
   Kdist = 1.0
   Kspeed = 1.0
+  Kang = 1.0
   # Define shape of road -- in future, may want to add lane markers
   PathX = collect(0:0.1:100);
   PathY = sqrt.(100^2 - PathX.^2);
   # Define speed limit -- speed matching goal
-  SpeedLimit = 10.0
+  SpeedLimit = 50.0
+  x0 = PathX[1];
+  y0 = PathY[1];
+  theta0 = atan((PathY[2] - PathY[1])/(PathX[2] - PathX[1]));
+  v0 = 0.0;
+  mu0 = 0;
+  
+  TrackIdx = [1];
+  point_lead = 10.0;
+  dist_thresh = 5.0;
+  lead_dist = abs.(sqrt.((x0 - PathX[TrackIdx[end] + 1 : end]).^2 + (y0 - PathY[TrackIdx[end] + 1 : end]).^2) - point_lead);
+  newDist, newIdx = findmin(lead_dist);
+  append!(TrackIdx, newIdx);
+  
+  state_init = [x0; y0; theta0; v0; mu0];
   if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
     n_iters = 500 # total number of iterations
@@ -142,13 +160,7 @@ if prob == "Car"
   uDist = MvNormal(zeros(ssm.nu), diagm(fRange));
   #pos_range = 1:4;
   
-  x0 = PathX[1];
-  y0 = PathY[1];
-  theta0 = atan((PathY[2] - PathY[1])/(PathX[2] - PathX[1]));
-  v0 = 0.0;
-  mu0 = 0;
-  
-  startState = [x0; y0; theta0; v0; mu0];
+  startState = 1;
   
 else
   FVar = fRange;

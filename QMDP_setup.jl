@@ -180,7 +180,7 @@ elseif prob == "Car"
     else
       TrueState = mean(get(s.beliefState))
     end
-    r = Car_reward(TrueState[:], a[:])
+    r = Car_reward(TrueState[:], a[:], TrackIdx[end])
     return r
   end
 

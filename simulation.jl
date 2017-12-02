@@ -26,7 +26,7 @@ numtrials = 1 # number of simulation runs
 processNoiseList = [0.001] #, 0.1]
 paramNoiseList = [0.001] #, 10.0]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
-
+endindex = 1;
 # Output settings
 printing = false # set to true to print simple information
 plotting = true # set to true to output plots of the data
@@ -146,9 +146,14 @@ for sim_setting = 1:length(sim_set)
             x[:,i+1] = ssm.f(x[:,i],u[:,i]) + rand(w) # propagating the state
             #x[:,i+1] = state_check(x[:,i+1], debug_bounds) # reality check --> see if values of parameters have gotten too small --> limit
             if prob == "Car"
+              endindex = i;
               Dist2TrackPoint = sqrt((x[1, i] - PathX[TrackIdx[end]])^2 + (x[2, i] - PathY[TrackIdx[end]])^2);
               if (Dist2TrackPoint < dist_thresh)
                 if (TrackIdx[end] == length(PathX))
+                  print("broke!")
+                  endindex = i;
+                  print(endindex)
+                  print("steps")
                   break
                 else
                   newDist = abs.(sqrt.((x[1, i] - PathX[TrackIdx[end] + 1 : end]).^2 + (x[2, i] - PathY[TrackIdx[end] + 1 : end]).^2) - point_lead);
@@ -240,8 +245,8 @@ for sim_setting = 1:length(sim_set)
           rew_pl = plot(rewrun, lw = lwv, title = "Reward")
           # Subplot all of them together
           #label = join([sim," ","Rew ",sum(rew_pl)," PN ", string(processNoise), " VARN ",string(paramNoise)])
-          display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))#,xlabel=label)
-          gui()  # need this for some reason to render browser plots on mac
+          #display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))#,xlabel=label)
+          #gui()  # need this for some reason to render browser plots on mac
           #savefig(join(["test " string(j) ".png"])) # save plots for each run
           
           if prob == "Car"
@@ -250,7 +255,12 @@ for sim_setting = 1:length(sim_set)
             for i = 1:length(TrackIdx)
               Trackpts = hcat(Trackpts, [PathX[TrackIdx[i]]; PathY[TrackIdx[i]]])
             end
-            PyPlot.plot(pos_pl_data[1, :], pos_pl_data[2, :], PathX, PathY, Trackpts[1, :], Trackpts[2, :])
+            hold(true)
+            PyPlot.plot(pos_pl_data[1, 1:endindex], pos_pl_data[2, 1:endindex], color="blue", linewidth="2.0")
+            PyPlot.plot(PathX, PathY, color="black", linestyle="--")
+            PyPlot.plot(LeftX, LeftLaneY, color="black")
+            PyPlot.plot(RightX, RightLaneY, color="black")# Trackpts[1, :], Trackpts[2, :])
+            hold(false)
             plt[:show]()
           end
         end

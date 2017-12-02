@@ -67,7 +67,7 @@ elseif prob == "2D"
   end
 
 elseif prob == "Car"
-  fRange = [20; 20];
+  fRange = [0.5; 20];
   fDist_disc = [1000; 1000];
   #Qg = 1.0*diagm([1.0, 1.0, 1.0, 1.0, 0.0])
   #Qr = 1.0*diagm([1.0, 1.0, 1.0, 1.0)]
@@ -78,7 +78,11 @@ elseif prob == "Car"
   Kang = 1.0
   # Define shape of road -- in future, may want to add lane markers
   PathX = collect(0:0.1:100);
+  LeftX = collect(0:0.1:101.5);
+  RightX = collect(0:0.1:98.5);
   PathY = sqrt.(100^2 - PathX.^2);
+  LeftLaneY = sqrt.(101.5^2 - LeftX.^2);
+  RightLaneY = sqrt.(98.5^2 - RightX.^2);
   # Define speed limit -- speed matching goal
   SpeedLimit = 50.0
   x0 = PathX[1];

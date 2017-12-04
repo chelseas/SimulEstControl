@@ -1,43 +1,67 @@
-# ------------ SETUP FILE FOR QMDP ------------- #
-# using StaticArrays
-using AutoHashEquals
+@auto_hash_equals struct LiteState
+# discrete distrib over hidden param
 
-# NOTE: EKFState is still used for ukf
-const EKFState = MvNormal{Float64,PDMats.PDMat{Float64,Array{Float64,2}},Array{Float64,1}}
+# observedMeans::Array{Float64, 1}   # means of "observable" states
+estimState::EKFState         # keep track of estimate over ALL states
+hiddenVal::Float64    # theta, remains constant
 
-# --- Define Augmented State Type --- #
-# allows us to check if using using belief state or not
-
-@auto_hash_equals struct LiteState  # struct = immutable, type = mutable
-  # hidState:: TODO -- distribution over discrete state Space
-  obsState::Array{Float64,1}
-  fullState::EKFState
-  # trueState::SVector{ssm.nx}  # from StaticArrays for better memory efficiency
 end
 
-# define constructors for convenience
-#LiteState(bs::EKFState) = LiteState(Nullable(bs), [])  # have empty trueState whenever not null
-#LiteState(ts::Array{Float64,1}) = LiteState(Nullable{EKFState}(), ts)
+# define constructors for LiteState
 
-
-# --- Define Augmented MDP for QMDP --- #
+# --- Define LiteMDP --- #
 
 type LiteMDP <: MDP{LiteState, Array{Float64, 1}}
   discount_factor::Float64 # default 0.99
   goal_state::Float64
   force_range::LinSpace{Float64}
-  # need to cache rewards for x,a pairs for faster computation here?
+  hiddenDiscrete::Array{Float64, 1}  # hidden params
+  hiddenBelief::Array{Float64, 1}  # this is a belief over hiddenDiscrete
 end
 
-
-# --- Define Constructor and Instantiate LiteMDP --- #
-# constructor
+# define constructor and instantiate LiteMDP
 function LiteMDP()
-  return LiteMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+
+# state_init = 1
+hiddenDiscrete = 0.1*state_init:0.1*state_init:1.9*state_init
+################
+  # 1D case:
+  discreteStates = []
+  discreteObs = []
+  if prob == "1D"
+    discreteStates =  [(x, y) for x in -2:0.2:2, y in -2:0.2:2]
+    discreteObs = discreteStates
+  end
+
+  # initialize p(x'|x,th,a) storage as dictionary, gets updated in transitions
+  prob_sp_th = Dict()
+  for ds in discreteStates
+    for th in hiddenDiscrete
+      prob_sp_th[string((ds,th))] = 0
+    end
+  end
+################
+
+# check if paramNoise correct value to pass in
+hiddenDistrib = Normal(state_init, paramNoise)
+
+hiddenBelief = ones(length(hiddenDiscrete))
+
+# what is the belief at this first value?
+hiddenBelief[1] = cdf(hiddenDistrib, hiddenDiscrete[1])
+
+# or set to uniform?
+# need to debug this: a bit skewed
+for i = 2:length(hiddenDiscrete)
+    hiddenBelief[i] = cdf(hiddenDistrib, hiddenDiscrete[i]) - cdf(hiddenDistrib, hiddenDiscrete[i-1])
+end
+
+return LiteMDP(0.99,0.0,fDist, hiddenDiscrete, hiddenBelief)
 end
 
 mdp = LiteMDP()
 
+#####################################
 
 # --- Operator Overloading to Check Equality of EKF States --- #
 
@@ -78,16 +102,37 @@ import Base.==
 
 # ---- Define Reward and Actions ---- #
 
-if prob == "2D"
-  ### Calculate the reward for the current state and action
-  # Qg defined in Setup.jl file
-  function POMDPs.reward(mdp::LiteMDP,s::LiteState,a::Array{Float64,1},sp::LiteState)
-    # reward + reward bonus
-    # reward = expectation over hidden variable
-    # reward from before: r = sum(abs.(s.trueState)'*-Qg) + sum(abs.(a)'*-Rg)
-    # return r
-  end
 
+### Calculate the reward for the current state and action
+# Qg defined in Setup.jl file
+function POMDPs.reward(mdp::LiteMDP,s::LiteState,a::Array{Float64,1},sp::LiteState)
+  # reward + reward bonus
+  # reward = expectation over hidden variable
+  # reward from before: r = sum(abs.(s.trueState)'*-Qg) + sum(abs.(a)'*-Rg)
+  # return r
+  r = 0
+  # loop over all possible values of theta
+  for i = 1:length(mdp.hiddenDiscrete)
+    theta = mdp.hiddenDiscrete[i]
+    full_state = mean(s.estimState)
+    obs_state = full_state[1:ssm.states]
+    test_state = vcat(obs_state, theta)
+    r_s = sum(abs.(test_state)'*-Qg) + sum(abs.(a)'*-Rg)
+    r = r + mdp.hiddenBelief[i]*r_s
+  end
+  rb = 0
+  for ds in mdp.discreteStates
+    for i = 1:length(mdp.hiddenDiscrete)
+      theta = mdp.hiddenDscrete[i]
+      b = mdp.hiddenBelief[i]
+      b_prime = mdp.hiddenBeliefNew[i]
+      prob_sp = mdp.prob_sp_th[string((ds,theta))]
+      rb = rb + prb_sp*b*abs(b_prime-b)
+  lambda = 0.5
+  return (r + lambda*rb)
+end
+
+if prob == "2D"
   # Defining action space for input controls
   immutable FFTActionSpace
       lower::Float64
@@ -111,15 +156,6 @@ if prob == "2D"
 
 # -- 1D Case --- #
 elseif prob == "1D"
-
-  function POMDPs.reward(mdp::LiteMDP,s::LiteState,a::Float64,sp::LiteState)
-
-      # DEAL WITH BELIEF AND TRUE STATE CASES
-
-      (gv, gp) = diag(-Qg)
-      r = abs(s.trueState[2])*gp + abs(s.trueState[1])*gv + abs(a)*-Rg[1]
-      return r
-  end
 
   function POMDPs.actions(mdp::LiteMDP)
       #take rand action within force bounds

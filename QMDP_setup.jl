@@ -21,19 +21,35 @@ AugState(ts::Array{Float64,1}) = AugState(Nullable{EKFState}(), ts)
 
 # --- Define Augmented MDP for QMDP --- #
 
-type AugMDP <: MDP{AugState, Array{Float64, 1}}
-  discount_factor::Float64 # default 0.99
-  goal_state::Float64
-  force_range::LinSpace{Float64}
+if prob == "Car"
+  type AugMDP <: MDP{AugState, Array{Float64, 1}}
+    discount_factor::Float64
+    goal_state::Float64
+    force_range_1::LinSpace{Float64}
+    force_range_2::LinSpace{Float64}
+  end
+else
+  type AugMDP <: MDP{AugState, Array{Float64, 1}}
+    discount_factor::Float64 # default 0.99
+    goal_state::Float64
+    force_range::LinSpace{Float64}
+  end
 end
-
 
 # --- Define Constructor and Instantiate AugMDP --- #
 # constructor
-function AugMDP()
-  return AugMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+
+if prob == "Car"
+  function AugMDP()
+    return AugMDP(0.99, 0.0, fDist[1], fDist[2])
+  end
+else
+  function AugMDP()
+    return AugMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+  end
 end
 
+#show(fDist)
 mdp = AugMDP()
 
 
@@ -48,7 +64,7 @@ import Base.==
 #       DO NOT remove EKF == method up above
 
 
-# ---- Create State and Observation Space ---- # 
+# ---- Create State and Observation Space ---- #
 
 # default values fed into other functions
 
@@ -73,7 +89,7 @@ function transition(mdp::AugMDP,s::AugState,a::Array{Float64,1})
     sp = AugState(trueState)  # return AugState with no belief
 
   # IF BELIEF STATE
-  else 
+  else
 
     # get(n, default): n is nullable, default if null
     x_assume = rand(get(s.beliefState))  # looks at whole distrib, not just mean
@@ -89,7 +105,7 @@ function transition(mdp::AugMDP,s::AugState,a::Array{Float64,1})
       sp = AugState(trueState)  # return AugState with no belief
 
     # USE EKF
-    else  
+    else
 
       belief = filter(ssm, obs, get(s.beliefState), Q, R, a)  # assume 2D case, so [a] --> a
       trueState = mean(belief)
@@ -105,7 +121,7 @@ end
 
 # ask Zach if we can get rid of sp::AugState here
 function observation(mdp::AugMDP,s::AugState,a::Array{Float64,1})
-  
+
   # potentially use x_assume=rand(s.trueState) to get most out of uncertainty
   obs = ssm.h(s.trueState, a) # no measurement noise
   return obs
@@ -153,6 +169,42 @@ if prob == "2D"
       return diff*rand(rng, ssm.nu)+as.lower
   end
 
+
+elseif prob == "Car"
+
+  function POMDPs.reward(mdp::AugMDP, s::AugState, a::Array{Float64, 1}, sp::AugState)
+
+    # Get state estimate
+    if isnull(s.beliefState)
+      TrueState = s.trueState;
+    else
+      TrueState = mean(get(s.beliefState))
+    end
+    r = Car_reward(TrueState[:], a[:], TrackIdx[end])
+    return r
+  end
+
+  # Define action space
+  immutable FFTActionSpace
+      lower::Array{Float64, 1}
+      upper::Array{Float64, 1}
+  end
+
+  # Defines the action space as continuous in range of fRange
+  function POMDPs.actions(mdp::AugMDP)
+      # take rand action within force bounds
+      return FFTActionSpace(-fRange, fRange) # frange is [u1 range; u2 range]
+  end
+
+  # Define POMDPs actions with function
+  POMDPs.actions(mdp::AugMDP, s::AugState, as::Array{Float64,1}) = actions(mdp)
+
+  ### Define rand for using within the range defined in FFT
+  function Base.rand(rng::AbstractRNG, as::FFTActionSpace)
+      diff = as.upper-as.lower
+      return diff.*rand(rng, ssm.nu) + as.lower
+  end
+
 # -- 1D Case --- #
 elseif prob == "1D"
 
@@ -185,26 +237,50 @@ end
 # No reason to terminate early, want it to control continuously for given horizon
 function POMDPs.isterminal(mdp::AugMDP, s::AugState) # just for a leaf --> reach terminal state won't
   # for states where the trace of the covariance is really high stop looking --> diverging EKF/UKF
-
   # DEAL WITH BELIEF STATE/TRUE STATE CASES
-
   if isnull(s.beliefState)
-
     if s.trueState[2] > 8000000000.0 #(mean(s)[2] < mdp.goal_state) || (mean(s)[2] > 80.0)) #position is past the goal state
       return true
     end
-
   else# if trace(cov(s.beliefState)) > cov_thresh # add or for the estimates below thresh
-
     # crutch for now, cov cannot take in Nullable{EKFState}
     trueState = mean(get(s.beliefState))
     if trueState[2] > 8000000000.0 #(mean(s)[2] < mdp.goal_state) || (mean(s)[2] > 80.0)) #position is past the goal state
       return true
     end
   end
-
   return false
 
+#  if prob == "Car"
+#    if isnull(s.beliefState)
+#      Dist2TrackPoint = sqrt((s.trueState[1] - PathX[TrackIdx[end]])^2 + (s.trueState[2] - PathY[TrackIdx[end]])^2);
+#      if (Dist2TrackPoint < dist_thresh)
+#        return true
+#      else
+#        return false
+#      end
+#    else
+#      Dist2TrackPoint = sqrt((mean(get(s.beliefState))[1] - PathX[TrackIdx[end]])^2 + (mean(get(s.beliefState))[2] - PathY[TrackIdx[end]])^2);
+#        return true
+#      else
+#        return false
+#      end
+#    end
+#  else
+#    # DEAL WITH BELIEF STATE/TRUE STATE CASES
+#    if isnull(s.beliefState)
+#      if s.trueState[2] > 8000000000.0 #(mean(s)[2] < mdp.goal_state) || (mean(s)[2] > 80.0)) #position is past the goal state
+#        return true
+#      end
+#    else# if trace(cov(s.beliefState)) > cov_thresh # add or for the estimates below thresh
+#      # crutch for now, cov cannot take in Nullable{EKFState}
+#      trueState = mean(get(s.beliefState))
+#      if trueState[2] > 8000000000.0 #(mean(s)[2] < mdp.goal_state) || (mean(s)[2] > 80.0)) #position is past the goal state
+#        return true
+#      end
+#    end
+#    return false
+#  end
 end
 
 
@@ -228,4 +304,3 @@ end
 
 # don't need to define an action fxn; default action() in MCTS will sample
 # random action from FFTActionSpace
-

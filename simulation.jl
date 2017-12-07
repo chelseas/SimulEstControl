@@ -20,12 +20,12 @@
 prob = "1D" # set to the "1D" or "2D" problems defined
 sim = "lite"  # "mcts", "qmdp", "mpc", "lite"
 rollout = "random"
-quick_run = true
+run = "quick"
 numtrials = 1 # number of simulation runs
 processNoiseList = [0.001] #, 0.1]
-paramNoiseList = [0.001] #, 10.0]
+paramNoiseList = [0.01] #, 10.0]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
-
+endindex = 1;
 # Output settings
 printing = false # set to true to print simple information
 plotting = true # set to true to output plots of the data
@@ -65,18 +65,32 @@ for sim_setting = 1:length(sim_set)
     processNoise = processNoiseList[noise_setting]
     paramNoise = paramNoiseList[noise_setting]
 
-    # Initializing an array of psuedo-random start states and actual state
-    srand(13) # seeding the est_list values so they will all be the same
-    paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
-    x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
-    est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
-    x0_state = state_init*ones(ssm.nx) # actual initial state
 
-    # Q = diagm([processNoise*ones(ssm.states) zeros(ssm.nx-ssm.states)])
-    Q = diagm(processNoise*ones(ssm.nx))
-    R = diagm(measNoise*ones(ssm.ny))
-    w = MvNormal(zeros(ssm.nx),Q) # process noise distribution
-    v = MvNormal(zeros(ssm.ny),measNoise*eye(ssm.ny,ssm.ny)) #measurement noise distribution
+    if prob == "Car"
+      # Initializing an array of psuedo-random start states and actual state
+      srand(13) # seeding the est_list values so they will all be the same
+      paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
+      x0_est = MvNormal(state_init,paramCov) # initial belief
+      est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
+      x0_state = state_init # actual initial state
+
+      Q = diagm(processNoise*ones(ssm.nx))
+      R = diagm(measNoise*ones(ssm.ny))
+      w = MvNormal(zeros(ssm.nx),Q) # process noise distribution
+      v = MvNormal(zeros(ssm.ny),measNoise*eye(ssm.ny,ssm.ny)) #measurement noise distribution
+    else
+      # Initializing an array of psuedo-random start states and actual state
+      srand(13) # seeding the est_list values so they will all be the same
+      paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
+      x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
+      est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
+      x0_state = state_init*ones(ssm.nx) # actual initial state
+
+      Q = diagm(processNoise*ones(ssm.nx))
+      R = diagm(measNoise*ones(ssm.ny))
+      w = MvNormal(zeros(ssm.nx),Q) # process noise distribution
+      v = MvNormal(zeros(ssm.ny),measNoise*eye(ssm.ny,ssm.ny)) #measurement noise distribution
+    end
 
     ### outer loop running for each simulation of the system
     @time for j = 1:numtrials # number of simulation trials run
@@ -133,8 +147,28 @@ for sim_setting = 1:length(sim_set)
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding controls
             x[:,i+1] = ssm.f(x[:,i],u[:,i]) + vcat(rand(w)[1:ssm.states], zeros(ssm.nx-ssm.states)) # propagating the state
-            x[:,i+1] = state_check(x[:,i+1], debug_bounds) # reality check --> see if values of parameters have gotten too small --> limit
-            rewrun[i] = -sum(abs.(x[1:ssm.states,i])'*Qr) + -sum(abs.(u[:,i])'*Rg) # sum rewards
+            #x[:,i+1] = state_check(x[:,i+1], debug_bounds) # reality check --> see if values of parameters have gotten too small --> limit
+            if prob == "Car"
+              endindex = i;
+              Dist2TrackPoint = sqrt((x[1, i] - PathX[TrackIdx[end]])^2 + (x[2, i] - PathY[TrackIdx[end]])^2);
+              if (Dist2TrackPoint < dist_thresh)
+                if (TrackIdx[end] == length(PathX))
+                  print("broke!")
+                  endindex = i;
+                  print(endindex)
+                  print("steps")
+                  break
+                else
+                  newDist = abs.(sqrt.((x[1, i] - PathX[TrackIdx[end] + 1 : end]).^2 + (x[2, i] - PathY[TrackIdx[end] + 1 : end]).^2) - point_lead);
+                  newDistMin, newDistIdx = findmin(newDist);
+                  append!(TrackIdx, newDistIdx + TrackIdx[end]);
+                end
+              end
+              r = Car_reward(x[:, i], u[:, i], TrackIdx[end])
+              rewrun[i] = r
+            else
+              rewrun[i] = -sum(abs.(x[1:ssm.states,i])'*Qr) + -sum(abs.(u[:,i])'*Rg) # sum rewards
+            end
 
             if !fullobs # if system isn't fully observable update the belief
               # take observation of the new state
@@ -150,7 +184,7 @@ for sim_setting = 1:length(sim_set)
 
               # reality check --> see if estimates have gotten too extreme --> limit
               x_temp = mean(xNew)
-              mean(xNew)[:] = est_check(x_temp, debug_bounds)
+              #mean(xNew)[:] = est_check(x_temp, debug_bounds)
               est[:,i+1] = mean(xNew) #store mean belief
               uncertainty[:,i+1] = reshape(cov(xNew),ssm.nx*ssm.nx) #store covariance
 
@@ -220,6 +254,21 @@ for sim_setting = 1:length(sim_set)
           display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))#,xlabel=label)
           gui()  # need this for some reason to render browser plots on mac
           #savefig(join(["test " string(j) ".png"])) # save plots for each run
+
+          if prob == "Car"
+            using PyPlot
+            Trackpts = [PathX[1]; PathY[1]]
+            for i = 1:length(TrackIdx)
+              Trackpts = hcat(Trackpts, [PathX[TrackIdx[i]]; PathY[TrackIdx[i]]])
+            end
+            hold(true)
+            PyPlot.plot(pos_pl_data[1, 1:endindex], pos_pl_data[2, 1:endindex], color="blue", linewidth="2.0")
+            PyPlot.plot(PathX, PathY, color="black", linestyle="--")
+            PyPlot.plot(LeftX, LeftLaneY, color="black")
+            PyPlot.plot(RightX, RightLaneY, color="black")# Trackpts[1, :], Trackpts[2, :])
+            hold(false)
+            plt[:show]()
+          end
         end
         gc() # clear data?
     end

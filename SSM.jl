@@ -115,3 +115,40 @@ function buildDoubleIntSSM(deltaT::Float64)
 
     return NonLinearSSM(f,h,nu,nx,ny,states)
 end
+
+function buildCarSSM(deltaT::Float64)
+    #X = [x, y, theta, v, mu]' (x coordinate, y coordinate, steering angle, speed, coefficient of friction)
+    #u = [omega, a]' (steering input, acceleration)
+
+    #xdot = f(X, u)
+    #Xdot = [xdot, ydot, thetadot, vdot, mudot]'
+    #f(X, u) = [v cos(theta), v sin(theta), v omega, a - mu v, 0]'
+    #.
+    #.
+    #.
+    #X(t + 1) = fd(X(t), u(t))
+    #X(t + 1) = [x(t + 1), y(t + 1), theta(t + 1), v(t + 1), mu(t + 1)]'
+    #fd(X(t), u(t)) = [x(t) + dt(v(t) cos(theta(t))), y(t) + dt(v(t) sin(theta(t))), theta(t) + dt(v(t) omega(t)), v(t) + dt(a(t) - mu(t) v(t)), mu(t)]
+
+    function f(x,u)
+      sp = [x[1] + deltaT*(x[4]*cos(x[3]));
+              x[2] + deltaT*(x[4]*sin(x[3]));
+              x[3] + deltaT*(u[1]);
+              x[4] + deltaT*(u[2] - x[5]*x[4]);
+              x[5]];
+      return sp
+    end
+
+    #Yt = ht(X(t), u(t))
+    #ht(X(t), u(t)) = [x(t), y(t), theta(t), v(t)]
+    function h(x,u)
+        return x[1:(end - 1)]
+    end
+
+    # Defining observability of system
+    nx = 5;
+    ny = 4;
+    nu = 2;
+    states = 4;
+    return NonLinearSSM(f,h,nu,nx,ny,states)
+end

@@ -1,6 +1,8 @@
 
-if quick_run
-  nSamples = 1 # quick amount of steps for debug_bounds
+if run == "quick"
+  nSamples = 5 # quick amount of steps for debug_bounds
+elseif run == "long"
+  nSamples = 300
 else
   nSamples = 50
 end
@@ -74,6 +76,54 @@ elseif prob == "2D"
   elseif sim == "mpc"
     n = 50 # horizon steps
   end
+
+elseif prob == "Car"
+  fRange = [0.5; 20];
+  fDist_disc = [1000; 1000];
+  #Qg = 1.0*diagm([1.0, 1.0, 1.0, 1.0, 0.0])
+  #Qr = 1.0*diagm([1.0, 1.0, 1.0, 1.0)]
+  #Rg = 1.0*diagm([1.0, 1.0])
+  Ktrack = 10.0
+  Kdist = 1.0
+  Kspeed = 1.0
+  Kang = 1.0
+  # Define shape of road -- in future, may want to add lane markers
+  PathX = collect(0:0.1:100);
+  LeftX = collect(0:0.1:101.5);
+  RightX = collect(0:0.1:98.5);
+  PathY = sqrt.(100^2 - PathX.^2);
+  LeftLaneY = sqrt.(101.5^2 - LeftX.^2);
+  RightLaneY = sqrt.(98.5^2 - RightX.^2);
+  # Define speed limit -- speed matching goal
+  SpeedLimit = 50.0
+  x0 = PathX[1];
+  y0 = PathY[1];
+  theta0 = atan((PathY[2] - PathY[1])/(PathX[2] - PathX[1]));
+  v0 = 0.0;
+  mu0 = 0;
+
+  TrackIdx = [1];
+  point_lead = 10.0;
+  dist_thresh = 5.0;
+  lead_dist = abs.(sqrt.((x0 - PathX[TrackIdx[end] + 1 : end]).^2 + (y0 - PathY[TrackIdx[end] + 1 : end]).^2) - point_lead);
+  newDist, newIdx = findmin(lead_dist);
+  append!(TrackIdx, newIdx);
+
+  state_init = [x0; y0; theta0; v0; mu0];
+  if (sim == "mcts") || (sim == "qmdp")
+    # Parameters for the POMDP
+    n_iters = 500 # total number of iterations
+    depths = 5 # 20 # depth of tree
+    expl_constant = 100.0 #exploration const
+    k_act = 8.0 # k for action
+    alpha_act = 1.0/5.0 # alpha for action
+    k_st = 8.0 # k for state
+    alpha_st = 1.0/5.0 # alpha for state
+    pos_control_gain = -8.0 # gain to drive position rollout --> higher = more aggressive
+    control_stepsize = 5.0 # maximum change in control effort from previous action
+  elseif sim == "mpc"
+    n = 50 # horizon steps
+  end
 end
 
 # Packages
@@ -107,6 +157,10 @@ if prob == "2D"
   ssm = build2DSSM(deltaT)#,processNoise,measNoise) # building state-space
   prob_params = ["vx","vy","w","x","y","theta","m","uv","J","rx","ry"]
   control_params = ["Fx", "Fy", "T"]
+elseif prob == "Car"
+  ssm = buildCarSSM(deltaT);
+  prob_params = ["x", "y", "theta", "v", "mu"];
+  control_params = ["u1", "u2"];
 elseif prob == "1D"
   ssm = buildDoubleIntSSM(deltaT)#,processNoise,measNoise) # building 1D state-space
   prob_params = ["v","p","m"]
@@ -114,17 +168,26 @@ elseif prob == "1D"
 end
 
 # Force limits in the problem --> need before defining MPC/POMDP
-FVar = fRange;
-TVar = fRange;
-fDist = linspace(-fRange, fRange, fDist_disc)
-uDist = MvNormal(zeros(ssm.nu),diagm(fRange*ones(ssm.nu)))
+if prob == "Car"
+  Fvar = fRange;
+  TVar = fRange;
+  fDist = linspace(-fRange[1], fRange[1], fDist_disc[1]), linspace(-fRange[2], fRange[2], fDist_disc[2]);
+  uDist = MvNormal(zeros(ssm.nu), diagm(fRange));
+  #pos_range = 1:4;
 
+  startState = 1;
 
-startState = Int(ssm.states/2+1) # first position index
-if startState == ssm.states
-  pos_range = startState
 else
-  pos_range = startState:ssm.states # range of indeces in state mean for positions used in propotional controller
+  FVar = fRange;
+  TVar = fRange;
+  fDist = linspace(-fRange, fRange, fDist_disc)
+  uDist = MvNormal(zeros(ssm.nu),diagm(fRange*ones(ssm.nu)))
+  startState = Int(ssm.states/2+1) # first position index
+  if startState == ssm.states
+    pos_range = startState
+  else
+    pos_range = startState:ssm.states # range of indeces in state mean for positions used in propotional controller
+  end
 end
 
 
@@ -150,6 +213,14 @@ if prob == "2D" # load files for 2D problem
   elseif sim == "mpc"
     include("MPC_2D.jl") # function to set up MPC opt and solve
   end
+elseif prob == "Car"
+  include("LimitChecks_Car.jl")
+  if sim == "qmdp"
+    include("QMDP_setup.jl")
+  elseif sim == "mcts"
+    include("POMDP_2D.jl")
+  end
+
 elseif prob == "1D" # load files for 1D problem
   include("LimitChecks_1D.jl") # checks for control bounds and state/est values
   if sim == "mcts"
@@ -188,17 +259,3 @@ if (sim == "mcts") || (sim == "qmdp") || (sim == "lite")
   end
   policy = solve(solver,mdp) # policy setup for POMDP
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -15,12 +15,13 @@
 # To use:
 # cd("C:/Users/patty/Box Sync/SimulEstControl/SimulEstV0") # change to your path
 # include("simulation.jl") # runs this file
+using ProfileView
 
 # Specify simulation parameters
-prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "qmdp"  # "mcts"
+prob = "1D" # set to the "1D" or "2D" problems defined
+sim = "lite"  # "mcts", "qmdp", "mpc", "lite"
 rollout = "random"
-quick_run = false
+quick_run = true
 numtrials = 1 # number of simulation runs
 processNoiseList = [0.001] #, 0.1]
 paramNoiseList = [0.001] #, 10.0]
@@ -72,6 +73,7 @@ for sim_setting = 1:length(sim_set)
     est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
     x0_state = state_init*ones(ssm.nx) # actual initial state
 
+    # Q = diagm([processNoise*ones(ssm.states) zeros(ssm.nx-ssm.states)])
     Q = diagm(processNoise*ones(ssm.nx))
     R = diagm(measNoise*ones(ssm.ny))
     w = MvNormal(zeros(ssm.nx),Q) # process noise distribution
@@ -112,22 +114,27 @@ for sim_setting = 1:length(sim_set)
 
         ### inner loop running for each step in the simulation
         @time for i = 1:nSamples #for all samples
-            if printing @show i end
+            @show i
             if trace(cov(xNew)) > cov_thresh # input to action is exploding state
               u[:,i] = zeros(ssm.nu) # return action of zeros because unstable
               @show "COV THRESH INPUT EXCEEDED"
             else # compute actions as normal for safe states
               if sim == "mcts"
-                u[:,i] = action(policy,xNew) # take an action MCTS
+                @time u[:,i] = action(policy,xNew) # take an action MCTS
               elseif sim == "qmdp"
               	AugNew = AugState(xNew)
                 u[:, i] = action(policy, AugNew)
+              elseif sim == "lite"
+                sNew = LiteState(EKFState(xNew), x0_state[end])
+                println("sNew means: ", mean(sNew.estimState))
+                @profile u[:, i] = action(policy,sNew)
+                ProfileView.view()
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding controls
-            x[:,i+1] = ssm.f(x[:,i],u[:,i]) + rand(w) # propagating the state
+            x[:,i+1] = ssm.f(x[:,i],u[:,i]) + vcat(rand(w)[1:ssm.states], zeros(ssm.nx-ssm.states)) # propagating the state
             x[:,i+1] = state_check(x[:,i+1], debug_bounds) # reality check --> see if values of parameters have gotten too small --> limit
             rewrun[i] = -sum(abs.(x[1:ssm.states,i])'*Qr) + -sum(abs.(u[:,i])'*Rg) # sum rewards
 
@@ -141,7 +148,7 @@ for sim_setting = 1:length(sim_set)
               else
                 xNew = filter(ssm,obs[:,i],xNew,Q,R,u[:,i]) # for EKF
               end
-
+              
 
               # reality check --> see if estimates have gotten too extreme --> limit
               x_temp = mean(xNew)
@@ -183,6 +190,9 @@ for sim_setting = 1:length(sim_set)
           lwv = 2
           # Plot position states and estimates
           #pos_pl_data = vcat(x[startState:ssm.states,:],est[startState:ssm.states,:])
+          
+          # startState: index of 1st pos state
+
           pos_pl_data = x[startState:ssm.states,:]
           posest_pl_data = est[startState:ssm.states,:]
 
@@ -219,3 +229,8 @@ for sim_setting = 1:length(sim_set)
 #end
 # this prints, plots, and saves data
 #include(Outputs.jl)
+
+
+
+
+

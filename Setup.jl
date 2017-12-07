@@ -1,6 +1,6 @@
 
 if quick_run
-  nSamples = 5 # quick amount of steps for debug_bounds
+  nSamples = 1 # quick amount of steps for debug_bounds
 else
   nSamples = 50
 end
@@ -10,7 +10,7 @@ measNoise = 0.000001 # standard deviation of measurement noise
 deltaT = 0.1 # timestep for simulation --> decrease for complex systems?
 debug_bounds = false # set to 1 to print out commands to see when limits of state and estimation hit
 cov_thresh = 1000 # threshold where trace(cov) of estimate will be discarded in MCTS
-state_init = 1.0 # gain for teh initial state
+state_init = 1.0 # gain for the initial state
 state_min_tol = 0.1 # prevent states from growing less than X% of original value
 
 if prob == "1D"
@@ -19,7 +19,7 @@ if prob == "1D"
   #est_init = 11 # gain for the initial estimate
   fDist_disc = 1000 # discrete points in fDist force linspace
   # Reward shaping
-  Qg = diagm([3;10])
+  Qg = diagm([3;20]) # diagm([3;10])  # [velocity, position]
   Qr = Qg
   Rg = [1]
   if (sim == "mcts") || (sim == "qmdp")
@@ -33,8 +33,19 @@ if prob == "1D"
     alpha_st = 1.0/5.0 # alpha for state
     pos_control_gain = -4.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
+  elseif sim == "lite"
+    n_iters = 100 # total number of iterations
+    depths = 5 # depth of tree
+    expl_constant = 300.0 #exploration const
+    k_act = 8.0 # k for action
+    alpha_act = 1.0/5.0 # alpha for action
+    k_st = 8.0 # k for state
+    alpha_st = 1.0/5.0 # alpha for state
+    pos_control_gain = -4.0 # gain to drive position rollout --> higher = more aggressive
+    control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
     n = 20 # horizon steps # using receding horizon now
+
   end
 elseif prob == "2D"
   # Settings for simulation
@@ -66,10 +77,10 @@ elseif prob == "2D"
 end
 
 # Packages
-if (sim == "mcts") || (sim == "qmdp")
+if (sim == "mcts") || (sim == "qmdp") || (sim == "lite")
   using Distributions, POMDPs, MCTS, POMDPToolbox # for MCTS
 elseif sim == "mpc"
-  using Distributions, Convex, SCS, ECOS# for MPC
+  using Distributions, Convex, Mosek, SCS, ECOS# for MPC
   if fullobs
     rollout = "fobs"
   else
@@ -107,12 +118,15 @@ FVar = fRange;
 TVar = fRange;
 fDist = linspace(-fRange, fRange, fDist_disc)
 uDist = MvNormal(zeros(ssm.nu),diagm(fRange*ones(ssm.nu)))
+
+
 startState = Int(ssm.states/2+1) # first position index
 if startState == ssm.states
   pos_range = startState
 else
   pos_range = startState:ssm.states # range of indeces in state mean for positions used in propotional controller
 end
+
 
 # initialize first process and param noises and Q,R
 processNoise = processNoiseList[1]
@@ -142,6 +156,8 @@ elseif prob == "1D" # load files for 1D problem
     include("POMDP_1D.jl") # functions for POMDP definition
   elseif sim == "qmdp"
     include("QMDP_setup.jl")
+  elseif sim == "lite"
+    include("POMDP_lite.jl")
   elseif sim == "mpc"
     include("MPC_1D.jl") # function to set up MPC opt and solve
   end
@@ -159,7 +175,7 @@ rewrun = Array{Float64,1}(nSamples) # total reward summed for each run
 
 #hist = HistoryRecorder() # necessary for POMDP setup #zach: is there a way to extract all actions and rewards for each step?
 # solver defined here with all settings
-if (sim == "mcts") || (sim == "qmdp")
+if (sim == "mcts") || (sim == "qmdp") || (sim == "lite")
   if rollout == "smooth"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll), next_action=heur)#-4 before

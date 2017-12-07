@@ -19,7 +19,7 @@
     rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
     bounds = false # set bounds for mcts solver
     quick_run = true
-    numtrials = 1 # number of simulation runs
+    numtrials = 2 # number of simulation runs
     noiseList = []
     cond1 = "full"
 
@@ -28,17 +28,17 @@
     paramNoiseList = [0.1,0.3]#,0.5,0.7]
     ukf_flag = true # use ukf as the update method when computing mcts predictions
     param_change = false # add a cosine term to the unknown param updates
-    param_type = "sine" # sine or steps
+    param_type = "none" # sine or steps
     param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
     param_freq = 0.3
 
     # Output settings
     printing = false # set to true to print simple information
     plotting = false # set to true to output plots of the data
-    saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+    saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
     tree_vis = false # visual MCTS tree
-    sim_save = "test" # name appended to sim settings for simulation folder to store data from runs
-    data_folder = "data2"
+    sim_save = "CE1" # name appended to sim settings for simulation folder to store data from runs
+    data_folder = "CE"
     fullobs = true # set to false for mpc without full obs
     if sim != "mpc" # set fullobs false for any other sim
       fullobs = false
@@ -48,9 +48,8 @@
     cross_entropy = true
     num_pop = 4 # number of samples to test this round of CE
     num_elite = 2 # number of elite samples to keep to form next distribution
-
+    sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
     if cross_entropy
-        sim_save_name = string("CE",sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs) # FIX THIS so unique
         niters_lb = 400
         niters_ub = 600
         states_lb = 1
@@ -61,14 +60,14 @@
         depth_ub = 30
         expl_lb = 0.1
         expl_ub = 100.0
+        CE_settings = [niters_lb,niters_ub,states_lb,states_ub,act_lb,act_ub,depth_lb,depth_ub,expl_lb,expl_ub]
         pmapInput = []
         for i in 1:num_pop
-            push!(pmapInput,(rand(niters_lb:niters_ub),rand(states_lb:states_ub),rand(act_lb:act_ub),rand(depth_lb:depth_ub),rand(expl_lb:expl_ub),processNoiseList[1],paramNoiseList[1]))
+            push!(pmapInput,(rand(niters_lb:niters_ub),rand(states_lb:states_ub),rand(act_lb:act_ub),rand(depth_lb:depth_ub),rand(expl_lb:expl_ub),processNoiseList[1],paramNoiseList[1],sim_save_name))
         end
         @show pmapInput
     else
         # combine the total name for saving
-        sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
         @show sim_save_name
         for PRN in processNoiseList
             for PMN in paramNoiseList
@@ -223,7 +222,9 @@
         totrew += mean(rewrun)
         # for each trial save simulation data
         if saving
-          @show sim_save_name
+          if cross_entropy
+              sim_save_name = string("CE",params[1:end-1],params[end])
+          end
           sim_names = [sim_save_name,prob,sim,rollout,string(processNoise),string(paramNoise),string(numtrials),string(j)]
           save_simulation_data(x,est,u,[rewrun rewrun]',uncertainty,prob_params,sim_names)
           # I'm putting two reward vectors to avoid vector error
@@ -289,6 +290,20 @@ if cross_entropy
         push!(distrib,(maximum(data_distr),minimum(data_distr)))
     end
     @show distrib
+    # Write out txt file with results of the CE round
+    try mkdir(data_folder)
+    end
+    cd(data_folder)
+    @show readdir()
+    open(string(sim_save,".txt"), "w") do f
+    write(f,string(sim_save,"\n"))
+    write(f,string(distrib,"\n"))
+    write(f,string(elite_params,"\n"))
+    write(f,string(elite,"\n"))
+    write(f,string(evals,"\n"))
+    write(f,string(CE_settings,"\n"))
+    cd("..")
+end
 end
 #end
 # this prints, plots, and saves data

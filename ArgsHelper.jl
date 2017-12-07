@@ -1,3 +1,0 @@
-# ARGS (t/f or text): sim_type, PN list, PM list, saving, printing, parallel, ...
-arg_len = length(input) #
-@show arg_len

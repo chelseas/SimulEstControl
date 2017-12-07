@@ -3,22 +3,27 @@
 # add args
 # check the svd in the UKF
 # ARGS (t/f or text): sim_type, PN list, PM list, saving, printing, parallel, ...
-global input = "test"
-@everywhere input = ARGS
+#global input = "test"
+#@everywhere input = ARGS
+
 @everywhere begin
   # cd to absolute path -->
     dir = pwd()
     cd(dir)
     #@show ARGS
     #@show length(ARGS)
+
+    # SIM SETTINGS
     prob = "2D" # set to the "1D" or "2D" problems defined
-    sim = "mpc" # mcts, mpc, qmdp, drqn
+    sim = "mcts" # mcts, mpc, qmdp, drqn
     rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
     bounds = false # set bounds for mcts solver
     quick_run = true
     numtrials = 1 # number of simulation runs
     noiseList = []
     cond1 = "full"
+
+    #NOISE SETTINGS
     processNoiseList = [0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
     paramNoiseList = [0.1,0.3]#,0.5,0.7]
     ukf_flag = true # use ukf as the update method when computing mcts predictions
@@ -39,15 +44,39 @@ global input = "test"
       fullobs = false
     end
 
-    # combine the total name for saving
-    sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
-    @show sim_save_name
-    for PRN in processNoiseList
-        for PMN in paramNoiseList
-            push!(noiseList,(PRN,PMN))
-        end
-    end
+    # CROSS ENTROPY SETTINGS
+    cross_entropy = true
+    num_pop = 4 # number of samples to test this round of CE
+    num_elite = 2 # number of elite samples to keep to form next distribution
 
+    if cross_entropy
+        sim_save_name = string("CE",sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs) # FIX THIS so unique
+        niters_lb = 400
+        niters_ub = 600
+        states_lb = 1
+        states_ub = 10
+        act_lb = 10
+        act_ub = 40
+        depth_lb = 5
+        depth_ub = 30
+        expl_lb = 0.1
+        expl_ub = 100.0
+        pmapInput = []
+        for i in 1:num_pop
+            push!(pmapInput,(rand(niters_lb:niters_ub),rand(states_lb:states_ub),rand(act_lb:act_ub),rand(depth_lb:depth_ub),rand(expl_lb:expl_ub),processNoiseList[1],paramNoiseList[1]))
+        end
+        @show pmapInput
+    else
+        # combine the total name for saving
+        sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
+        @show sim_save_name
+        for PRN in processNoiseList
+            for PMN in paramNoiseList
+                push!(noiseList,(PRN,PMN))
+            end
+        end
+        pmapInput = noiseList
+    end
     # all parameter variables, packages, etc are defined here
     include("Setup.jl")
 
@@ -57,9 +86,20 @@ global input = "test"
     #processNoise = processNoiseList[noise_setting]
     #paramNoise = paramNoiseList[noise_setting]
     totrew = 0.0 # summing all rewards with this
-    processNoise = params[1]
-    paramNoise = params[2] # second element of tuple
-    @show input
+    if cross_entropy
+        processNoise = params[6]
+        paramNoise = params[7]
+        alpha_act = 1.0/10.0 # alpha for action
+        alpha_st = 1.0/20.0 # alpha for state
+        k_act = params[3]/(n_iters^alpha_act) # k for action
+        k_st = params[2]/(n_iters^alpha_st) # k for state
+        solverCE = DPWSolver(n_iterations = params[1], depth = params[4], exploration_constant = params[5],
+        k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
+        policyCE = solve(solverCE,mdp)
+    else
+        processNoise = params[1]
+        paramNoise = params[2] # second element of tuple
+    end
     # Initializing an array of psuedo-random start states and actual state
     #srand(13) # seeding the est_list values so they will all be the same
     paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
@@ -104,7 +144,11 @@ global input = "test"
               @show "COV THRESH INPUT EXCEEDED"
             else # compute actions as normal for safe states
               if sim == "mcts"
-                u[:,i] = action(policy,xNew) # take an action MCTS
+                if cross_entropy
+                    u[:,i] = action(policyCE,xNew) # take an action MCTS
+                else
+                    u[:,i] = action(policy,xNew) # take an action MCTS
+                end
                 if tree_vis # visualize the MCTS tree for 1 run and break
                   inchrome(D3Tree(policy, title="whatever"))#,xNew)
                   @show "Plotting Tree"
@@ -230,11 +274,22 @@ global input = "test"
         end
         gc() # clear data?
     end
-    totrew # place variable here to have it output by evals
+    [params,totrew/numtrials] # place variable here to have it output by evals
   end
 end #@everywhere
-evals = pmap(evaluating,noiseList)#,paramNoiseList)
-@show evals
+evals = pmap(evaluating,pmapInput)#,paramNoiseList)
+if cross_entropy
+    @show evals
+    @show sorted = sortperm([evals[i][2] for i in 1:num_pop],rev=true)
+    @show elite = sorted[1:num_elite]
+    @show elite_params = evals[elite]
+    distrib = []
+    for i in 1:5 # number of params that need to compute a range for
+        data_distr = [elite_params[e][1][i] for e in 1:num_elite]
+        push!(distrib,(maximum(data_distr),minimum(data_distr)))
+    end
+    @show distrib
+end
 #end
 # this prints, plots, and saves data
 #include(Outputs.jl)

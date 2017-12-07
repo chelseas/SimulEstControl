@@ -53,10 +53,10 @@ elseif prob == "2D"
   if sim == "mcts"
     # Parameters for the POMDP
     #500 = 7s, 2000 = 30s, 5000 = 60s
-    n_iters = 10000#3000#00 # total number of iterations
-    samples_per_state = 1#3 # want to be small
+    n_iters = 2000#3000#00 # total number of iterations
+    samples_per_state = 5#3 # want to be small
     samples_per_act = 20 # want this to be ~20
-    depths = 30 # depth of tree
+    depths = 20 # depth of tree
     expl_constant = 10.0#100.0 #exploration const
     alpha_act = 1.0/10.0 # alpha for action
     alpha_st = 1.0/20.0 # alpha for state
@@ -79,6 +79,9 @@ if sim == "mcts"
     if tree_vis
       using D3Trees
     end
+  if !ukf_flag
+      using ForwardDiff
+  end
 elseif sim == "mpc"
   using Distributions, Convex, SCS, ECOS# for MPC
   if fullobs
@@ -134,7 +137,9 @@ R = diagm(measNoise*ones(ssm.ny))
 
 # Loading scripts based on simulation and problem conditions
 include("UKF.jl") # contains UKF
-#include("EKF.jl") # contains EKF
+if !ukf_flag
+    include("EKF.jl") # contains EKF
+end
 if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
   if sim == "mcts"

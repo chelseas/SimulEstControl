@@ -3,7 +3,7 @@ function MPCAction(x0::MvNormal, n::Int)
     xEst = mean(x0)
     unc = trace(cov(x0))
     x = mean(x0)
-
+    # Check this jacobian with forward diff to make sure these are linearized
     # Dynamics for 2D problem
     firstOrder = deltaT*x[8]/x[7];
     secondOrder = (deltaT*x[8])^2/x[7];
@@ -24,8 +24,8 @@ function MPCAction(x0::MvNormal, n::Int)
     # can speed up slight ~20% if I put the variables or objects outside of the for loop
     Qp = diag(Qg)
     Rp = diag(Rg)
-    u = Variable(3, n - 1)
-    xs = Variable(6, n)
+    u = Convex.Variable(3, n - 1)
+    xs = Convex.Variable(6, n)
 
     problem = minimize(sum(abs.(u[1,:])*Rp[1]) + sum(abs.(u[2,:])*Rp[2]) + sum(abs.(u[3,:])*Rp[3]) + sum(abs.(xs[1,:])*Qp[1]) + sum(abs.(xs[2,:])*Qp[2]) + sum(abs.(xs[3,:])*Qp[3]) + sum(abs.(xs[4,:])*Qp[4]) + sum(abs.(xs[5,:])*Qp[5]) + sum(abs.(xs[6,:])*Qp[6]))
 
@@ -50,7 +50,7 @@ function MPCAction(x0::MvNormal, n::Int)
     problem.status # :Optimal, :Infeasible, :Unbounded etc.
 
     # Get the optimal value
-    u_return = evaluate(u)
+    u_return = Convex.evaluate(u)
     Convex.clearmemory() # stops it from creating new vars each time
     return u_return[:,1]
 end

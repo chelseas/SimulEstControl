@@ -4,11 +4,12 @@ using DataFrames
 pushPGFPlotsPreamble("\\usepackage{xfrac}")
 pdata = " processed data"
 tot_dir = "total rewards"
-plot_folder = "plots"
-folder_list = ["2D_0.1_normal","2D_0.3_normal"]#readdir() # or just make a list with all names ["folder1","folder2"]
-vary = true # plot varying process or param noise
+plot_folder = "plots3"
+folder_list = ["2k_EKF_0.1_0.1","2k_EKF_0.1_0.3","2k_EKF_0.033_0.1","2k_EKF_0.033_0.3"]#["new_lim_0.1","new_lim_0.033"]#["EKF_check_0.1_0.1","EKF_check_0.033_0.1","EKF_check_0.033_0.3"]#["prof_5k_0.1_0.3","prof_5k_0.033_0.3"]#,"prof_10k_0.033_0.3","prof_10k_0.1_0.1"]#,"2D_0.3_normal"]#readdir() # or just make a list with all names ["folder1","folder2"]
+data_folder = "data2" # name of folder to store data
+vary = false # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
-profile = false # plot the profile of the results
+profile = true # plot the profile of the results
 verbose = false # set to true to print debug statements
 
 
@@ -17,7 +18,7 @@ for folder in folder_list
 
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through
-cd("data")
+cd(data_folder)
 cd(folder)
 
 # go into all of these folders and compute average values and std devs of the trials
@@ -170,7 +171,7 @@ sim_style_list = (mcts_pos_style, mcts_rand_style, mcts_smooth_style, mpc_fobs_s
 col5 = "black"
 mark1 = "none"
 
-cd("data")
+cd(data_folder)
 cd(join([folder pdata]))
 
 # total reward plot for varying process or parameter noise
@@ -253,7 +254,7 @@ if vary
       #Plots.Linear(mcts_smooth[:,vv],mcts_smooth[:,1], errorBars = ErrorBars(y=mcts_smooth[:,2]),style=col4,  mark=mark1, legendentry = mcts_smooth_leg)
       #Plots.Linear(qmdp[:,vv],qmdp[:,vv], errorBars = ErrorBars(y=qmdp[:,vv]),style=col5,  mark=mark1, legendentry = qmdp_leg)
       ,xmode="log",xlabel = xaxis,ylabel=yaxis,legendPos="south west")
-  title1 = join([title_start," TR ", tempName[3], " PN ", tempName[7], " VARN ", tempName[9][1:end-4]])
+  title1 = join([folder, title_start," TR ", tempName[3], " PN ", tempName[7], " VARN ", tempName[9][1:end-4]])
   save(string(title1,".pdf"),varyProcessPlot)
   save(string(title1,".svg"),varyProcessPlot)
   save(string(title1,".tex"),varyProcessPlot, include_preamble=false)
@@ -406,7 +407,7 @@ if profile # plot the profiles for the runs
   push!(g3, ctrl)
   push!(g3, rew)
   title_start = "PROF "
-  title3 = join([title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
 
   ####
   cd("..")

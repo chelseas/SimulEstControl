@@ -17,14 +17,14 @@
 # include("simulation.jl") # runs this file
 
 # Specify simulation parameters
-prob = "Car" # set to the "1D" or "2D" problems defined
+prob = "2D" # set to the "1D" or "2D" problems defined
 sim = "qmdp"  # "mcts"
 rollout = "random"
-run = "long"
+run = "normal"
 #quick_run = false
 numtrials = 1 # number of simulation runs
 processNoiseList = [0.001] #, 0.1]
-paramNoiseList = [0.001] #, 10.0]
+paramNoiseList = [0.01] #, 10.0]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
 endindex = 1;
 # Output settings
@@ -245,10 +245,10 @@ for sim_setting = 1:length(sim_set)
           rew_pl = plot(rewrun, lw = lwv, title = "Reward")
           # Subplot all of them together
           #label = join([sim," ","Rew ",sum(rew_pl)," PN ", string(processNoise), " VARN ",string(paramNoise)])
-          #display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))#,xlabel=label)
-          #gui()  # need this for some reason to render browser plots on mac
+          # display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))#,xlabel=label)
+          # gui()  # need this for some reason to render browser plots on mac
           #savefig(join(["test " string(j) ".png"])) # save plots for each run
-          
+
           if prob == "Car"
             using PyPlot
             Trackpts = [PathX[1]; PathY[1]]

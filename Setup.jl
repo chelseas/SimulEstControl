@@ -90,19 +90,19 @@ elseif prob == "Car"
   theta0 = atan((PathY[2] - PathY[1])/(PathX[2] - PathX[1]));
   v0 = 0.0;
   mu0 = 0;
-  
+
   TrackIdx = [1];
   point_lead = 10.0;
   dist_thresh = 5.0;
   lead_dist = abs.(sqrt.((x0 - PathX[TrackIdx[end] + 1 : end]).^2 + (y0 - PathY[TrackIdx[end] + 1 : end]).^2) - point_lead);
   newDist, newIdx = findmin(lead_dist);
   append!(TrackIdx, newIdx);
-  
+
   state_init = [x0; y0; theta0; v0; mu0];
   if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
     n_iters = 500 # total number of iterations
-    depths = 20 # depth of tree
+    depths = 5 # 20 # depth of tree
     expl_constant = 100.0 #exploration const
     k_act = 8.0 # k for action
     alpha_act = 1.0/5.0 # alpha for action
@@ -163,9 +163,9 @@ if prob == "Car"
   fDist = linspace(-fRange[1], fRange[1], fDist_disc[1]), linspace(-fRange[2], fRange[2], fDist_disc[2]);
   uDist = MvNormal(zeros(ssm.nu), diagm(fRange));
   #pos_range = 1:4;
-  
+
   startState = 1;
-  
+
 else
   FVar = fRange;
   TVar = fRange;
@@ -205,8 +205,10 @@ elseif prob == "Car"
   include("LimitChecks_Car.jl")
   if sim == "qmdp"
     include("QMDP_setup.jl")
+  elseif sim == "mcts"
+    include("POMDP_2D.jl")
   end
-  
+
 elseif prob == "1D" # load files for 1D problem
   include("LimitChecks_1D.jl") # checks for control bounds and state/est values
   if sim == "mcts"
@@ -243,4 +245,3 @@ if (sim == "mcts") || (sim == "qmdp")
   end
   policy = solve(solver,mdp) # policy setup for POMDP
 end
-

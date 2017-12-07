@@ -5,15 +5,30 @@
 const EKFState = MvNormal{Float64,PDMats.PDMat{Float64,Array{Float64,2}},Array{Float64,1}}
 
 # MvNormal is not a concrete type --> might slow it down --> replace with FullNormal for faster
-type MassMDP <: MDP{EKFState, Array{Float64,1}} # POMD{State,Action,Observation(1x2 hardcode)}
-    discount_factor::Float64 # default 0.99
+if prob == "Car"
+  type MassMDP <: MDP{EKFState, Array{Float64, 1}}
+    discount_factor::Float64
     goal_state::Float64
-    force_range::LinSpace{Float64}
+    force_range_1::LinSpace{Float64}
+    force_range_2::LinSpace{Float64}
+  end
+else
+  type MassMDP <: MDP{EKFState, Array{Float64,1}} # POMD{State,Action,Observation(1x2 hardcode)}
+      discount_factor::Float64 # default 0.99
+      goal_state::Float64
+      force_range::LinSpace{Float64}
+  end
 end
 
 ### Default constructor for MDP
-function MassMDP()
-    return MassMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+if prob == "Car"
+  function MassMDP()
+    return MassMDP(0.99, 0.0, fDist[1], fDist[2])
+  end
+else
+  function MassMDP()
+      return MassMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+  end
 end
 
 # initializing to default
@@ -31,21 +46,36 @@ create_state(::MassMDP) = MvNormal(zeros(ssm.nx),eye(ssm.nx))
 create_observation(::MassMDP) = zeros(ssm.states)
 
 function transition(mdp::MassMDP,s::EKFState,a::Array{Float64,1})
-    obs = observation(mdp,s,a,s)
-    if ukf_flag
-      sp = ukf(ssm,obs,s,Q,R,a) # this is using UKF and causing divergence during simulation ERR
-    else
-      sp = filter(ssm, obs, s, Q, R, a)#was [a] before DIF for EKF
-    end
-    return sp
+  x_assume = rand(s)
+  x_p = ssm.f(x_assume,a)
+  x_pred = EKFState(MvNormal(x_p,cov(s)))
+  obs = observation(mdp,x_pred,a,s)
+  if ukf_flag
+    sp = ukf(ssm,obs,s,Q,R,a)
+  else
+    sp = filter(ssm,obs,s,Q,R,a)
+  end
+  return sp
+
+
+#    obs = observation(mdp,s,a,s)
+#    if ukf_flag
+#      sp = ukf(ssm,obs,s,Q,R,a) # this is using UKF and causing divergence during simulation ERR
+#    else
+#      sp = filter(ssm, obs, s, Q, R, a)#was [a] before DIF for EKF
+#    end
+#    return sp
 end
 
 ### Take a stochastic observation of the current state
 function observation(mdp::MassMDP,s::EKFState,a::Array{Float64,1},sp::EKFState)
-    x_assume = rand(s)
-    x_p = ssm.f(x_assume,a) # do I need noise here?
-    obs =  ssm.h(x_p,a)
-    return obs
+  obs = ssm.h(mean(s),a)
+  return obs
+
+#    x_assume = rand(s)
+#    x_p = ssm.f(x_assume,a) # do I need noise here?
+#    obs =  ssm.h(x_p,a)
+#    return obs
 end
 
 # 2D.jl vs 2D_RL.jl
@@ -97,6 +127,36 @@ elseif prob == "1D"
   function POMDPs.rand(rng::AbstractRNG, action_space::Normal{Float64}, dummy=nothing)
      return rand(action_space)
   end
+elseif prob == "Car"
+
+  function POMDPs.reward(mdp::MassMDP, s::EKFState, a::Array{Float64, 1}, sp::EKFState)
+
+    # Get state estimate
+    TrueState = mean(s)
+    r = Car_reward(TrueState, a, TrackIdx[end])
+    return r
+  end
+
+  # Define action space
+  immutable FFTActionSpace
+      lower::Array{Float64, 1}
+      upper::Array{Float64, 1}
+  end
+
+  # Defines the action space as continuous in range of fRange
+  function POMDPs.actions(mdp::MassMDP)
+      # take rand action within force bounds
+      return FFTActionSpace(-fRange, fRange) # frange is [u1 range; u2 range]
+  end
+
+  # Define POMDPs actions with function
+  POMDPs.actions(mdp::MassMDP, s::EKFState, as::Array{Float64,1}) = actions(mdp)
+
+  ### Define rand for using within the range defined in FFT
+  function Base.rand(rng::AbstractRNG, as::FFTActionSpace)
+      diff = as.upper-as.lower
+      return diff.*rand(rng, ssm.nu) + as.lower
+  end
 end
 
 ### Checking for terminal case to stop solving --> setting so it never stops
@@ -108,6 +168,21 @@ function POMDPs.isterminal(mdp::MassMDP, s::EKFState) # just for a leaf --> reac
       return true
   end
   return false
+
+#  if prob == "Car"
+#    Dist2TrackPoint = sqrt((mean(s)[1] - PathX[TrackIdx[end]])^2 + (mean(s)[2] - PathY[TrackIdx[end]])^2);
+#    if (Dist2TrackPoint < dist_thresh)
+#      return true
+#    else
+#      return false
+#    end
+#  else
+#    if trace(cov(s)) > cov_thresh # add or for the estimates below thresh
+#        #@show "out"
+#        return true
+#    end
+#    return false
+#  end
 end
 
 # Set discount factor to that defined in MDP abstract

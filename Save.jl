@@ -2,7 +2,7 @@
 using DataFrames
 function save_data(data::Array, head::Vector, simsettings::Vector, data_val::String)
   # data_val here is what kind of data --> pos, est, unk, ctrl, rew, unc
-  if (simsettings[2]== "mcts") || (simsettings[2] == "qmdp")
+  if (simsettings[2]== "mcts") || (simsettings[2] == "qmdp") || (simsettings[2] == "lite")
     (prob,sim,rollout,processNoise,paramNoise,numtrails,run_num) = simsettings
     fname = string(data_val," ",prob," ",sim," ",rollout," PN ",processNoise," VARN ",paramNoise," Trial ",run_num,".csv")
   elseif simsettings[2]== "mpc"

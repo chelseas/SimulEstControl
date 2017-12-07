@@ -15,7 +15,6 @@
 # To use:
 # cd("C:/Users/patty/Box Sync/SimulEstControl/SimulEstV0") # change to your path
 # include("simulation.jl") # runs this file
-using ProfileView
 
 # Specify simulation parameters
 prob = "1D" # set to the "1D" or "2D" problems defined
@@ -127,8 +126,7 @@ for sim_setting = 1:length(sim_set)
               elseif sim == "lite"
                 sNew = LiteState(EKFState(xNew), x0_state[end])
                 println("sNew means: ", mean(sNew.estimState))
-                @profile u[:, i] = action(policy,sNew)
-                ProfileView.view()
+                u[:, i] = action(policy,sNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end
@@ -148,7 +146,7 @@ for sim_setting = 1:length(sim_set)
               else
                 xNew = filter(ssm,obs[:,i],xNew,Q,R,u[:,i]) # for EKF
               end
-              
+
 
               # reality check --> see if estimates have gotten too extreme --> limit
               x_temp = mean(xNew)
@@ -190,7 +188,7 @@ for sim_setting = 1:length(sim_set)
           lwv = 2
           # Plot position states and estimates
           #pos_pl_data = vcat(x[startState:ssm.states,:],est[startState:ssm.states,:])
-          
+
           # startState: index of 1st pos state
 
           pos_pl_data = x[startState:ssm.states,:]
@@ -229,8 +227,3 @@ for sim_setting = 1:length(sim_set)
 #end
 # this prints, plots, and saves data
 #include(Outputs.jl)
-
-
-
-
-

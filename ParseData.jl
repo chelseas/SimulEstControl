@@ -1,10 +1,10 @@
 using DataFrames
-folder = "2D_0.7_step"#"test2"# give data folder name to compute averages from
+folder = "CE1_2D_mcts_full_none_false"#"test2"# give data folder name to compute averages from
 
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through
 
-cd("data") # go into data folder
+cd("dataCE") # go into data folder
 cd(folder)
 
 # go into all of these folders and compute average values and std devs of the trials

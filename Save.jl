@@ -25,7 +25,7 @@ save_data(b,c,a,"rand")
 
 # Matrices of data, state names in hs, and settings
 function save_simulation_data(s::Matrix, est::Matrix, ctrl::Matrix, rew::Array,
-                              unc::Matrix, hs::Vector, settings::Vector)
+                              unc::Matrix, hs::Vector, settings::Vector,pname::Array)
   # get simulation properties from settings
   (ssn,prob,sim,rollout,processNoise,paramNoise,numtrials,run_num) = settings
   indset = settings[2:end] # to pass to each save_data command
@@ -36,7 +36,7 @@ function save_simulation_data(s::Matrix, est::Matrix, ctrl::Matrix, rew::Array,
   try mkdir(ssn)
   end
   cd(ssn)
-  newFolder = string(prob," ",sim, " ",rollout," PN ",processNoise," VARN ",paramNoise," RUNS ",numtrials)
+  newFolder = string(pname[1],prob," ",sim, " ",rollout," PN ",processNoise," VARN ",paramNoise," RUNS ",numtrials)
   try mkdir(newFolder)
   end
   cd(newFolder) # go into new folder to save files

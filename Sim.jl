@@ -1,11 +1,3 @@
-# TODO:
-# make so can be parallel or not and run MPC if not
-# add args
-# check the svd in the UKF
-# ARGS (t/f or text): sim_type, PN list, PM list, saving, printing, parallel, ...
-#global input = "test"
-#@everywhere input = ARGS
-
 @everywhere begin
   # cd to absolute path -->
     dir = pwd()
@@ -19,12 +11,12 @@
     rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
     bounds = false # set bounds for mcts solver
     quick_run = true
-    numtrials = 2 # number of simulation runs
+    numtrials = 1 # number of simulation runs
     noiseList = []
     cond1 = "full"
 
     #NOISE SETTINGS
-    processNoiseList = [0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
+    processNoiseList = [0.7]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
     paramNoiseList = [0.1,0.3]#,0.5,0.7]
     ukf_flag = true # use ukf as the update method when computing mcts predictions
     param_change = false # add a cosine term to the unknown param updates
@@ -38,7 +30,7 @@
     saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
     tree_vis = false # visual MCTS tree
     sim_save = "CE1" # name appended to sim settings for simulation folder to store data from runs
-    data_folder = "CE"
+    data_folder = "dataCE"
     fullobs = true # set to false for mpc without full obs
     if sim != "mpc" # set fullobs false for any other sim
       fullobs = false
@@ -46,7 +38,7 @@
 
     # CROSS ENTROPY SETTINGS
     cross_entropy = true
-    num_pop = 4 # number of samples to test this round of CE
+    num_pop = 2 # number of samples to test this round of CE
     num_elite = 2 # number of elite samples to keep to form next distribution
     sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
     if cross_entropy
@@ -63,12 +55,11 @@
         CE_settings = [niters_lb,niters_ub,states_lb,states_ub,act_lb,act_ub,depth_lb,depth_ub,expl_lb,expl_ub]
         pmapInput = []
         for i in 1:num_pop
-            push!(pmapInput,(rand(niters_lb:niters_ub),rand(states_lb:states_ub),rand(act_lb:act_ub),rand(depth_lb:depth_ub),rand(expl_lb:expl_ub),processNoiseList[1],paramNoiseList[1],sim_save_name))
+            push!(pmapInput,(rand(niters_lb:niters_ub),rand(states_lb:states_ub),rand(act_lb:act_ub),rand(depth_lb:depth_ub),rand(expl_lb:expl_ub),processNoiseList[1],paramNoiseList[1],sim_save_name,i))
         end
         @show pmapInput
     else
         # combine the total name for saving
-        @show sim_save_name
         for PRN in processNoiseList
             for PMN in paramNoiseList
                 push!(noiseList,(PRN,PMN))
@@ -140,7 +131,7 @@
             cov_check = trace(cov(xNew))
             if cov_check > cov_thresh # input to action is exploding state
               u[:,i] = zeros(ssm.nu) # return action of zeros because unstable
-              @show "COV THRESH INPUT EXCEEDED"
+              @show "COV THRESH"
             else # compute actions as normal for safe states
               if sim == "mcts"
                 if cross_entropy
@@ -223,10 +214,12 @@
         # for each trial save simulation data
         if saving
           if cross_entropy
-              sim_save_name = string("CE",params[1:end-1],params[end])
+              parallel_num = [string(params[end])]
+          else
+              parallel_num = [""]
           end
           sim_names = [sim_save_name,prob,sim,rollout,string(processNoise),string(paramNoise),string(numtrials),string(j)]
-          save_simulation_data(x,est,u,[rewrun rewrun]',uncertainty,prob_params,sim_names)
+          save_simulation_data(x,est,u,[rewrun rewrun]',uncertainty,prob_params,sim_names,parallel_num)
           # I'm putting two reward vectors to avoid vector error
         end
         if printing

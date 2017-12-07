@@ -55,7 +55,10 @@ function nearestSPD(A::Matrix{Float64})
             Ahat = Ahat + (-min_eig*iteration_count.^2 + eps(Float64))*I
         end
     end
-
+    if !isposdef(Ahat)
+        @show "Output of UKF not POSDEF --> error cholpack"
+        Ahat = (Ahat+Ahat')/2 # ensure return with symmetry
+    end
     Ahat
 end
 

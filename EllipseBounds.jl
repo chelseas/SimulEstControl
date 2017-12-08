@@ -40,6 +40,27 @@ function ellipsoid_bounds(A::MvNormal,n::Int64,n_out::Int64,F::Float64) # finds 
   return ellipse_pts # returns p x n_out array
 end
 
+function inner_pts(A::MvNormal,n::Int64,n_out::Int64,F::Float64)
+  mu = mean(A) # mean of distribution
+  p = length(mu) # number of degrees of freedom
+  s = rand(A,n) # samples of the desired distribution A, p x n
+  x_bar = mean(s,2) # mean of the samples dim nx1
+  Σ_hat_mean = [2 0 0; 0 1 0; 0 0 4]#(1.0/(n-1))*(s - x_bar*ones(1,n))*(s - x_bar*ones(1,n))'/n # Sample covariance of the mean
+  v = eigvecs(Σ_hat_mean) # axis directions of the ellipse
+  e = abs.(eigvals(Σ_hat_mean))
+  pt = rand(n_out,p)*2-1 # p x n_out of rand values
+  rs = rand(n_out)
+  fac = sum(pt'.^2,1)
+  scale = (rs.^(1/p))./sqrt.(fac') # scale should be n_out x p
+  pnts = zeros(n_out,p)
+  d = sqrt.(e)
+  for i = 1:n_out
+    pnts[i,:] = scale[i]*pt[i,:]
+
+    pnts[i,:] = (pnts[i,:]'.*d'*v) + mu'
+  end
+  return pnts'
+end
 ### Test Below, uncomment to run
 #=
 #using Distributions

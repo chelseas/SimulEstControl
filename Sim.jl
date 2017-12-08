@@ -10,13 +10,13 @@
     sim = "mcts" # mcts, mpc, qmdp, drqn
     rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
     bounds = false # set bounds for mcts solver
-    quick_run = true
-    numtrials = 1 # number of simulation runs
+    quick_run = false
+    numtrials = 10 # number of simulation runs
     noiseList = []
     cond1 = "full"
 
     #NOISE SETTINGS
-    processNoiseList = [0.7]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
+    processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
     paramNoiseList = [0.1,0.3]#,0.5,0.7]
     ukf_flag = true # use ukf as the update method when computing mcts predictions
     param_change = false # add a cosine term to the unknown param updates
@@ -30,7 +30,7 @@
     saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
     tree_vis = false # visual MCTS tree
     sim_save = "CE1" # name appended to sim settings for simulation folder to store data from runs
-    data_folder = "dataCE"
+    data_folder = "dataCE2"
     fullobs = true # set to false for mpc without full obs
     if sim != "mpc" # set fullobs false for any other sim
       fullobs = false
@@ -38,12 +38,12 @@
 
     # CROSS ENTROPY SETTINGS
     cross_entropy = true
-    num_pop = 2 # number of samples to test this round of CE
-    num_elite = 2 # number of elite samples to keep to form next distribution
+    num_pop = 50 # number of samples to test this round of CE
+    num_elite = 10 # number of elite samples to keep to form next distribution
     sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
     if cross_entropy
-        niters_lb = 400
-        niters_ub = 600
+        niters_lb = 2490
+        niters_ub = 2510
         states_lb = 1
         states_ub = 10
         act_lb = 10
@@ -58,6 +58,14 @@
             push!(pmapInput,(rand(niters_lb:niters_ub),rand(states_lb:states_ub),rand(act_lb:act_ub),rand(depth_lb:depth_ub),rand(expl_lb:expl_ub),processNoiseList[1],paramNoiseList[1],sim_save_name,i))
         end
         @show pmapInput
+        try mkdir(data_folder)
+        end
+        cd(data_folder)
+        open(string(sim_save,".txt"), "w") do f
+        write(f,string("Sim save: ",sim_save,"\n"))
+        write(f,string("CE settings: ",CE_settings,"\n"))
+        write(f,string("PMAP input: ",pmapInput,"\n"))
+        cd("..")
     else
         # combine the total name for saving
         for PRN in processNoiseList
@@ -289,12 +297,10 @@ if cross_entropy
     cd(data_folder)
     @show readdir()
     open(string(sim_save,".txt"), "w") do f
-    write(f,string(sim_save,"\n"))
-    write(f,string(distrib,"\n"))
-    write(f,string(elite_params,"\n"))
-    write(f,string(elite,"\n"))
-    write(f,string(evals,"\n"))
-    write(f,string(CE_settings,"\n"))
+    write(f,string("Distrib: ",distrib,"\n"))
+    write(f,string("Elite Params: ",elite_params,"\n"))
+    write(f,string("Elite: ",elite,"\n"))
+    write(f,string("Evals: ",evals,"\n"))
     cd("..")
 end
 end

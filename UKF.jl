@@ -109,7 +109,15 @@ function ukf(m::NonLinearSSM, # NL SSM
     x_new = a[:,1] # new estimate mean
 
     cov_new = nearestSPD(P_-K*Pxy') # new estimate cov
-    return MvNormal(x_new,cov_new)
+    try
+        MvNormal(x_new,cov_new)
+    catch
+        @show "Chol UKF "
+        @show x_new
+        @show cov_new
+    end
+    cov_pd = (cov_new + cov_new')/2
+    return cov_pd
 end
 
 # Selecting the sigma points

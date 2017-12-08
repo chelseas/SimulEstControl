@@ -62,10 +62,11 @@
         end
         cd(data_folder)
         open(string(sim_save,".txt"), "w") do f
-        write(f,string("Sim save: ",sim_save,"\n"))
-        write(f,string("CE settings: ",CE_settings,"\n"))
-        write(f,string("PMAP input: ",pmapInput,"\n"))
-        cd("..")
+            write(f,string("Sim save: ",sim_save,"\n"))
+            write(f,string("CE settings: ",CE_settings,"\n"))
+            write(f,string("PMAP input: ",pmapInput,"\n"))
+            cd("..")
+        end
     else
         # combine the total name for saving
         for PRN in processNoiseList
@@ -297,12 +298,12 @@ if cross_entropy
     cd(data_folder)
     @show readdir()
     open(string(sim_save,".txt"), "w") do f
-    write(f,string("Distrib: ",distrib,"\n"))
-    write(f,string("Elite Params: ",elite_params,"\n"))
-    write(f,string("Elite: ",elite,"\n"))
-    write(f,string("Evals: ",evals,"\n"))
-    cd("..")
-end
+        write(f,string("Distrib: ",distrib,"\n"))
+        write(f,string("Elite Params: ",elite_params,"\n"))
+        write(f,string("Elite: ",elite,"\n"))
+        write(f,string("Evals: ",evals,"\n"))
+        cd("..")
+    end
 end
 #end
 # this prints, plots, and saves data

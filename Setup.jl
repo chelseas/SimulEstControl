@@ -14,30 +14,7 @@ state_init = 1.0 # gain for teh initial state
 state_min_tol = 0.1 # prevent states from growing less than X% of original value
 friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
 
-if prob == "1D"
-  # Settings for simulation
-  fRange = 1.0 # bounds on controls allowed within +- fRange
-  #est_init = 11 # gain for the initial estimate
-  fDist_disc = 1000 # discrete points in fDist force linspace
-  # Reward shaping
-  Qg = diagm([3;10])
-  Qr = Qg
-  Rg = [1]
-  if sim == "mcts"
-    # Parameters for the POMDP
-    n_iters = 500 # total number of iterations # want k*n_iters^alpha to be roughly 20
-    depths = 30 # depth of tree
-    expl_constant = 10#300.0 #exploration const
-    k_act = 8.0 # k for action
-    alpha_act = 1.0/5.0 # alpha for action
-    k_st = 8.0 # k for state
-    alpha_st = 1.0/5.0 # alpha for state
-    pos_control_gain = -40.0 # gain to drive position rollout --> higher = more aggressive
-    control_stepsize = 5.0 # maximum change in control effort from previous action
-  elseif sim == "mpc"
-    n = 20 # horizon steps # using receding horizon now
-  end
-elseif prob == "2D"
+if prob == "2D"
   # Settings for simulation
   fRange = 5.0 # bounds on controls allowed within +- fRange
   #est_init = 11 # gain for the initial estimate
@@ -50,10 +27,10 @@ elseif prob == "2D"
   # Qg = 1.0*eye(11,11)#*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # for use in POMDP reward funct
   # Qr = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0]) # for computing reward below just for measured states
   # Rg = 1.0*eye(3,3)#0.3*diagm([10.0, 10.0, 8.0])
-  if sim == "mcts"
+  if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
     #500 = 7s, 2000 = 30s, 5000 = 60s
-    n_iters = 2000#3000#00 # total number of iterations
+    n_iters = 200#3000#00 # total number of iterations
     samples_per_state = 5#3 # want to be small
     samples_per_act = 20 # want this to be ~20
     depths = 20 # depth of tree
@@ -74,7 +51,7 @@ elseif prob == "2D"
 end
 
 # Packages
-if sim == "mcts"
+if (sim == "mcts") || (sim == "qmdp")
   using Distributions, POMDPs, MCTS, POMDPToolbox # for MCTS
     if tree_vis
       using D3Trees
@@ -111,10 +88,6 @@ if prob == "2D"
   ssm = build2DSSM(deltaT)#,processNoise,measNoise) # building state-space
   prob_params = ["vx","vy","w","x","y","theta","m","uv","J","rx","ry"]
   control_params = ["Fx", "Fy", "T"]
-elseif prob == "1D"
-  ssm = buildDoubleIntSSM(deltaT)#,processNoise,measNoise) # building 1D state-space
-  prob_params = ["v","p","m"]
-  control_params = ["u"]
 end
 
 # Force limits in the problem --> need before defining MPC/POMDP
@@ -136,33 +109,23 @@ Q = diagm(processNoise*ones(ssm.nx))
 R = diagm(measNoise*ones(ssm.ny))
 
 # Loading scripts based on simulation and problem conditions
-include("UKF.jl") # contains UKF
 if !ukf_flag
     include("EKF.jl") # contains EKF
+else
+    include("UKF.jl") # contains UKF
 end
 if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
   if sim == "mcts"
     include("POMDP_2D.jl") # functions for POMDP definition
+  elseif sim == "qmdp"
+    include("QMDP_2D.jl")
   elseif sim == "mpc"
     include("MPC_2D.jl") # function to set up MPC opt and solve
   elseif sim == "drqn"
     include("DRQN.jl")
     if rollout == "train"
         include("MPC_2D.jl")
-    elseif rollout == "test"
-    end
-  end
-elseif prob == "1D" # load files for 1D problem
-  include("LimitChecks_1D.jl") # checks for control bounds and state/est values
-  if sim == "mcts"
-    include("POMDP_1D.jl") # functions for POMDP definition
-  elseif sim == "mpc"
-    include("MPC_1D.jl") # function to set up MPC opt and solve
-  elseif sim == "drqn"
-    include("DRQN.jl")
-    if rollout == "train"
-        include("MPC_1D.jl")
     elseif rollout == "test"
     end
   end
@@ -187,7 +150,7 @@ if tree_vis
   hist = HistoryRecorder() # necessary for POMDP setup #zach: is there a way to extract all actions and rewards for each step?
 end
 # solver defined here with all settings
-if sim == "mcts"
+if (sim == "mcts") || (sim == "qmdp")
   if rollout == "smooth"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll), next_action=heur)#-4 before

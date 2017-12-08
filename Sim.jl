@@ -10,7 +10,7 @@
 
     # SIM SETTINGS
     prob = "2D" # set to the "1D" or "2D" problems defined
-    sim = "mcts" # mcts, mpc, qmdp, drqn
+    sim = "qmdp" # mcts, mpc, qmdp, drqn
     rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
     bounds = false # set bounds for mcts solver
     quick_run = true
@@ -30,7 +30,7 @@
     # Output settings
     printing = false # set to true to print simple information
     plotting = false # set to true to output plots of the data
-    saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+    saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
     tree_vis = false # visual MCTS tree
     sim_save = "CE" # name appended to sim settings for simulation folder to store data from runs
     data_folder = "CEtesting"
@@ -40,7 +40,7 @@
     end
 
     # CROSS ENTROPY SETTINGS
-    cross_entropy = true
+    cross_entropy = false
     num_pop = 2 # number of samples to test this round of CE
     num_elite = 2 # number of elite samples to keep to form next distribution
     CE_iters = 3 # number of iterations for cross entropy
@@ -160,6 +160,9 @@
                   @show "Plotting Tree"
                   break
                 end
+              elseif sim == "qmdp"
+                AugNew = AugState(xNew)
+                u[:,i] = action(policy, AugNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               elseif sim == "drqn"

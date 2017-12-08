@@ -117,7 +117,7 @@ function ukf(m::NonLinearSSM, # NL SSM
         @show cov_new
     end
     cov_pd = (cov_new + cov_new')/2
-    return cov_pd
+    return MvNormal(x_new,cov_pd)
 end
 
 # Selecting the sigma points

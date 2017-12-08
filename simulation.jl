@@ -167,8 +167,11 @@ for sim_setting = 1:length(sim_set)
                   target_x = PathX[TrackIdx[end]]
                   target_y = PathY[TrackIdx[end]]
                   # println((target_x,target_y))
-                  mdp.discreteStates = [[x1,x2,x3,x4] for x1 in target_x-11:1:target_x+1, x2 in target_y-11:1:target_y+1, x3 in -pi:pi/2:pi, x4 in -12:4:12]
-                  mdp.discreteStates = reshape(discreteStates,length(discreteStates))
+                  # mdp.discreteStates = [[x1,x2,x3,x4] for x1 in target_x-11:1:target_x+1, x2 in target_y-11:1:target_y+1, x3 in -pi:pi/2:pi, x4 in -12:4:12]
+                  println("moving to next track point ", (target_x, target_y))
+                  new_ds = [[x1,x2,x3,x4] for x1 in target_x-2:1:target_x+2, x2 in target_y-2:1:target_y+2, x3 in -pi:pi/2:pi, x4 in -12:4:12]
+                  mdp.discreteStates = new_ds
+                  # mdp.discreteStates = reshape(new_ds,length(new_ds))
                   # println("discrete states ", discreteStates)
                 end
               end

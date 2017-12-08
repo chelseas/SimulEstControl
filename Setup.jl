@@ -1,6 +1,6 @@
 
 if run == "quick"
-  nSamples = 1 # quick amount of steps for debug_bounds
+  nSamples = 20 # quick amount of steps for debug_bounds
 elseif run == "long"
   nSamples = 300
 else
@@ -103,8 +103,8 @@ elseif prob == "Car"
   mu0 = 0.1;
 
   TrackIdx = [1];
-  point_lead = 10.0;
-  dist_thresh = 5.0;
+  point_lead = 1.0 # 10.0;
+  dist_thresh = 0.5# 5.0;
   lead_dist = abs.(sqrt.((x0 - PathX[TrackIdx[end] + 1 : end]).^2 + (y0 - PathY[TrackIdx[end] + 1 : end]).^2) - point_lead);
   newDist, newIdx = findmin(lead_dist);
   append!(TrackIdx, newIdx);
@@ -122,7 +122,7 @@ elseif prob == "Car"
     pos_control_gain = -8.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "lite"
-    n_iters = 100 # total number of iterations
+    n_iters = 50 # total number of iterations
     depths = 5 # depth of tree
     expl_constant = 100.0 #exploration const
     k_act = 8.0 # k for action

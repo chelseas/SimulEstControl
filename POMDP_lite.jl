@@ -26,7 +26,7 @@ if prob == "Car"
         force_range_1::LinSpace{Float64}
         force_range_2::LinSpace{Float64}
         hiddenDiscrete::Array{Float64, 1}  # hidden params
-        discreteStates::Array{Array{Float64, 1}, 1}
+        discreteStates::Array{Array{Float64, 1}, 4}
         hiddenBelief::Array{Float64, 1}  # this is a belief over hiddenDiscrete
         hiddenBeliefNew::Array{Float64, 1}
         prob_sp_th::Dict
@@ -37,7 +37,7 @@ else
       goal_state::Float64
       force_range::LinSpace{Float64}
       hiddenDiscrete::Array{Float64, 1}  # hidden params
-      discreteStates::Array{Array{Float64, 1}, 1}
+      discreteStates::Array{Array{Float64, 1}, 2}
       hiddenBelief::Array{Float64, 1}  # this is a belief over hiddenDiscrete
       hiddenBeliefNew::Array{Float64, 1}
       prob_sp_th::Dict
@@ -74,7 +74,7 @@ function LiteMDP()
 		# discreteStates is a 2D array,
 		# where every point is a tuple corresponding to a possible state
 		discreteStates =  [[x, y] for x in -sr:1:sr, y in -sr:1:sr]
-		discreteStates = reshape(discreteStates, length(discreteStates))
+		# discreteStates = reshape(discreteStates, length(discreteStates))
 		discreteObs = discreteStates
     elseif prob == "Car"
         # 4 observable States, posx, posy, th, v
@@ -82,8 +82,9 @@ function LiteMDP()
         target_y = PathY[TrackIdx[end]]
         # println((target_x, target_y))
         #discreteStates = [[x1,x2,x3,x4] for x1 in target_x-11:2:target_x+1, x2 in target_y-1:1:target_y+11, x3 in -pi:pi/2:pi, x4 in -12:4:12]
-        discreteStates = [[x1,x2,x3,x4] for x1 in target_x-20:10:target_x+20, x2 in target_y-20:10:target_y+20, x3 in -pi:pi/2:pi, x4 in -12:4:12]
-        discreteStates = reshape(discreteStates,length(discreteStates))
+        #discreteStates = [[x1,x2,x3,x4] for x1 in target_x-20:10:target_x+20, x2 in target_y-20:10:target_y+20, x3 in -pi:pi/2:pi, x4 in -12:4:12]
+        discreteStates = [[x1,x2,x3,x4] for x1 in target_x-2:1:target_x+2, x2 in target_y-2:1:target_y+2, x3 in -pi:pi/2:pi, x4 in -12:4:12]
+        # discreteStates = reshape(discreteStates,length(discreteStates))
         # println("discrete states ",discreteStates)
         discreteObs = discreteStates
 	end
@@ -170,7 +171,7 @@ function transition(mdp::LiteMDP,s::LiteState,a::Array{Float64,1})
 
         xSample = x
         if weightSum < 0.000001
-            println("problem with weights")
+            # println("problem with weights")
             xSample = xNew[1:ssm.states]
         else
     		for jj = 1:length(probWeights)
@@ -181,9 +182,9 @@ function transition(mdp::LiteMDP,s::LiteState,a::Array{Float64,1})
             # println("weights ", probWeights)
     		xSample = sample(mdp.discreteStates, Weights(probWeights))
         end
-        println("x ", x)
-        println("target ", (PathX[TrackIdx[end]],PathY[TrackIdx[end]]))
-        println("xSample, ", xSample)
+        #println("x ", x)
+        #println("target ", (PathX[TrackIdx[end]],PathY[TrackIdx[end]]))
+        #println("xSample, ", xSample)
 
 		stateDistrib = MvNormal(vcat(xSample, s.hiddenVal), cov(s.estimState))
 

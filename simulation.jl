@@ -17,7 +17,7 @@
 # include("simulation.jl") # runs this file
 
 # Specify simulation parameters
-prob = "1D" # set to the "1D" or "2D" problems defined
+prob = "Car" # set to the "1D" or "2D" problems defined
 sim = "lite"  # "mcts", "qmdp", "mpc", "lite"
 rollout = "random"
 run = "quick"
@@ -29,7 +29,7 @@ endindex = 1;
 # Output settings
 printing = false # set to true to print simple information
 plotting = true # set to true to output plots of the data
-saving = true # set to true to save simulation data to a folder
+saving = false # set to true to save simulation data to a folder
 sim_save_name = "1TrialTest" # name appended to sim settings for simulation folder to store data from runs
 if sim == "mpc"
   fullobs = true # set to false for mpc without full obs
@@ -162,6 +162,14 @@ for sim_setting = 1:length(sim_set)
                   newDist = abs.(sqrt.((x[1, i] - PathX[TrackIdx[end] + 1 : end]).^2 + (x[2, i] - PathY[TrackIdx[end] + 1 : end]).^2) - point_lead);
                   newDistMin, newDistIdx = findmin(newDist);
                   append!(TrackIdx, newDistIdx + TrackIdx[end]);
+                  # since changed track point, need to re-discretize
+                  # posx, posy, theta, v
+                  target_x = PathX[TrackIdx[end]]
+                  target_y = PathY[TrackIdx[end]]
+                  # println((target_x,target_y))
+                  mdp.discreteStates = [[x1,x2,x3,x4] for x1 in target_x-11:1:target_x+1, x2 in target_y-11:1:target_y+1, x3 in -pi:pi/2:pi, x4 in -12:4:12]
+                  mdp.discreteStates = reshape(discreteStates,length(discreteStates))
+                  # println("discrete states ", discreteStates)
                 end
               end
               r = Car_reward(x[:, i], u[:, i], TrackIdx[end])

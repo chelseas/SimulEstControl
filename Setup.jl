@@ -1,6 +1,6 @@
 
 if run == "quick"
-  nSamples = 5 # quick amount of steps for debug_bounds
+  nSamples = 1 # quick amount of steps for debug_bounds
 elseif run == "long"
   nSamples = 300
 else
@@ -100,7 +100,7 @@ elseif prob == "Car"
   y0 = PathY[1];
   theta0 = atan((PathY[2] - PathY[1])/(PathX[2] - PathX[1]));
   v0 = 0.0;
-  mu0 = 0;
+  mu0 = 0.1;
 
   TrackIdx = [1];
   point_lead = 10.0;
@@ -114,6 +114,16 @@ elseif prob == "Car"
     # Parameters for the POMDP
     n_iters = 500 # total number of iterations
     depths = 5 # 20 # depth of tree
+    expl_constant = 100.0 #exploration const
+    k_act = 8.0 # k for action
+    alpha_act = 1.0/5.0 # alpha for action
+    k_st = 8.0 # k for state
+    alpha_st = 1.0/5.0 # alpha for state
+    pos_control_gain = -8.0 # gain to drive position rollout --> higher = more aggressive
+    control_stepsize = 5.0 # maximum change in control effort from previous action
+  elseif sim == "lite"
+    n_iters = 100 # total number of iterations
+    depths = 5 # depth of tree
     expl_constant = 100.0 #exploration const
     k_act = 8.0 # k for action
     alpha_act = 1.0/5.0 # alpha for action
@@ -219,6 +229,8 @@ elseif prob == "Car"
     include("QMDP_setup.jl")
   elseif sim == "mcts"
     include("POMDP_2D.jl")
+  elseif sim == "lite"
+    include("POMDP_lite.jl")
   end
 
 elseif prob == "1D" # load files for 1D problem

@@ -28,3 +28,11 @@ function Car_reward(x::Array{Float64, 1}, u::Array{Float64, 1}, idx::Int)
   return r
 end
 
+function wrap2pi(x::Float64)
+    if x > pi
+        x = x - 2*pi
+    elseif x < -pi
+        x = x + 2*pi
+    end
+    return x
+end

@@ -133,7 +133,7 @@ function buildCarSSM(deltaT::Float64)
     function f(x,u)
       sp = [x[1] + deltaT*(x[4]*cos(x[3]));
               x[2] + deltaT*(x[4]*sin(x[3]));
-              x[3] + deltaT*(u[1]);
+              wrap2pi(x[3] + deltaT*(u[1]));
               x[4] + deltaT*(u[2] - x[5]*x[4]);
               x[5]];
       return sp

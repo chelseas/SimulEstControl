@@ -1,3 +1,6 @@
+# for CE get the std and mean from the elite group and update the params for that range
+# add for loop to CE and set the number of iterations allowed.
+
 @everywhere begin
   # cd to absolute path -->
     dir = pwd()
@@ -10,8 +13,8 @@
     sim = "mcts" # mcts, mpc, qmdp, drqn
     rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
     bounds = false # set bounds for mcts solver
-    quick_run = false
-    numtrials = 10 # number of simulation runs
+    quick_run = true
+    numtrials = 1 # number of simulation runs
     noiseList = []
     cond1 = "full"
 
@@ -29,8 +32,8 @@
     plotting = false # set to true to output plots of the data
     saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
     tree_vis = false # visual MCTS tree
-    sim_save = "CE1" # name appended to sim settings for simulation folder to store data from runs
-    data_folder = "dataCE2"
+    sim_save = "CE" # name appended to sim settings for simulation folder to store data from runs
+    data_folder = "CEtesting"
     fullobs = true # set to false for mpc without full obs
     if sim != "mpc" # set fullobs false for any other sim
       fullobs = false
@@ -38,24 +41,26 @@
 
     # CROSS ENTROPY SETTINGS
     cross_entropy = true
-    num_pop = 50 # number of samples to test this round of CE
-    num_elite = 10 # number of elite samples to keep to form next distribution
+    num_pop = 2 # number of samples to test this round of CE
+    num_elite = 2 # number of elite samples to keep to form next distribution
+    CE_iters = 3 # number of iterations for cross entropy
+    CE_params = 5 # number of params being sampled
     sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
     if cross_entropy
-        niters_lb = 2490
-        niters_ub = 2510
+        niters_lb = 210
+        niters_ub = 290
         states_lb = 1
         states_ub = 10
         act_lb = 10
         act_ub = 40
         depth_lb = 5
         depth_ub = 30
-        expl_lb = 0.1
-        expl_ub = 100.0
-        CE_settings = [niters_lb,niters_ub,states_lb,states_ub,act_lb,act_ub,depth_lb,depth_ub,expl_lb,expl_ub]
+        expl_lb = 1
+        expl_ub = 100
+        CEset = [niters_lb,niters_ub,states_lb,states_ub,act_lb,act_ub,depth_lb,depth_ub,expl_lb,expl_ub]
         pmapInput = []
         for i in 1:num_pop
-            push!(pmapInput,(rand(niters_lb:niters_ub),rand(states_lb:states_ub),rand(act_lb:act_ub),rand(depth_lb:depth_ub),rand(expl_lb:expl_ub),processNoiseList[1],paramNoiseList[1],sim_save_name,i))
+            push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,1))
         end
         @show pmapInput
         try mkdir(data_folder)
@@ -63,11 +68,12 @@
         cd(data_folder)
         open(string(sim_save,".txt"), "w") do f
             write(f,string("Sim save: ",sim_save,"\n"))
-            write(f,string("CE settings: ",CE_settings,"\n"))
+            write(f,string("CE settings: ",CEset,"\n"))
             write(f,string("PMAP input: ",pmapInput,"\n"))
             cd("..")
         end
     else
+        CE_iters = 1
         # combine the total name for saving
         for PRN in processNoiseList
             for PMN in paramNoiseList
@@ -84,6 +90,7 @@
   function evaluating(params)#,processNoise::Float64)
     #processNoise = processNoiseList[noise_setting]
     #paramNoise = paramNoiseList[noise_setting]
+    @show params
     totrew = 0.0 # summing all rewards with this
     if cross_entropy
         processNoise = params[6]
@@ -92,7 +99,7 @@
         alpha_st = 1.0/20.0 # alpha for state
         k_act = params[3]/(n_iters^alpha_act) # k for action
         k_st = params[2]/(n_iters^alpha_st) # k for state
-        solverCE = DPWSolver(n_iterations = params[1], depth = params[4], exploration_constant = params[5],
+        solverCE = DPWSolver(n_iterations = params[1], depth = params[4], exploration_constant = convert(Float64,params[5]),
         k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
         policyCE = solve(solverCE,mdp)
     else
@@ -223,11 +230,12 @@
         # for each trial save simulation data
         if saving
           if cross_entropy
-              parallel_num = [string(params[end])]
+              parallel_num = [string(params[end-1])]
+              sim_names = [string(params[end],sim_save_name),prob,sim,rollout,string(processNoise),string(paramNoise),string(numtrials),string(j)]
           else
               parallel_num = [""]
+              sim_names = [sim_save_name,prob,sim,rollout,string(processNoise),string(paramNoise),string(numtrials),string(j)]
           end
-          sim_names = [sim_save_name,prob,sim,rollout,string(processNoise),string(paramNoise),string(numtrials),string(j)]
           save_simulation_data(x,est,u,[rewrun rewrun]',uncertainty,prob_params,sim_names,parallel_num)
           # I'm putting two reward vectors to avoid vector error
         end
@@ -280,29 +288,51 @@
     [params,totrew/numtrials] # place variable here to have it output by evals
   end
 end #@everywhere
-evals = pmap(evaluating,pmapInput)#,paramNoiseList)
-if cross_entropy
-    @show evals
-    @show sorted = sortperm([evals[i][2] for i in 1:num_pop],rev=true)
-    @show elite = sorted[1:num_elite]
-    @show elite_params = evals[elite]
-    distrib = []
-    for i in 1:5 # number of params that need to compute a range for
-        data_distr = [elite_params[e][1][i] for e in 1:num_elite]
-        push!(distrib,(maximum(data_distr),minimum(data_distr)))
-    end
-    @show distrib
-    # Write out txt file with results of the CE round
-    try mkdir(data_folder)
-    end
-    cd(data_folder)
-    @show readdir()
-    open(string(sim_save,".txt"), "w") do f
-        write(f,string("Distrib: ",distrib,"\n"))
-        write(f,string("Elite Params: ",elite_params,"\n"))
-        write(f,string("Elite: ",elite,"\n"))
-        write(f,string("Evals: ",evals,"\n"))
-        cd("..")
+for k = 1:CE_iters
+    evals = pmap(evaluating,pmapInput)#,paramNoiseList)
+    if cross_entropy
+        @show evals
+        @show sorted = sortperm([evals[i][2] for i in 1:num_pop],rev=true)
+        @show elite = sorted[1:num_elite]
+        @show elite_params = evals[elite]
+        distrib = []
+        for i in 1:CE_params # number of params that need to compute a range for
+            data_distr = [elite_params[e][1][i] for e in 1:num_elite]
+            push!(distrib,(mean(data_distr),std(data_distr)))
+        end
+        @show distrib
+        # Write out txt file with results of the CE round
+        try mkdir(data_folder)
+        end
+        #sim_save = string(k," ",sim_save)
+        cd(data_folder)
+        open(string(k," ",sim_save,".txt"), "w") do f
+            write(f,string("Sim save: ",k," ",sim_save,"\n"))
+            write(f,string("CE settings: ",CEset,"\n"))
+            write(f,string("PMAP input: ",pmapInput,"\n"))
+            write(f,string("Distrib: ",distrib,"\n"))
+            write(f,string("Elite Params: ",elite_params,"\n"))
+            write(f,string("Elite: ",elite,"\n"))
+            write(f,string("Evals: ",evals,"\n"))
+            cd("..")
+        end
+
+        if k != CE_iters # update CEset and pmapInput
+            for i in 1:CE_params
+                mean, std = distrib[i]
+                ub = ceil(Int,mean+std)
+                lb = max(1, floor(Int,mean-std))
+                CEset[i*2-1] = lb
+                CEset[i*2] = ub
+            end
+            @show typeof(CEset)
+            CEset = convert(Array{Int64,1},CEset)
+            @show CEset
+            pmapInput = []
+            for i in 1:num_pop
+                push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,k+1))
+            end
+        end
     end
 end
 #end

@@ -4,10 +4,10 @@ using DataFrames
 pushPGFPlotsPreamble("\\usepackage{xfrac}")
 pdata = " processed data"
 tot_dir = "total rewards"
-plot_folder = "plots3"
-folder_list = ["2k_EKF_0.1_0.1","2k_EKF_0.1_0.3","2k_EKF_0.033_0.1","2k_EKF_0.033_0.3"]#["new_lim_0.1","new_lim_0.033"]#["EKF_check_0.1_0.1","EKF_check_0.033_0.1","EKF_check_0.033_0.3"]#["prof_5k_0.1_0.3","prof_5k_0.033_0.3"]#,"prof_10k_0.033_0.3","prof_10k_0.1_0.1"]#,"2D_0.3_normal"]#readdir() # or just make a list with all names ["folder1","folder2"]
-data_folder = "data2" # name of folder to store data
-vary = false # plot varying process or param noise
+plot_folder = "plotsCE"
+folder_list = ["first","second"]#["2k_EKF_0.1_0.1","2k_EKF_0.1_0.3","2k_EKF_0.033_0.1","2k_EKF_0.033_0.3"]#["new_lim_0.1","new_lim_0.033"]#["EKF_check_0.1_0.1","EKF_check_0.033_0.1","EKF_check_0.033_0.3"]#["prof_5k_0.1_0.3","prof_5k_0.033_0.3"]#,"prof_10k_0.033_0.3","prof_10k_0.1_0.1"]#,"2D_0.3_normal"]#readdir() # or just make a list with all names ["folder1","folder2"]
+data_folder = "dataCE2" # name of folder to store data
+vary = true # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
 profile = true # plot the profile of the results
 verbose = false # set to true to print debug statements

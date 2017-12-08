@@ -18,18 +18,18 @@
 
 # Specify simulation parameters
 prob = "Car" # set to the "1D" or "2D" problems defined
-sim = "lite"  # "mcts", "qmdp", "mpc", "lite"
+sim = "qmdp"  # "mcts", "qmdp", "mpc", "lite"
 rollout = "random"
-run = "quick"
+run = "long"
 numtrials = 1 # number of simulation runs
-processNoiseList = [0.001] #, 0.1]
+processNoiseList = [0.0001] # [0.001] #, 0.1]
 paramNoiseList = [0.01] #, 10.0]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
-endindex = 1;
+endindex = 1
 # Output settings
 printing = false # set to true to print simple information
 plotting = true # set to true to output plots of the data
-saving = false # set to true to save simulation data to a folder
+saving = true # set to true to save simulation data to a folder
 sim_save_name = "1TrialTest" # name appended to sim settings for simulation folder to store data from runs
 if sim == "mpc"
   fullobs = true # set to false for mpc without full obs
@@ -136,11 +136,11 @@ for sim_setting = 1:length(sim_set)
                 @time u[:,i] = action(policy,xNew) # take an action MCTS
               elseif sim == "qmdp"
               	AugNew = AugState(xNew)
-                u[:, i] = action(policy, AugNew)
+                @time u[:, i] = action(policy, AugNew)
               elseif sim == "lite"
                 sNew = LiteState(EKFState(xNew), x0_state[end])
                 println("sNew means: ", mean(sNew.estimState))
-                u[:, i] = action(policy,sNew)
+                @time u[:, i] = action(policy,sNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end
@@ -169,10 +169,12 @@ for sim_setting = 1:length(sim_set)
                   # println((target_x,target_y))
                   # mdp.discreteStates = [[x1,x2,x3,x4] for x1 in target_x-11:1:target_x+1, x2 in target_y-11:1:target_y+1, x3 in -pi:pi/2:pi, x4 in -12:4:12]
                   println("moving to next track point ", (target_x, target_y))
-                  new_ds = [[x1,x2,x3,x4] for x1 in target_x-2:1:target_x+2, x2 in target_y-2:1:target_y+2, x3 in -pi:pi/2:pi, x4 in -12:4:12]
-                  mdp.discreteStates = new_ds
-                  # mdp.discreteStates = reshape(new_ds,length(new_ds))
-                  # println("discrete states ", discreteStates)
+                  if sim == "lite"
+	                  new_ds = [[x1,x2,x3,x4] for x1 in target_x-2:1:target_x+2, x2 in target_y-2:1:target_y+2, x3 in -pi:pi/2:pi, x4 in -12:4:12]
+	                  mdp.discreteStates = new_ds
+	                  # mdp.discreteStates = reshape(new_ds,length(new_ds))
+	                  # println("discrete states ", discreteStates)
+              	  end
                 end
               end
               r = Car_reward(x[:, i], u[:, i], TrackIdx[end])

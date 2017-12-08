@@ -1,8 +1,8 @@
 
 if run == "quick"
-  nSamples = 20 # quick amount of steps for debug_bounds
+  nSamples = 50 # quick amount of steps for debug_bounds
 elseif run == "long"
-  nSamples = 300
+  nSamples = 96
 else
   nSamples = 50
 end
@@ -26,9 +26,9 @@ if prob == "1D"
   Rg = [1]
   if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
-    n_iters = 500 # total number of iterations
-    depths = 20 # depth of tree
-    expl_constant = 300.0 #exploration const
+    n_iters = 50 # total number of iterations
+    depths = 5 # depth of tree
+    expl_constant = 100.0 #exploration const
     k_act = 8.0 # k for action
     alpha_act = 1.0/5.0 # alpha for action
     k_st = 8.0 # k for state
@@ -36,9 +36,9 @@ if prob == "1D"
     pos_control_gain = -4.0 # gain to drive position rollout --> higher = more aggressive
     control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "lite"
-    n_iters = 100 # total number of iterations
+    n_iters = 50 # total number of iterations
     depths = 5 # depth of tree
-    expl_constant = 300.0 #exploration const
+    expl_constant = 100.0 #exploration const
     k_act = 8.0 # k for action
     alpha_act = 1.0/5.0 # alpha for action
     k_st = 8.0 # k for state
@@ -103,8 +103,13 @@ elseif prob == "Car"
   mu0 = 0.1;
 
   TrackIdx = [1];
-  point_lead = 1.0 # 10.0;
-  dist_thresh = 0.5# 5.0;
+  if sim == "lite"
+    point_lead = 1.0 # 10.0;
+    dist_thresh = 0.5# 5.0;
+  elseif sim == "qmdp" || sim == "mcts"
+    point_lead = 10.0
+    dist_thresh = 5.0
+  end
   lead_dist = abs.(sqrt.((x0 - PathX[TrackIdx[end] + 1 : end]).^2 + (y0 - PathY[TrackIdx[end] + 1 : end]).^2) - point_lead);
   newDist, newIdx = findmin(lead_dist);
   append!(TrackIdx, newIdx);
@@ -112,7 +117,7 @@ elseif prob == "Car"
   state_init = [x0; y0; theta0; v0; mu0];
   if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
-    n_iters = 500 # total number of iterations
+    n_iters = 50 # total number of iterations
     depths = 5 # 20 # depth of tree
     expl_constant = 100.0 #exploration const
     k_act = 8.0 # k for action

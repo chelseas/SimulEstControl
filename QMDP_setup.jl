@@ -28,7 +28,7 @@ if prob == "Car"
     force_range_1::LinSpace{Float64}
     force_range_2::LinSpace{Float64}
   end
-else
+elseif prob == "1D" || prob == "2D"
   type AugMDP <: MDP{AugState, Array{Float64, 1}}
     discount_factor::Float64 # default 0.99
     goal_state::Float64
@@ -43,7 +43,7 @@ if prob == "Car"
   function AugMDP()
     return AugMDP(0.99, 0.0, fDist[1], fDist[2])
   end
-else
+elseif prob == "1D" || prob == "2D"
   function AugMDP()
     return AugMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
   end
@@ -169,6 +169,37 @@ if prob == "2D"
       return diff*rand(rng, ssm.nu)+as.lower
   end
 
+elseif prob == "1D"
+
+  function POMDPs.reward(mdp::AugMDP,s::AugState,a::Array{Float64,1}, sp::AugState)
+
+
+    if isnull(s.beliefState)
+
+      r = sum(abs.(s.trueState[1:ssm.states])'*-Qg) + sum(abs.(a)'*-Rg)
+
+    else
+
+      trueState = mean(get(s.beliefState))
+      r = sum(abs.(trueState[1:ssm.states])'*-Qg) + sum(abs.(a)'*-Rg)
+
+    end
+
+    return r
+
+  end
+
+  function POMDPs.actions(mdp::AugMDP)
+    #take rand action within force bounds
+    return collect([f] for f in mdp.force_range)
+  end
+
+  POMDPs.actions(mdp::AugMDP, s::AugState, as::Normal{Float64})  = actions(mdp)
+
+  #to use default random rollout policy implement action sampling funct
+  function POMDPs.rand(rng::AbstractRNG, action_space::Normal{Float64}, dummy=nothing)
+   return rand(action_space)
+  end
 
 elseif prob == "Car"
 
@@ -205,29 +236,6 @@ elseif prob == "Car"
       return diff.*rand(rng, ssm.nu) + as.lower
   end
 
-# -- 1D Case --- #
-elseif prob == "1D"
-
-  function POMDPs.reward(mdp::AugMDP,s::AugState,a::Float64,sp::AugState)
-
-      # DEAL WITH BELIEF AND TRUE STATE CASES
-
-      (gv, gp) = diag(-Qg)
-      r = abs(s.trueState[2])*gp + abs(s.trueState[1])*gv + abs(a)*-Rg[1]
-      return r
-  end
-
-  function POMDPs.actions(mdp::AugMDP)
-      #take rand action within force bounds
-      return mdp.force_range
-  end
-
-  POMDPs.actions(mdp::AugMDP, s::AugState, as::Normal{Float64})  = actions(mdp)
-
-  #to use default random rollout policy implement action sampling funct
-  function POMDPs.rand(rng::AbstractRNG, action_space::Normal{Float64}, dummy=nothing)
-     return rand(action_space)
-  end
 end
 
 

@@ -1,8 +1,8 @@
 
 if run == "quick"
-  nSamples = 50 # quick amount of steps for debug_bounds
+  nSamples = 70 # quick amount of steps for debug_bounds
 elseif run == "long"
-  nSamples = 96
+  nSamples = 220
 else
   nSamples = 50
 end

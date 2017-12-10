@@ -1,0 +1,17 @@
+Dubious Dynamics: Robot Decision Making Under Uncertainty
+
+Authors: Vincent Chow, Ian de Vlaming, Tori Fujinami
+
+Main project files:
+
+simulation.jl
+	- main file, simulations run from here
+	- algorithm and state space model can be chosen from here
+POMDP_lite.jl
+	- setup file for POMDP-lite
+QMDP_setup.jl
+	- setup file for QMDP
+SSM.jl
+	- contains point mass and car state space model
+
+The authors thank Patrick Slade and Preston Culbertson for sharing the base code structure for running simulations and for the standard POMDP setup files.

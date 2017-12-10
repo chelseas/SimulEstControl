@@ -1,28 +1,12 @@
-# TODO:
-# ask zach how I can sample from a linear distribution rather than Normal{Float64} in POMDPs.actions for 1D prob
-# merge the POMDP dfeinition files for all problems
-# create a modified MDP to include the previous action in the state to account for the smoothness term
-# parallelize
-# figure out why UKF is performing so poorly when used in MCTS exploration
-# add another outer loop to specify the simulations to run for all the conditions including roll-outs
-# is 1D MCTS sampling from a normal distriution for actions?
-# check if using right 2D dynamics and if MPC is the same
-# add the standard deviation lines as well and shade the region of it instead of error for profiles
-
-# Tests to run:
-# run EKF and UKF for a variety of process noises and do performance comp --> MPC then maybe mcts
-
-# To use:
-# cd("C:/Users/patty/Box Sync/SimulEstControl/SimulEstV0") # change to your path
-# include("simulation.jl") # runs this file
+# --- Main Simulation File --- #
 
 # Specify simulation parameters
-prob = "Car" # set to the "1D" or "2D" problems defined
+prob = "1D" # set to the "1D" or "2D" problems defined
 sim = "qmdp"  # "mcts", "qmdp", "mpc", "lite"
-rollout = "random"
 run = "long"
+rollout = "random"
 numtrials = 1 # number of simulation runs
-processNoiseList = [0.0001] # [0.001] #, 0.1]
+processNoiseList = [0.002] # [0.001] #, 0.1]
 paramNoiseList = [0.01] #, 10.0]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
 endindex = 1

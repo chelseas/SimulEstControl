@@ -5,8 +5,7 @@ Authors: Vincent Chow, Ian de Vlaming, Tori Fujinami
 Main project files:
 
 simulation.jl
-	- main file, simulations run from here
-	- algorithm and state space model can be chosen from here
+	- main file, simulations run from here for any of the 3 algorithms and 2 state space models
 POMDP_lite.jl
 	- setup file for POMDP-lite
 QMDP_setup.jl

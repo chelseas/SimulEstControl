@@ -1,7 +1,7 @@
 ### Correction term for trying to avoid Kalman numerical errors
 function nearestSPD(A::Matrix{Float64})
     #Ahat and mineig are any
-    # Ahat::Array{Float64,2}
+    #Ahat::Array{Float64,2}
     #mineig::Array{Float64,1}
     n = size(A, 1)
     @assert(n == size(A, 2)) # ensure it is square
@@ -11,19 +11,19 @@ function nearestSPD(A::Matrix{Float64})
     # symmetrize A into B
     B = (A+A')./2
 
-    if isnan(B[1])
-        B = 0.01*ones(ssm.nx,ssm.nx)
+    if any(isnan, B)
+        B = cov_thresh*eye(ssm.nx,ssm.nx)
        @show B
     end
     # Compute the symmetric polar factor of B. Call it H.
     # Clearly H is itself SPD.
+
     U, σ, V = svd(B)
     H = V*diagm(σ)*V'
 
     # get Ahat in the above formula
     Ahat = (B+H)/2
-    typeof(Ahat)
-    Ahat
+
     # ensure symmetry
     Ahat = (Ahat + Ahat')/2;
 
@@ -34,7 +34,6 @@ function nearestSPD(A::Matrix{Float64})
     # tweak the matrix so that it avoids the numerical instability
     while !worked && iteration_count < 100
         iteration_count += 1
-
         try
             chol(Ahat)
             worked = true
@@ -54,7 +53,10 @@ function nearestSPD(A::Matrix{Float64})
             Ahat = Ahat + (-min_eig*iteration_count.^2 + eps(Float64))*I
         end
     end
-
+    if !isposdef(Ahat)
+        @show "Output of UKF not POSDEF --> error cholpack"
+        Ahat = (Ahat+Ahat')/2 # ensure return with symmetry
+    end
     Ahat
 end
 
@@ -83,7 +85,8 @@ function predict(m::NonLinearSSM,x_prev::MvNormal,Q::Array{Float64,2},u::Array=z
     #conversion from 1 type always same to another not that bad -- conversion from any to 1 type
     P_pred::Array{Float64,2} = convert(Array{Float64,2},Hermitian(F*P0*F' + Q)) #getting any on this var
     P_pred = nearestSPD(P_pred)
-    return MvNormal(mu_pred,P_pred) # MvNormal(mu_pred[:],P_pred)
+    P_pd = (P_pred + P_pred')/2
+    return MvNormal(mu_pred,P_pd)
 end
 
 ### Extended Kalman Filter update
@@ -109,7 +112,8 @@ function filter(m::NonLinearSSM,obs::Array{Float64,1},x0::MvNormal,Q::Array{Floa
         Pnew = (eye(size(cov(x_new),1))-K*H)*cov(x_pred)*(eye(size(cov(x_new),1))-K*H)'+K*R*K';
         cov_new = (1/2)*(Pnew+Pnew')
         cov_new = nearestSPD(cov_new)
-        x_new = MvNormal(mean_new[:,1],cov_new)
+        cov_pd = (cov_new + cov_new')/2
+        x_new = MvNormal(mean_new[:,1],cov_pd)
     end
     return x_new
 end

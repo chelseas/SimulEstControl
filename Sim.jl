@@ -301,7 +301,7 @@ for k = 1:CE_iters
         distrib = []
         for i in 1:CE_params # number of params that need to compute a range for
             data_distr = [elite_params[e][1][i] for e in 1:num_elite]
-            push!(distrib,(mean(data_distr),std(data_distr)))
+            push!(distrib,(mean(data_distr),2*std(data_distr)))
         end
         @show distrib
         # Write out txt file with results of the CE round

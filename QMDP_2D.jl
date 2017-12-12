@@ -205,32 +205,6 @@ elseif prob == "Car"
       return diff.*rand(rng, ssm.nu) + as.lower
   end
 
-# -- 1D Case --- #
-elseif prob == "1D"
-
-  function POMDPs.reward(mdp::AugMDP,s::AugState,a::Float64,sp::AugState)
-
-      # DEAL WITH BELIEF AND TRUE STATE CASES
-
-      (gv, gp) = diag(-Qg)
-      r = abs(s.trueState[2])*gp + abs(s.trueState[1])*gv + abs(a)*-Rg[1]
-      return r
-  end
-
-  function POMDPs.actions(mdp::AugMDP)
-      #take rand action within force bounds
-      return mdp.force_range
-  end
-
-  POMDPs.actions(mdp::AugMDP, s::AugState, as::Normal{Float64})  = actions(mdp)
-
-  #to use default random rollout policy implement action sampling funct
-  function POMDPs.rand(rng::AbstractRNG, action_space::Normal{Float64}, dummy=nothing)
-     return rand(action_space)
-  end
-end
-
-
 # ---- Check Terminal Case --- #
 
 ### Checking for terminal case to stop solving --> setting so it never stops
@@ -264,7 +238,6 @@ end
 
 # Set discount factor to that defined in MDP abstract
 POMDPs.discount(mdp::AugMDP) = mdp.discount_factor  # not even used?
-
 
 # --- Generate Next State and Reward ---- #
 

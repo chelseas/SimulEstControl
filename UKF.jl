@@ -1,25 +1,15 @@
-# for use: xNew = ukf(ssm,obs[:,i],xNew,cov(w),cov(v),u[:,i])
-
-### Correction term for trying to avoid Kalman numerical errors
 function nearestSPD(A::Matrix{Float64})
-    #Ahat and mineig are any
-    #Ahat::Array{Float64,2}
-    #mineig::Array{Float64,1}
     n = size(A, 1)
-    @assert(n == size(A, 2)) # ensure it is square
-
+    #@assert(n == size(A, 2)) # ensure it is square
     I = eye(n)
-
     # symmetrize A into B
-    B = (A+A')./2
-
+    B::Array{Float64,2} = (A+A')./2
     if any(isnan, B)
         B = cov_thresh*eye(ssm.nx,ssm.nx)
        @show B
     end
     # Compute the symmetric polar factor of B. Call it H.
     # Clearly H is itself SPD.
-
     U, σ, V = svd(B)
     H = V*diagm(σ)*V'
 
@@ -50,8 +40,7 @@ function nearestSPD(A::Matrix{Float64})
             # Ahat failed the chol test. It must have been just a hair off,
             # due to floating point trash, so it is simplest now just to
             # tweak by adding a tiny multiple of an identity matrix.
-
-            min_eig = minimum(eigvals(Ahat))
+            min_eig::Float64 = minimum(eigvals(Ahat))
             Ahat = Ahat + (-min_eig*iteration_count.^2 + eps(Float64))*I
         end
     end
@@ -77,7 +66,7 @@ function ukf(m::NonLinearSSM, # NL SSM
             z::Vector{Float64}, # obs
             x0::MvNormal,
             Q::Array{Float64,2}, # process noise
-            R:: Array{Float64,2}, # measurement noise
+            R::Array{Float64,2}, # measurement noise
             u::Array=zeros(m.nu,size(z,2)))
 
     # Aliases (notations from UKF papers)
@@ -97,16 +86,13 @@ function ukf(m::NonLinearSSM, # NL SSM
     # weights
     Wm = [λ/(n+λ) 0.5/(n+λ)+zeros(1,2*n)]
     Wc = [λ/(n+λ)+(1-α^2+β) 0.5/(n+λ)+zeros(1,2*n)]
-    x_,P_,Ax,z_,Pz_,Az = ut(m,X,Q,R,u,Wm,Wc,n,l)   # unscented transform of process
+    x_,P_::Array{Float64,2},Ax,z_,Pz_::Array{Float64,2},Az = ut(m,X,Q,R,u,Wm,Wc,n,l)   # unscented transform of process
     Pxy = Ax*cat([1,2],Wc...)*Az'  # Cross covariance
-    #try K = Pxy*inv(Pz_)   # Kalman gain #error on this inv(Pz_)
-    #catch
-    K = Pxy*pinv(Pz_)   # Kalman gain #error on this inv(Pz_)
-    #end
+    K::Array{Float64,2} = Pxy*pinv(Pz_)   # Kalman gain #error on this inv(Pz_)
 
     # state update
-    a = x_ + K*(z-z_) # updated estimate
-    x_new = a[:,1] # new estimate mean
+    a::Array{Float64,2} = x_ + K*(z-z_) # updated estimate
+    x_new::Array{Float64,1} = a[:,1] # new estimate mean
 
     cov_new = nearestSPD(P_-K*Pxy') # new estimate cov
     try
@@ -116,14 +102,13 @@ function ukf(m::NonLinearSSM, # NL SSM
         @show x_new
         @show cov_new
     end
-    cov_pd = (cov_new + cov_new')/2
+    cov_pd::Array{Float64,2} = (cov_new + cov_new')/2
     return MvNormal(x_new,cov_pd)
 end
 
 # Selecting the sigma points
 function sigma(x::Vector{Float64},P::Array{Float64,2},γ::Float64) # x = reference pt, P = covariance, c = coeff
     n = length(x)
-    # P_ = nearestSPD(P)
     S = chol(P) # replace P with P_?
     Y = zeros(n,n)
     for i=1:n
@@ -159,9 +144,9 @@ function ut(m::NonLinearSSM,X,Q::Array{Float64,2},R::Array{Float64,2},
         Yo[:,i] = xo_
     end
         A = (X_-Y)
-        P_  = A*cat([1,2],Wc...)*A'+Q
+        P_::Array{Float64,2}  = A*cat([1,2],Wc...)*A'+Q
         Ao = (Xo_-Yo)
-        Po_  = Ao*cat([1,2],Wc...)*Ao'+R
+        Po_::Array{Float64,2}  = Ao*cat([1,2],Wc...)*Ao'+R
 
         return x_,P_,A,xo_,Po_,Ao
 end

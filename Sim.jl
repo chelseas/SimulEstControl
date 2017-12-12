@@ -17,6 +17,8 @@
     numtrials = 1 # number of simulation runs
     noiseList = []
     cond1 = "full"
+    settings_file = "test" # name of data file to load
+    settings_folder = "settings" # store data files here
 
     #NOISE SETTINGS
     processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
@@ -29,6 +31,7 @@
 
     # Output settings
     printing = false # set to true to print simple information
+    print_iters = false
     plotting = false # set to true to output plots of the data
     saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
     tree_vis = false # visual MCTS tree
@@ -45,24 +48,26 @@
     num_elite = 2 # number of elite samples to keep to form next distribution
     CE_iters = 3 # number of iterations for cross entropy
     CE_params = 5 # number of params being sampled
+    niters_lb = 210
+    niters_ub = 290
+    states_lb = 1
+    states_ub = 10
+    act_lb = 10
+    act_ub = 40
+    depth_lb = 5
+    depth_ub = 30
+    expl_lb = 1
+    expl_ub = 100
+
+    include("ReadSettings.jl") # read in new values from data file if given
     sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
+    @show sim_save_name
     if cross_entropy
-        niters_lb = 210
-        niters_ub = 290
-        states_lb = 1
-        states_ub = 10
-        act_lb = 10
-        act_ub = 40
-        depth_lb = 5
-        depth_ub = 30
-        expl_lb = 1
-        expl_ub = 100
         CEset = [niters_lb,niters_ub,states_lb,states_ub,act_lb,act_ub,depth_lb,depth_ub,expl_lb,expl_ub]
         pmapInput = []
         for i in 1:num_pop
             push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,1))
         end
-        @show pmapInput
         try mkdir(data_folder)
         end
         cd(data_folder)
@@ -139,15 +144,21 @@
         x[:,1] = x0_state # set actual initial state # make random? zach
         uncertainty[:,1] = reshape(cov(xNew),ssm.nx*ssm.nx) #store covariance
         est[:,1] = mean(xNew) # store average values of state
-        @show j # print the simulation trial number
+        if print_iters
+            @show j # print the simulation trial number
+        end
         ### inner loop running for each step in the simulation
         @time for i = 1:nSamples #for all samples
-            @show step = i # use to break out of some cases in the POMDP function
+            if print_iters
+                @show step = i # use to break out of some cases in the POMDP function
+            end
             if printing @show i end
             cov_check = trace(cov(xNew))
             if cov_check > cov_thresh # input to action is exploding state
               u[:,i] = zeros(ssm.nu) # return action of zeros because unstable
-              @show "COV THRESH"
+              if print_iters
+                  @show "COV THRESH"
+              end
             else # compute actions as normal for safe states
               if sim == "mcts"
                 if cross_entropy
@@ -228,7 +239,9 @@
               est[:,i+1] = x[:,i+1]
             end
         end
-        @show mean(rewrun)
+        if print_iters
+            @show mean(rewrun)
+        end
         totrew += mean(rewrun)
         # for each trial save simulation data
         if saving
@@ -294,16 +307,16 @@ end #@everywhere
 for k = 1:CE_iters
     evals = pmap(evaluating,pmapInput)#,paramNoiseList)
     if cross_entropy
-        @show evals
-        @show sorted = sortperm([evals[i][2] for i in 1:num_pop],rev=true)
-        @show elite = sorted[1:num_elite]
-        @show elite_params = evals[elite]
+        evals
+        sorted = sortperm([evals[i][2] for i in 1:num_pop],rev=true)
+        elite = sorted[1:num_elite]
+        elite_params = evals[elite]
         distrib = []
         for i in 1:CE_params # number of params that need to compute a range for
             data_distr = [elite_params[e][1][i] for e in 1:num_elite]
             push!(distrib,(mean(data_distr),2*std(data_distr)))
         end
-        @show distrib
+        distrib
         # Write out txt file with results of the CE round
         try mkdir(data_folder)
         end
@@ -328,9 +341,8 @@ for k = 1:CE_iters
                 CEset[i*2-1] = lb
                 CEset[i*2] = ub
             end
-            @show typeof(CEset)
             CEset = convert(Array{Int64,1},CEset)
-            @show CEset
+            CEset
             pmapInput = []
             for i in 1:num_pop
                 push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,k+1))

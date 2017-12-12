@@ -1,101 +1,14 @@
-# for CE get the std and mean from the elite group and update the params for that range
-# add for loop to CE and set the number of iterations allowed.
-
+# main simulation file that calls all other functions --> can run in parallel: julia -p X Sim.jl
 @everywhere begin
   # cd to absolute path -->
-    dir = pwd()
-    cd(dir)
-    #@show ARGS
-    #@show length(ARGS)
+  dir = pwd()
+  cd(dir)
 
-    # SIM SETTINGS
-    prob = "2D" # set to the "1D" or "2D" problems defined
-    sim = "qmdp" # mcts, mpc, qmdp, drqn
-    rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
-    bounds = false # set bounds for mcts solver
-    quick_run = true
-    numtrials = 1 # number of simulation runs
-    noiseList = []
-    cond1 = "full"
-    settings_file = "test" # name of data file to load
-    settings_folder = "settings" # store data files here
-
-    #NOISE SETTINGS
-    processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
-    paramNoiseList = [0.1,0.3]#,0.5,0.7]
-    ukf_flag = true # use ukf as the update method when computing mcts predictions
-    param_change = false # add a cosine term to the unknown param updates
-    param_type = "none" # sine or steps
-    param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
-    param_freq = 0.3
-
-    # Output settings
-    printing = false # set to true to print simple information
-    print_iters = false
-    plotting = false # set to true to output plots of the data
-    saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
-    tree_vis = false # visual MCTS tree
-    sim_save = "CE" # name appended to sim settings for simulation folder to store data from runs
-    data_folder = "CEtesting"
-    fullobs = true # set to false for mpc without full obs
-    if sim != "mpc" # set fullobs false for any other sim
-      fullobs = false
-    end
-
-    # CROSS ENTROPY SETTINGS
-    cross_entropy = false
-    num_pop = 2 # number of samples to test this round of CE
-    num_elite = 2 # number of elite samples to keep to form next distribution
-    CE_iters = 3 # number of iterations for cross entropy
-    CE_params = 5 # number of params being sampled
-    niters_lb = 210
-    niters_ub = 290
-    states_lb = 1
-    states_ub = 10
-    act_lb = 10
-    act_ub = 40
-    depth_lb = 5
-    depth_ub = 30
-    expl_lb = 1
-    expl_ub = 100
-
-    include("ReadSettings.jl") # read in new values from data file if given
-    sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
-    @show sim_save_name
-    if cross_entropy
-        CEset = [niters_lb,niters_ub,states_lb,states_ub,act_lb,act_ub,depth_lb,depth_ub,expl_lb,expl_ub]
-        pmapInput = []
-        for i in 1:num_pop
-            push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,1))
-        end
-        try mkdir(data_folder)
-        end
-        cd(data_folder)
-        open(string(sim_save,".txt"), "w") do f
-            write(f,string("Sim save: ",sim_save,"\n"))
-            write(f,string("CE settings: ",CEset,"\n"))
-            write(f,string("PMAP input: ",pmapInput,"\n"))
-            cd("..")
-        end
-    else
-        CE_iters = 1
-        # combine the total name for saving
-        for PRN in processNoiseList
-            for PMN in paramNoiseList
-                push!(noiseList,(PRN,PMN))
-            end
-        end
-        pmapInput = noiseList
-    end
-    # all parameter variables, packages, etc are defined here
-    include("Setup.jl")
+  # all parameter variables, packages, etc are defined here
+  include("Setup.jl")
 
   ### processNoise and paramNoise pairs to be fed into numtrials worth simulations each
-  #for noise_setting = 1:length(paramNoiseList)
-  function evaluating(params)#,processNoise::Float64)
-    #processNoise = processNoiseList[noise_setting]
-    #paramNoise = paramNoiseList[noise_setting]
-    @show params
+  function evaluating(params)
     totrew = 0.0 # summing all rewards with this
     if cross_entropy
         processNoise = params[6]
@@ -111,8 +24,9 @@
         processNoise = params[1]
         paramNoise = params[2] # second element of tuple
     end
+
     # Initializing an array of psuedo-random start states and actual state
-    #srand(13) # seeding the est_list values so they will all be the same
+    srand(13) # seeding the est_list values so they will all be the same
     paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
     x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
     est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
@@ -147,6 +61,7 @@
         if print_iters
             @show j # print the simulation trial number
         end
+
         ### inner loop running for each step in the simulation
         @time for i = 1:nSamples #for all samples
             if print_iters
@@ -176,8 +91,6 @@
                 u[:,i] = action(policy, AugNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
-              elseif sim == "drqn"
-                u[:,i] = MPCAction(xNew,nSamples+2-i)
               end
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding control
@@ -206,6 +119,7 @@
             # bounds testing
             #@show state_temp = x[1:ssm.states,i] # first 6 "measured" values
             #@show est_temp = MvNormal(mean(xNew)[ssm.states+1:end],cov(xNew)[ssm.states+1:end,ssm.states+1:end]) # MvNormal of Ests
+
             if bounds # show the state_bounds and see if they are within the threshold
               @show state_bounds[i] = norm(x[:,i+1])
               @show act_dep_bounds[i] = overall_bounds([-100.0],xNew,u[:,i],w_bound) # setting state_temp = [-100.0] to just use belief
@@ -214,9 +128,8 @@
             if !fullobs # if system isn't fully observable update the belief
               # take observation of the new state
               obs[:,i] = ssm.h(x[:,i],u[:,i]) #+ rand(v) #<-- no measurement noise
+
               # update belief with current measurment, input
-              # take actual dynamics into ukf for oracle (deal with this later)
-              #if ukf_flag
               if cov_check < cov_thresh # then update belief because we trust it
                   xNew = ukf(ssm,obs[:,i],xNew,cov(w),cov(v),u[:,i]) # for UKF
               end
@@ -243,7 +156,7 @@
             @show mean(rewrun)
         end
         totrew += mean(rewrun)
-        # for each trial save simulation data
+
         if saving
           if cross_entropy
               parallel_num = [string(params[end-1])]
@@ -299,11 +212,14 @@
           display(plot(pos_pl,pos_est,vel_pl,vel_est,unk_pl,unk_est,control_pl,rew_pl,layout=(4,2)))#,xlabel=label)
           #savefig(join(["test " string(j) ".png"])) # save plots for each run
         end
-        gc() # clear data?
+
+        gc() # clear data
     end
     [params,totrew/numtrials] # place variable here to have it output by evals
   end
 end #@everywhere
+
+# where the pmap function actually gets called
 for k = 1:CE_iters
     evals = pmap(evaluating,pmapInput)#,paramNoiseList)
     if cross_entropy
@@ -349,7 +265,5 @@ for k = 1:CE_iters
             end
         end
     end
+
 end
-#end
-# this prints, plots, and saves data
-#include(Outputs.jl)

@@ -1,9 +1,54 @@
 
-if quick_run
-  nSamples = 5 # quick amount of steps for debug_bounds
-else
-  nSamples = 50
+# SIM SETTINGS
+prob = "2D" # set to the "1D" or "2D" problems defined
+sim = "qmdp" # mcts, mpc, qmdp, drqn
+rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
+bounds = false # set bounds for mcts solver
+quick_run = true
+numtrials = 1 # number of simulation runs
+noiseList = []
+cond1 = "full"
+settings_file = "test" # name of data file to load
+settings_folder = "settings" # store data files here
+
+#NOISE SETTINGS
+processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
+paramNoiseList = [0.1,0.3]#,0.5,0.7]
+ukf_flag = true # use ukf as the update method when computing mcts predictions
+param_change = false # add a cosine term to the unknown param updates
+param_type = "none" # sine or steps
+param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
+param_freq = 0.3
+
+# Output settings
+printing = false # set to true to print simple information
+print_iters = false
+plotting = false # set to true to output plots of the data
+saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+tree_vis = false # visual MCTS tree
+sim_save = "CE" # name appended to sim settings for simulation folder to store data from runs
+data_folder = "CEtesting"
+fullobs = true # set to false for mpc without full obs
+if sim != "mpc" # set fullobs false for any other sim
+  fullobs = false
 end
+
+# CROSS ENTROPY SETTINGS
+cross_entropy = false
+num_pop = 2 # number of samples to test this round of CE
+num_elite = 2 # number of elite samples to keep to form next distribution
+CE_iters = 3 # number of iterations for cross entropy
+CE_params = 5 # number of params being sampled
+niters_lb = 210
+niters_ub = 290
+states_lb = 1
+states_ub = 10
+act_lb = 10
+act_ub = 40
+depth_lb = 5
+depth_ub = 30
+expl_lb = 1
+expl_ub = 100
 
 # Settings for simulation
 measNoise = 0.000001 # standard deviation of measurement noise
@@ -14,39 +59,42 @@ state_init = 1.0 # gain for teh initial state
 state_min_tol = 0.1 # prevent states from growing less than X% of original value
 friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
 
+# settings for mcts
+n_iters = 200#3000#00 # total number of iterations
+samples_per_state = 5#3 # want to be small
+samples_per_act = 20 # want this to be ~20
+depths = 20 # depth of tree
+expl_constant = 10.0#100.0 #exploration const
+
+include("ReadSettings.jl") # read in new values from data file if given
+
+if quick_run
+  nSamples = 5 # quick amount of steps for debug_bounds
+else
+  nSamples = 50
+end
+
 if prob == "2D"
   # Settings for simulation
   fRange = 5.0 # bounds on controls allowed within +- fRange
-  #est_init = 11 # gain for the initial estimate
-  state_init = 1.0 # gain for teh initial state
+  state_init = 1.0 # gain for the initial state
   fDist_disc = 1000 # discrete points in fDist force linspace
   # Reward shaping
   Qg = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 50.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # for use in POMDP reward funct
   Qr = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 50.0]) # for computing reward below just for measured states
   Rg = 0.25*diagm([10.0, 10.0, 10.0])
-  # Qg = 1.0*eye(11,11)#*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # for use in POMDP reward funct
-  # Qr = 1.0*diagm([0.3, 0.3, 0.3, 50.0, 50.0, 70.0]) # for computing reward below just for measured states
-  # Rg = 1.0*eye(3,3)#0.3*diagm([10.0, 10.0, 8.0])
+
   if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
     #500 = 7s, 2000 = 30s, 5000 = 60s
-    n_iters = 200#3000#00 # total number of iterations
-    samples_per_state = 5#3 # want to be small
-    samples_per_act = 20 # want this to be ~20
-    depths = 20 # depth of tree
-    expl_constant = 10.0#100.0 #exploration const
     alpha_act = 1.0/10.0 # alpha for action
     alpha_st = 1.0/20.0 # alpha for state
     k_act = samples_per_act/(n_iters^alpha_act) # k for action
     k_st = samples_per_state/(n_iters^alpha_st) # k for state
     pos_control_gain = -80.0 # gain to drive position rollout --> higher = more aggressive
-    control_stepsize = 5.0 # maximum change in control effort from previous action
+    #control_stepsize = 5.0 # maximum change in control effort from previous action
   elseif sim == "mpc"
     n = 50 # horizon steps
-  elseif sim == "drqn"
-    load_dir = "" # Path to load the saved file
-    epsilon = 0.5 # percentage to use EKF to update belief and draw sample to train from
-    training_epochs = 5 # counter for training epochs
   end
 end
 
@@ -65,12 +113,6 @@ elseif sim == "mpc"
     rollout = "fobs"
   else
     rollout = "unk"
-  end
-elseif sim == "drqn"
-  using Distributions, TensorFlow
-  if rollout == "train"
-      using Convex, SCS, ECOS
-  elseif rollout == "test"
   end
 end
 #using ForwardDiff # for EKF
@@ -122,12 +164,6 @@ if prob == "2D" # load files for 2D problem
     include("QMDP_2D.jl")
   elseif sim == "mpc"
     include("MPC_2D.jl") # function to set up MPC opt and solve
-  elseif sim == "drqn"
-    include("DRQN.jl")
-    if rollout == "train"
-        include("MPC_2D.jl")
-    elseif rollout == "test"
-    end
   end
 end
 
@@ -149,20 +185,44 @@ end
 if tree_vis
   hist = HistoryRecorder() # necessary for POMDP setup #zach: is there a way to extract all actions and rewards for each step?
 end
+
 # solver defined here with all settings
 if (sim == "mcts") || (sim == "qmdp")
-  if rollout == "smooth"
-    solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
-    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll), next_action=heur)#-4 before
-  elseif rollout == "random" && bounds == true
+  if rollout == "random" && bounds == true
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#, enable_tree_vis = tree_vis)#-4 before
   elseif rollout == "random"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#, enable_tree_vis = tree_vis)#-4 before
-  else
-    solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
-    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#-4 before
   end
   policy = solve(solver,mdp) # policy setup for POMDP
+end
+
+# save name and if CE save file else setup noiseList
+sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
+@show sim_save_name
+if cross_entropy
+    CEset = [niters_lb,niters_ub,states_lb,states_ub,act_lb,act_ub,depth_lb,depth_ub,expl_lb,expl_ub]
+    pmapInput = []
+    for i in 1:num_pop
+        push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,1))
+    end
+    try mkdir(data_folder)
+    end
+    cd(data_folder)
+    open(string(sim_save,".txt"), "w") do f
+        write(f,string("Sim save: ",sim_save,"\n"))
+        write(f,string("CE settings: ",CEset,"\n"))
+        write(f,string("PMAP input: ",pmapInput,"\n"))
+        cd("..")
+    end
+else
+    CE_iters = 1
+    # combine the total name for saving
+    for PRN in processNoiseList
+        for PMN in paramNoiseList
+            push!(noiseList,(PRN,PMN))
+        end
+    end
+    pmapInput = noiseList
 end

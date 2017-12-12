@@ -121,7 +121,6 @@ end
 
 # ask Zach if we can get rid of sp::AugState here
 function observation(mdp::AugMDP,s::AugState,a::Array{Float64,1})
-
   # potentially use x_assume=rand(s.trueState) to get most out of uncertainty
   obs = ssm.h(s.trueState, a) # no measurement noise
   return obs
@@ -133,18 +132,12 @@ end
 if prob == "2D"
   ### Calculate the reward for the current state and action
   function POMDPs.reward(mdp::AugMDP,s::AugState,a::Array{Float64,1},sp::AugState)
-
     if isnull(s.beliefState)
-
       r = sum(abs.(s.trueState)'*-Qg) + sum(abs.(a)'*-Rg)
-
     else
-
       trueState = mean(get(s.beliefState))
       r = sum(abs.(trueState)'*-Qg) + sum(abs.(a)'*-Rg)
-
     end
-
     return r
   end
 
@@ -204,7 +197,7 @@ elseif prob == "Car"
       diff = as.upper-as.lower
       return diff.*rand(rng, ssm.nu) + as.lower
   end
-
+end
 # ---- Check Terminal Case --- #
 
 ### Checking for terminal case to stop solving --> setting so it never stops

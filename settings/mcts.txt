@@ -1,0 +1,39 @@
+# strings
+mcts # sim
+mcts_normal # sim_save
+general # data_folder
+false # cross_entropy
+true # saving
+false # param_change
+none # param_type
+false # fullobs
+false # print_iters
+false # quick_run
+true # ukf_flag
+2D # prob
+# ints
+2 # num_pop
+2 # num_elite
+3 # CE_iters
+30 # numtrials
+200 # n_iters
+5 # samples_per_state
+20 # samples_per_act
+20 # depths
+# floats
+10.0 # expl_constant
+# arrays (floats), put spaces without brackets between all values
+0.001 0.0033 0.01 0.033 0.1 # processNoiseList
+0.25 0.5 0.75 # paramNoiseList
+# cross entropy variables (ints)
+200 # niters_lb
+2000 # niters_ub
+1 # states_lb
+10 # states_ub
+10 # act_lb
+40 # act_ub
+5 # depth_lb
+30 # depth_ub
+1 # expl_lb
+100 # expl_ub
+# No blank lines beyond this

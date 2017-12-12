@@ -123,19 +123,7 @@ function POMDPs.generate_sr(mdp::MassMDP, s::EKFState, a::Array{Float64,1}, rng:
     return sp, r
 end
 
-if rollout == "position"
-  # Position controller to set the gain for roll-out
-  type PositionController <: Policy # Policy{MvNormal}
-      gain::Float64
-  end
-  ### action function --> using the average of the EKF state to select action
-  function POMDPs.action(policy::PositionController, x::EKFState, a::Array{Float64,1}=zeros(ssm.nu))
-      xAssume = mean(x) # I think deterministic is optimal
-      return policy.gain*xAssume[pos_range]
-  end
-  roll = PositionController(pos_control_gain)
-  heur = nothing
-elseif rollout == "random"
+if rollout == "random"
   type RandomController <: Policy # Policy{MvNormal}
       gain::Float64
   end
@@ -154,28 +142,4 @@ elseif rollout == "random"
   end
   roll = RandomController(pos_control_gain)
   heur = nothing
-elseif rollout == "smooth"
-  type SmoothController <: Policy # Policy{MvNormal}
-      step::Float64
-  end
-  function POMDPs.action(policy::SmoothController, x::EKFState, a::Array{Float64,1}=zeros(ssm.nu))
-      xAssume = mean(x)
-      return policy.step*xAssume[pos_range]#,xAssume[5],xAssume[6]] #reason for using this variable?
-  end
-  roll = SmoothController(control_stepsize) # how can I control this?
-
-  # This lets you get information from the simulation to pass into the next_action to choose actions
-  mutable struct actHeur
-    prev_action # previous action
-    eta # bounds to stay within
-  end
-  # This function decides how to select the next action in the MCTS simulation is selected --> can bound
-  # make wrapper for MDP called rate limiter actuator and add the actuator state to the MDP, where actuator state is just the prev action
-  # then the action function can just pick random around it.This is cuz need prev state for each child in rollout sims. Not just from main loop
-  function MCTS.next_action(h::actHeur, mdp::MassMDP, s::EKFState, snode::DPWStateNode)
-      # bound the returned action to be random within the eta of h
-      delta_a = (rand(3,1)*2-1)*h.eta # change to action is rand btw -1&1 * eta allowand
-      return h.prev_action+delta_a
-  end
-  heur = actHeur(zeros(ssm.nu), control_stepsize)
 end

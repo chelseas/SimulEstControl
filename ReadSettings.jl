@@ -4,13 +4,9 @@ function string_as_varname(s::AbstractString,v::Any)
          @eval (($s) = ($v))
 end
 
-#=
+
 dir = pwd()
 cd(dir)
-@show test = "init"
-settings_file = "test"
-settings_folder = "settings"
-=#
 
 if settings_file != "none"
     cd(settings_folder)

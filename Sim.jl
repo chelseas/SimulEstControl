@@ -265,5 +265,4 @@ for k = 1:CE_iters
             end
         end
     end
-
 end

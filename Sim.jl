@@ -11,7 +11,6 @@
 
   ### processNoise and paramNoise pairs to be fed into numtrials worth simulations each
   function evaluating(params)
-    @show params
     totrew = 0.0 # summing all rewards with this
     if cross_entropy
         processNoise = params[6]
@@ -232,11 +231,12 @@ for k = 1:CE_iters
         elite_params = evals[elite] # 1 x num_elite of arrays
         data_distrib = []
         for e in 1:num_elite # store elite data
-            data_distrib = vcat(data_distrib,[elite_params[e][1][j] for j in 1:CE_params]')
+            temp_data = [elite_params[e][1][j] for j in 1:CE_params]
+            data_distrib = vcat(data_distrib,temp_data')
         end # data_distrib is num_elite x CE_num
         data_distrib = convert(Array{Float64,2},data_distrib)
         try
-            @show distrib = fit(typeof(CEset),data_distrib')
+            distrib = fit(typeof(CEset),data_distrib')
         catch ex
             if ex isa Base.LinAlg.PosDefException
                 println("pos def exception")
@@ -262,17 +262,6 @@ for k = 1:CE_iters
         end
 
         if k != CE_iters # update CEset and pmapInput
-            #=
-            for i in 1:CE_params
-                mean, std = distrib[i]
-                ub = ceil(Int,mean+std)
-                lb = max(1, floor(Int,mean-std))
-                CEset[i*2-1] = lb
-                CEset[i*2] = ub
-            end
-            CEset = convert(Array{Int64,1},CEset)
-            CEset
-            =#
             CEset = distrib
             pmapInput = []
             for i in 1:num_pop

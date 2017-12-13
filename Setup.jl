@@ -22,7 +22,7 @@ param_freq = 0.3
 printing = false # set to true to print simple information
 print_iters = false
 plotting = false # set to true to output plots of the data
-saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
 sim_save = "CE" # name appended to sim settings for simulation folder to store data from runs
 data_folder = "CEtesting"
@@ -33,7 +33,7 @@ end
 
 # CROSS ENTROPY SETTINGS
 cross_entropy = true
-num_pop = 20 #  number of samples to test this round of CE
+num_pop = 30 #  number of samples to test this round of CE
 num_elite = 20 # number of elite samples to keep to form next distribution
 CE_iters = 5 # number of iterations for cross entropy
 CE_params = 4 # number of params being sampled

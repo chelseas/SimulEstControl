@@ -25,15 +25,13 @@ true # ukf_flag
 # arrays (floats), put spaces without brackets between all values
 0.033 0.01 # processNoiseList
 0.1 # paramNoiseList
-# cross entropy variables (ints)
-200 # niters_lb
-2000 # niters_ub
-1 # states_lb
-10 # states_ub
-10 # act_lb
-40 # act_ub
-5 # depth_lb
-30 # depth_ub
-1 # expl_lb
-100 # expl_ub
+# cross entropy variables (floats)
+10.0 # states_m
+10.0 # states_std
+10.0 # act_m
+40.0 # act_std
+5.0 # depth_m
+30.0 # depth_std
+1.0 # expl_m
+100.0 # expl_std
 # No blank lines beyond this

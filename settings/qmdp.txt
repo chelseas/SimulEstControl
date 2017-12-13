@@ -26,14 +26,4 @@ true # ukf_flag
 0.001 0.0033 0.01 0.033 0.1 0.33 # processNoiseList
 0.25 0.5 0.75 # paramNoiseList
 # cross entropy variables (ints)
-200 # niters_lb
-2000 # niters_ub
-1 # states_lb
-10 # states_ub
-10 # act_lb
-40 # act_ub
-5 # depth_lb
-30 # depth_ub
-1 # expl_lb
-100 # expl_ub
 # No blank lines beyond this

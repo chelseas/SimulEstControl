@@ -5,7 +5,7 @@ sim = "qmdp" # mcts, mpc, qmdp, drqn
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 bounds = false # set bounds for mcts solver
 quick_run = true
-numtrials = 1 # number of simulation runs
+numtrials = 2 # number of simulation runs
 noiseList = []
 cond1 = "full"
 
@@ -35,10 +35,8 @@ end
 cross_entropy = true
 num_pop = 30 #  number of samples to test this round of CE
 num_elite = 20 # number of elite samples to keep to form next distribution
-CE_iters = 5 # number of iterations for cross entropy
+CE_iters = 2 # number of iterations for cross entropy
 CE_params = 4 # number of params being sampled
-niters_m = 200.0
-niters_std = 10.0
 states_m = 10.0
 states_std = 5.0
 act_m = 30.0
@@ -58,7 +56,7 @@ state_min_tol = 0.1 # prevent states from growing less than X% of original value
 friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
 
 # settings for mcts
-n_iters = 200#3000#00 # total number of iterations
+n_iters = 3000#3000#00 # total number of iterations
 samples_per_state = 5#3 # want to be small
 samples_per_act = 20 # want this to be ~20
 depths = 20 # depth of tree
@@ -198,7 +196,7 @@ end
 
 # save name and if CE save file else setup noiseList
 sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
-@show sim_save_name
+#@show sim_save_name
 if cross_entropy
     CEset_list = [states_m,states_std,act_m,act_std,depth_m,depth_std,expl_m,expl_std]
     CEset = MvNormal([states_m,act_m,depth_m,expl_m],diagm([states_std^2,act_std^2,depth_std^2,expl_std^2]))

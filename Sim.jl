@@ -229,12 +229,11 @@ for k = 1:CE_iters
         sorted = sortperm([evals[i][2] for i in 1:num_pop],rev=true)
         elite = sorted[1:num_elite]
         elite_params = evals[elite] # 1 x num_elite of arrays
-        data_distrib = []
+        data_distrib = zeros(num_elite, CE_params)
         for e in 1:num_elite # store elite data
-            temp_data = [elite_params[e][1][j] for j in 1:CE_params]
-            data_distrib = vcat(data_distrib,temp_data')
+            data_distrib[e,:] = [elite_params[e][1][j] for j in 1:CE_params]
         end # data_distrib is num_elite x CE_num
-        data_distrib = convert(Array{Float64,2},data_distrib)
+        #data_distrib = convert(Array{Float64,2},data_distrib)
         try
             distrib = fit(typeof(CEset),data_distrib')
         catch ex

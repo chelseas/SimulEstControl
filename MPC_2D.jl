@@ -44,7 +44,7 @@ function MPCAction(x0::MvNormal, n::Int)
     end
 
     # Solve the problem by calling solve!
-    solve!(problem, SCSSolver(verbose=0))
+    solve!(problem, ECOSSolver(verbose=0))
 
      # Check the status of the problem
     problem.status # :Optimal, :Infeasible, :Unbounded etc.

@@ -28,7 +28,7 @@
     end
 
     # Initializing an array of psuedo-random start states and actual state
-    srand(13) # seeding the est_list values so they will all be the same
+    #srand(13) # seeding the est_list values so they will all be the same
     paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
     x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
     est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial

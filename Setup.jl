@@ -1,10 +1,10 @@
 
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "qmdp" # mcts, mpc, qmdp, drqn
+sim = "mpc" # mcts, mpc, qmdp, drqn
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 bounds = false # set bounds for mcts solver
-quick_run = true
+quick_run = false
 numtrials = 2 # number of simulation runs
 noiseList = []
 cond1 = "full"
@@ -20,21 +20,21 @@ param_freq = 0.3
 
 # Output settings
 printing = false # set to true to print simple information
-print_iters = false
+print_iters = true
 plotting = false # set to true to output plots of the data
-saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
-sim_save = "CE" # name appended to sim settings for simulation folder to store data from runs
-data_folder = "CEtesting"
+sim_save = "CE2" # name appended to sim settings for simulation folder to store data from runs
+data_folder = "debug"
 fullobs = true # set to false for mpc without full obs
 if sim != "mpc" # set fullobs false for any other sim
   fullobs = false
 end
 
 # CROSS ENTROPY SETTINGS
-cross_entropy = true
-num_pop = 30 #  number of samples to test this round of CE
-num_elite = 20 # number of elite samples to keep to form next distribution
+cross_entropy = false
+num_pop = 6 #  number of samples to test this round of CE
+num_elite = 3 # number of elite samples to keep to form next distribution
 CE_iters = 2 # number of iterations for cross entropy
 CE_params = 4 # number of params being sampled
 states_m = 10.0

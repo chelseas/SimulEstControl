@@ -40,7 +40,7 @@
     v = MvNormal(zeros(ssm.ny),measNoise*eye(ssm.ny,ssm.ny)) #measurement noise distribution
     step = 1 # count steps
     ### outer loop running for each simulation of the system
-    @time for j = 1:numtrials # number of simulation trials run
+    for j = 1:numtrials # number of simulation trials run
         # Initialize saving variables between each run
         obs = zeros(ssm.ny,nSamples) #measurement history
         u = Array{Float64,2}(ssm.nu,nSamples) #input history
@@ -65,7 +65,7 @@
         end
 
         ### inner loop running for each step in the simulation
-        @time for i = 1:nSamples #for all samples
+        for i = 1:nSamples #for all samples
             if print_iters
                 @show step = i # use to break out of some cases in the POMDP function
             end

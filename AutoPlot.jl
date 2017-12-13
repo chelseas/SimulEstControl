@@ -5,14 +5,16 @@ pushPGFPlotsPreamble("\\usepackage{xfrac}")
 pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
-plot_folder = "plotsCE" # what to name new plots folder
-data_folder = "dataCE2" # name data_folder containing folder_list
-folder_list = ["first","second"]
-vary = true # plot varying process or param noise
+plot_folder = "plots" # what to name new plots folder
+data_folder = "general_mod" # name data_folder containing folder_list
+cd(data_folder)
+folder_list = readdir()#["first","second"]
+cd("..")
+folder_list = ["1","2","3"]
+vary = false # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
-profile = false # plot the profile of the results
+profile = true # plot the profile of the results
 verbose = false # set to true to print debug statements
-
 
 for folder in folder_list
 #folder = "2D_0.7_step"#"test2"# give data folder name to compute averages from
@@ -276,7 +278,7 @@ end
 
 if profile # plot the profiles for the runs
   # avg vs nSamples plots
-  files = readdir() # all average files
+  files = readdir() # in processed data for folder in main loop
   filter!(x->x≠"total rewards",files) # remove total rewards folder
   # define all variables for plotting here so that they can be used outside the for loop
   tempName = split(files[1])
@@ -335,7 +337,9 @@ if profile # plot the profiles for the runs
     elseif sim == "adapt"
       adapt = (temp_st,temp_est,temp_ctrl,temp_rew)
     end # ADD HERE
-  end
+
+
+  end # end of the 1:offset for loop.
 
   profile_st = PGFPlots.Plots.Linear[]
   profile_est = PGFPlots.Plots.Linear[]

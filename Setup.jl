@@ -8,8 +8,6 @@ quick_run = true
 numtrials = 1 # number of simulation runs
 noiseList = []
 cond1 = "full"
-settings_file = "test" # name of data file to load
-settings_folder = "settings" # store data files here
 
 #NOISE SETTINGS
 processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
@@ -24,7 +22,7 @@ param_freq = 0.3
 printing = false # set to true to print simple information
 print_iters = false
 plotting = false # set to true to output plots of the data
-saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
 sim_save = "CE" # name appended to sim settings for simulation folder to store data from runs
 data_folder = "CEtesting"
@@ -34,21 +32,21 @@ if sim != "mpc" # set fullobs false for any other sim
 end
 
 # CROSS ENTROPY SETTINGS
-cross_entropy = false
-num_pop = 2 # number of samples to test this round of CE
-num_elite = 2 # number of elite samples to keep to form next distribution
-CE_iters = 3 # number of iterations for cross entropy
-CE_params = 5 # number of params being sampled
-niters_lb = 210
-niters_ub = 290
-states_lb = 1
-states_ub = 10
-act_lb = 10
-act_ub = 40
-depth_lb = 5
-depth_ub = 30
-expl_lb = 1
-expl_ub = 100
+cross_entropy = true
+num_pop = 20 #  number of samples to test this round of CE
+num_elite = 20 # number of elite samples to keep to form next distribution
+CE_iters = 5 # number of iterations for cross entropy
+CE_params = 4 # number of params being sampled
+niters_m = 200.0
+niters_std = 10.0
+states_m = 10.0
+states_std = 5.0
+act_m = 30.0
+act_std = 20.0
+depth_m = 15.0
+depth_std = 10.0
+expl_m = 50.0
+expl_std = 25.0
 
 # Settings for simulation
 measNoise = 0.000001 # standard deviation of measurement noise
@@ -202,10 +200,14 @@ end
 sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
 @show sim_save_name
 if cross_entropy
-    CEset = [niters_lb,niters_ub,states_lb,states_ub,act_lb,act_ub,depth_lb,depth_ub,expl_lb,expl_ub]
+    CEset_list = [states_m,states_std,act_m,act_std,depth_m,depth_std,expl_m,expl_std]
+    CEset = MvNormal([states_m,act_m,depth_m,expl_m],diagm([states_std^2,act_std^2,depth_std^2,expl_std^2]))
+    distrib = CEset
     pmapInput = []
     for i in 1:num_pop
-        push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,1))
+        #push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,1))
+        temp_CE = rand(CEset)
+        push!(pmapInput,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],n_iters,processNoiseList[1],paramNoiseList[1],sim_save_name,i,1))
     end
     try mkdir(data_folder)
     end

@@ -4,7 +4,6 @@ function string_as_varname(s::AbstractString,v::Any)
          @eval (($s) = ($v))
 end
 
-
 dir = pwd()
 cd(dir)
 
@@ -30,7 +29,7 @@ if settings_file != "none"
               val_temp = temp[1:end-2]
               val_temp = [parse(Float64,ss) for ss in val_temp]
           elseif cnter == 5 # optional CE bound params
-              val_temp = parse(Int64,val_temp)
+              val_temp = parse(Float64,val_temp)
           end
           string_as_varname(var_temp,val_temp)
       end

@@ -11,16 +11,15 @@
 
   ### processNoise and paramNoise pairs to be fed into numtrials worth simulations each
   function evaluating(params)
-    @show params
     totrew = 0.0 # summing all rewards with this
     if cross_entropy
         processNoise = params[6]
         paramNoise = params[7]
         alpha_act = 1.0/10.0 # alpha for action
         alpha_st = 1.0/20.0 # alpha for state
-        k_act = max(1,floor(params[2]))/(n_iters^alpha_act) # k for action
-        k_st = max(1,floor(params[1]))/(n_iters^alpha_st) # k for state
-        solverCE = DPWSolver(n_iterations = Int(params[5]), depth = Int(max(1,floor(params[3]))), exploration_constant = params[4],
+        k_act = params[3]/(n_iters^alpha_act) # k for action
+        k_st = params[2]/(n_iters^alpha_st) # k for state
+        solverCE = DPWSolver(n_iterations = params[1], depth = params[4], exploration_constant = convert(Float64,params[5]),
         k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
         policyCE = solve(solverCE,mdp)
     else
@@ -229,22 +228,13 @@ for k = 1:CE_iters
         evals
         sorted = sortperm([evals[i][2] for i in 1:num_pop],rev=true)
         elite = sorted[1:num_elite]
-        elite_params = evals[elite] # 1 x num_elite of arrays
-        data_distrib = []
-        for e in 1:num_elite # store elite data
-            data_distrib = vcat(data_distrib,[elite_params[e][1][j] for j in 1:CE_params]')
-        end # data_distrib is num_elite x CE_num
-        data_distrib = convert(Array{Float64,2},data_distrib)
-        try
-            @show distrib = fit(typeof(CEset),data_distrib')
-        catch ex
-            if ex isa Base.LinAlg.PosDefException
-                println("pos def exception")
-                #distrib = fit(typeof(CEset), data_distrib'+= 0.01*randn(size(data_distrib)))
-            else
-                rethrow(ex)
-            end
+        elite_params = evals[elite]
+        distrib = []
+        for i in 1:CE_params # number of params that need to compute a range for
+            data_distr = [elite_params[e][1][i] for e in 1:num_elite]
+            push!(distrib,(mean(data_distr),1*std(data_distr)))
         end
+        distrib
         # Write out txt file with results of the CE round
         try mkdir(data_folder)
         end
@@ -262,7 +252,6 @@ for k = 1:CE_iters
         end
 
         if k != CE_iters # update CEset and pmapInput
-            #=
             for i in 1:CE_params
                 mean, std = distrib[i]
                 ub = ceil(Int,mean+std)
@@ -272,12 +261,9 @@ for k = 1:CE_iters
             end
             CEset = convert(Array{Int64,1},CEset)
             CEset
-            =#
-            CEset = distrib
             pmapInput = []
             for i in 1:num_pop
-                temp_CE = rand(CEset)
-                push!(pmapInput,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],n_iters,processNoiseList[1],paramNoiseList[1],sim_save_name,i,k+1))
+                push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,k+1))
             end
         end
     end

@@ -23,7 +23,7 @@
         k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
         policyCE = solve(solverCE,mdp)
     else
-        processNoise = params[1]
+        processNoise = params[1]a
         paramNoise = params[2] # second element of tuple
     end
 
@@ -158,7 +158,6 @@
             @show mean(rewrun)
         end
         totrew += mean(rewrun)
-
         if saving
           if cross_entropy
               parallel_num = [string(params[end-1])]
@@ -239,7 +238,8 @@ for k = 1:CE_iters
         catch ex
             if ex isa Base.LinAlg.PosDefException
                 println("pos def exception")
-                #distrib = fit(typeof(CEset), data_distrib'+= 0.01*randn(size(data_distrib)))
+                data_adj = data_distrib + 0.01*rand(size(data_distrib))
+                distrib = fit(typeof(CEset), data_adj')
             else
                 rethrow(ex)
             end
@@ -267,6 +267,9 @@ for k = 1:CE_iters
                 temp_CE = rand(CEset)
                 push!(pmapInput,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],n_iters,processNoiseList[1],paramNoiseList[1],sim_save_name,i,k+1))
             end
+        end
+        if (k == CE_iters - 1) && save_last # about to start last CE round
+            @everywhere saving = true
         end
     end
 end

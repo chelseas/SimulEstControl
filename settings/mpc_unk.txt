@@ -3,6 +3,7 @@ mpc # sim
 mpc_unk_normal # sim_save
 general # data_folder
 false # cross_entropy
+false # save_last
 true # saving
 false # param_change
 none # param_type

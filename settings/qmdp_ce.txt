@@ -3,6 +3,7 @@ qmdp # sim
 qmdp_normal # sim_save
 general # data_folder
 true # cross_entropy
+true # save_last
 false # saving
 false # param_change
 none # param_type

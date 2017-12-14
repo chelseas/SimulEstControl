@@ -1,66 +1,81 @@
-#using Distributions # uncomment for example
 # Pass in a MvNormal, number of samples to compute ellipse, number of sapmles to output of ellipsoid, F statistic
 # F-distrib calculated value based on p, n-p, alpha, Stat Trek
 function ellipsoid_bounds(A::MvNormal,n::Int64,n_out::Int64,F::Float64) # finds ellispoidal bounds of MvNormal passed into it
   mu = mean(A) # mean of distribution
   p = length(mu) # number of degrees of freedom
   s = rand(A,n) # samples of the desired distribution A, p x n
-  x_bar = mean(s,2) # mean of the samples dim nx1
-  Σ_hat_mean = (1.0/(n-1))*(s - x_bar*ones(1,n))*(s - x_bar*ones(1,n))'/n # Sample covariance of the mean
+  sample_mv = fit(typeof(A),s) # MLE mean of the sample estimate (not unbiased)
+  x_bar = mean(sample_mv)
+  Σ_hat_mean = n*cov(sample_mv) # the n is for the sampled MvNormal region --> necessary
 
-  # Computing ellipsoid information from eigenvalues
-  c = sqrt((p*(n-1)/(n-p))*F) # c value for finding axes lengths
-  #elpse = (x_bar - mu)'*Σ_hat_mean*(x_bar - mu) # ellipse with axes as eigenvectors of Σ_hat_mean
-  #axes = eigvecs(Σ_hat_mean) # axis directions of the ellipse
-  if complex(real(c)) != complex(c)
-    @show c
-  end
-  if complex(real(eigvals(Σ_hat_mean))) != complex(eigvals(Σ_hat_mean))
-    @show Σ_hat_mean
-  end
-  lengths = zeros(size(mean(A)))
-  try
-    # if any of the eigvals are really small sometimes approxes to -e-20 and has to be positive! so take abs
-    lengths = 2*c*(abs.(eigvals(Σ_hat_mean)).^(0.5)) # lengths for one-side of axes # eigs for bigger matrices
-  catch
-    lengths = zeros(size(mean(A)))
-    @show Σ_hat_mean
-    @show eigvals(Σ_hat_mean)
-    @show sqrt.(eigvals(Σ_hat_mean)) # this is causing it to break for some reason -->?
-    # last element always seems to be ~e-20 and might be having numerical issue?
-    @show c
-  end
-  # Sampling from a p-dimensional sphere
+  # Sampling from a p-dimensional sphere will be projected onto confindence ellipse
   sphere = MvNormal(zeros(p),eye(p,p)) # zero centered with rad 1
   sphere_pts = rand(sphere,n_out) # p x n_out of rand values
   lambdas = sqrt.(sum(sphere_pts.^2,1)) # computing normalizing factor to put sphere_pts on sphere surface
   sphere_unit_pts = sphere_pts./lambdas # points on the unit sphere
-  #sum(sphere_unit_pts.^2,1) # checking that they all sum to 1
-  ellipse_pts = broadcast(+,mu,sphere_unit_pts.*lengths) # project the sphere points onto ellipse and add offset mu
+
+  U,S,V = svd(Σ_hat_mean) # SVD of sampled ellipse
+  S2 = sqrt.(abs.(S))*sqrt((p*(n-1)*F)/(n*(n-p))) # new eigenvalues of confidence ellipse
+
+  ellipse_pts = broadcast(+,mu,U*diagm(S2)*V'*sphere_unit_pts) # proj pnts to confidence ellipse and add offset mu
   return ellipse_pts # returns p x n_out array
 end
 
-function inner_pts(A::MvNormal,n::Int64,n_out::Int64,F::Float64)
+# setting a given covariance for the ellipsoid below to make easier to check
+function ellipsoid_inner(A::MvNormal,n::Int64,n_out::Int64,F::Float64)
+
   mu = mean(A) # mean of distribution
   p = length(mu) # number of degrees of freedom
   s = rand(A,n) # samples of the desired distribution A, p x n
-  x_bar = mean(s,2) # mean of the samples dim nx1
-  Σ_hat_mean = [2 0 0; 0 1 0; 0 0 4]#(1.0/(n-1))*(s - x_bar*ones(1,n))*(s - x_bar*ones(1,n))'/n # Sample covariance of the mean
-  v = eigvecs(Σ_hat_mean) # axis directions of the ellipse
-  e = abs.(eigvals(Σ_hat_mean))
-  pt = rand(n_out,p)*2-1 # p x n_out of rand values
-  rs = rand(n_out)
-  fac = sum(pt'.^2,1)
-  scale = (rs.^(1/p))./sqrt.(fac') # scale should be n_out x p
-  pnts = zeros(n_out,p)
-  d = sqrt.(e)
-  for i = 1:n_out
-    pnts[i,:] = scale[i]*pt[i,:]
+  sample_mv = fit(typeof(A),s) # MLE mean of the sample estimate (not unbiased)
+  x_bar = mean(sample_mv)
+  Σ_hat_mean = n*cov(sample_mv) # the n is for the sampled MvNormal region --> necessary
 
-    pnts[i,:] = (pnts[i,:]'.*d'*v) + mu'
-  end
-  return pnts'
+    # sampling points uniformly inside unit circle
+    sphere = MvNormal(zeros(p),eye(p,p)) # zero centered with rad 1
+    Y = rand(sphere,n_out)#*2-1 #
+    U = rand(n_out) # 0 to 1
+    r = U.^(1/p) # rad prop to d_th root of U
+    ssrow = sqrt.(sum(Y.^2,1))'
+    scaled = Y./ssrow'
+    X = r'.*scaled
+
+  U,S,V = svd(Σ_hat_mean) # SVD of sampled ellipse
+  S2 = sqrt.(abs.(S))*sqrt((p*(n-1)*F)/(n*(n-p))) # new eigenvalues of confidence ellipse
+  ellipse_pts = broadcast(+,mu,U*diagm(S2)*V'*X) # proj pnts to confidence ellipse and add offset mu
+
+  return ellipse_pts
 end
+
+function ellipsoid_bounds_plus_inner(A::MvNormal,n::Int64,n_out::Int64,F::Float64) # finds ellispoidal bounds of MvNormal passed into it
+  mu = mean(A) # mean of distribution
+  p = length(mu) # number of degrees of freedom
+  s = rand(A,n) # samples of the desired distribution A, p x n
+  sample_mv = fit(typeof(A),s) # MLE mean of the sample estimate (not unbiased)
+  x_bar = mean(sample_mv)
+  Σ_hat_mean = n*cov(sample_mv) # the n is for the sampled MvNormal region --> necessary
+
+  # Sampling from a p-dimensional sphere will be projected onto confindence ellipse
+  sphere = MvNormal(zeros(p),eye(p,p)) # zero centered with rad 1
+  sphere_pts = rand(sphere,n_out) # p x n_out of rand values
+  lambdas = sqrt.(sum(sphere_pts.^2,1)) # computing normalizing factor to put sphere_pts on sphere surface
+  sphere_unit_pts = sphere_pts./lambdas # points on the unit sphere
+
+  U,S,V = svd(Σ_hat_mean) # SVD of sampled ellipse
+  S2 = sqrt.(abs.(S))*sqrt((p*(n-1)*F)/(n*(n-p))) # new eigenvalues of confidence ellipse
+
+    Y = rand(sphere,n_out)#*2-1 #
+    Us = rand(n_out) # 0 to 1
+    r = Us.^(1/p) # rad prop to d_th root of U
+    ssrow = sqrt.(sum(Y.^2,1))'
+    scaled = Y./ssrow'
+    X = r'.*scaled
+
+  ellipse_pts = broadcast(+,mu,U*diagm(S2)*V'*sphere_unit_pts) # proj pnts to confidence ellipse and add offset mu
+  ellipse_inner_pts = broadcast(+,mu,U*diagm(S2)*V'*X) # proj pnts to confidence ellipse and add offset mu
+  return (ellipse_pts, ellipse_inner_pts) # returns p x n_out array
+end
+
 ### Test Below, uncomment to run
 #=
 #using Distributions
@@ -86,9 +101,9 @@ scatter(ellipse_pts[1,:],ellipse_pts[2,:],ellipse_pts[3,:]) # should be on unit 
 # should the state be the belief and sample from the boundary of that as well? Here we're assuming the state fully measured
 # should be able to pass in state as null array and est as the belief and it will work?
 function overall_bounds(state::Array{Float64,1},est::MvNormal,u::Array{Float64,1},w_bound::Float64)
-  n = 20 # default samples for computing the est ellipsoid_bounds
-  F = 2.34 # computed offline based on F-stat for alpha=0.05,n=20,p=5
-  n_out = 20 # number of samples of the ellipsoid bound to return here to iter through
+  n = 100 # default samples for computing the est ellipsoid_bounds
+  F = 1.93 #2.34 # computed offline based on F-stat for alpha=0.05,n=20,p=5
+  n_out = 100 # number of samples of the ellipsoid bound to return here to iter through
   est_bound = ellipsoid_bounds(est,n,n_out,F) # compute points on est_ellipse, size dim of sys x n_out
   est_bound[:,1]
   state_bound = 0 # set initially to 0

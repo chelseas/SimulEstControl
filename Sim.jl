@@ -23,7 +23,7 @@
         k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
         policyCE = solve(solverCE,mdp)
     else
-        processNoise = params[1]a
+        processNoise = params[1]
         paramNoise = params[2] # second element of tuple
     end
 

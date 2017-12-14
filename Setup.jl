@@ -169,13 +169,13 @@ if bounds
   include("EllipseBounds.jl")
   # will need to precompute this for each ProcessNoise case in the sim file so add it to main simulation.jl soon #TODO
   @show desired_bounds = 5.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
-  n_w = 30
-  n_out_w = 10
-  F = 2.34
+  n_w = 100 #30
+  n_out_w = 100 #10
+  F = 1.93 #2.34
   w_bound_samples = ellipsoid_bounds(MvNormal(zeros(ssm.nx),processNoiseList[1]eye(ssm.nx,ssm.nx)),n_w,n_out_w,F) # precompute the w_bound
   w_bound_avg = mean(w_bound_samples,2) # average samples of the w_bound
   @show w_bound = norm(w_bound_avg*sqrt(processNoiseList[1])) # compute the norm of the STD * the w_bound
-  max_action_count = 20
+  max_action_count = 100 # how many actions to check before giving up on finding a feasible one
   action_count = 1
 end
 

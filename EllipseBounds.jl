@@ -4,9 +4,11 @@ function ellipsoid_bounds(A::MvNormal,n::Int64,n_out::Int64,F::Float64) # finds 
   mu = mean(A) # mean of distribution
   p = length(mu) # number of degrees of freedom
   s = rand(A,n) # samples of the desired distribution A, p x n
-  sample_mv = fit(typeof(A),s) # MLE mean of the sample estimate (not unbiased)
-  x_bar = mean(sample_mv)
-  Σ_hat_mean = n*cov(sample_mv) # the n is for the sampled MvNormal region --> necessary
+  #sample_mv = fit(typeof(A),s) # MLE mean of the sample estimate (not unbiased)
+  #x_bar = mean(sample_mv)
+  #Σ_hat_mean = n*cov(sample_mv) # the n is for the sampled MvNormal region --> necessary
+  x_bar = mean(s,2)
+  Σ_hat_mean = n*(1.0/(n))*(s - x_bar*ones(1,n))*(s - x_bar*ones(1,n))'
 
   # Sampling from a p-dimensional sphere will be projected onto confindence ellipse
   sphere = MvNormal(zeros(p),eye(p,p)) # zero centered with rad 1
@@ -27,9 +29,11 @@ function ellipsoid_inner(A::MvNormal,n::Int64,n_out::Int64,F::Float64)
   mu = mean(A) # mean of distribution
   p = length(mu) # number of degrees of freedom
   s = rand(A,n) # samples of the desired distribution A, p x n
-  sample_mv = fit(typeof(A),s) # MLE mean of the sample estimate (not unbiased)
-  x_bar = mean(sample_mv)
-  Σ_hat_mean = n*cov(sample_mv) # the n is for the sampled MvNormal region --> necessary
+  #sample_mv = fit(typeof(A),s) # MLE mean of the sample estimate (not unbiased)
+  #x_bar = mean(sample_mv)
+  #Σ_hat_mean = n*cov(sample_mv) # the n is for the sampled MvNormal region --> necessary
+  x_bar = mean(s,2)
+  Σ_hat_mean = n*(1.0/(n))*(s - x_bar*ones(1,n))*(s - x_bar*ones(1,n))'
 
     # sampling points uniformly inside unit circle
     sphere = MvNormal(zeros(p),eye(p,p)) # zero centered with rad 1
@@ -51,9 +55,11 @@ function ellipsoid_bounds_plus_inner(A::MvNormal,n::Int64,n_out::Int64,F::Float6
   mu = mean(A) # mean of distribution
   p = length(mu) # number of degrees of freedom
   s = rand(A,n) # samples of the desired distribution A, p x n
-  sample_mv = fit(typeof(A),s) # MLE mean of the sample estimate (not unbiased)
-  x_bar = mean(sample_mv)
-  Σ_hat_mean = n*cov(sample_mv) # the n is for the sampled MvNormal region --> necessary
+  #sample_mv = fit(typeof(A),s) # MLE mean of the sample estimate (not unbiased)
+  #x_bar = mean(sample_mv)
+  #Σ_hat_mean = n*cov(sample_mv) # the n is for the sampled MvNormal region --> necessary
+  x_bar = mean(s,2)
+  Σ_hat_mean = n*(1.0/(n))*(s - x_bar*ones(1,n))*(s - x_bar*ones(1,n))'
 
   # Sampling from a p-dimensional sphere will be projected onto confindence ellipse
   sphere = MvNormal(zeros(p),eye(p,p)) # zero centered with rad 1

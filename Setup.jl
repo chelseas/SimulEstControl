@@ -10,7 +10,7 @@ noiseList = []
 cond1 = "full"
 
 #NOISE SETTINGS
-processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
+processNoiseList = [0.0033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
 paramNoiseList = [0.1,0.3]#,0.5,0.7]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
 param_change = false # add a cosine term to the unknown param updates
@@ -20,12 +20,12 @@ param_freq = 0.3
 
 # Output settings
 printing = false # set to true to print simple information
-print_iters = false
+print_iters = true
 plotting = false # set to true to output plots of the data
 saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
 sim_save = "CE2" # name appended to sim settings for simulation folder to store data from runs
-data_folder = "debug"
+data_folder = "bounds_test2"
 fullobs = true # set to false for mpc without full obs
 if sim != "mpc" # set fullobs false for any other sim
   fullobs = false
@@ -33,7 +33,7 @@ end
 
 # CROSS ENTROPY SETTINGS
 cross_entropy = true
-save_last = true
+save_last = false
 num_pop = 6 #  number of samples to test this round of CE
 num_elite = 6 # number of elite samples to keep to form next distribution
 CE_iters = 3 # number of iterations for cross entropy
@@ -57,7 +57,7 @@ state_min_tol = 0.1 # prevent states from growing less than X% of original value
 friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
 
 # settings for mcts
-n_iters = 3000#3000#00 # total number of iterations
+n_iters = 1000#3000#00 # total number of iterations
 samples_per_state = 5#3 # want to be small
 samples_per_act = 20 # want this to be ~20
 depths = 20 # depth of tree
@@ -168,14 +168,14 @@ end
 if bounds
   include("EllipseBounds.jl")
   # will need to precompute this for each ProcessNoise case in the sim file so add it to main simulation.jl soon #TODO
-  @show desired_bounds = 5.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
+  @show desired_bounds = 7.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
   n_w = 100 #30
   n_out_w = 100 #10
   F = 1.93 #2.34
-  w_bound_samples = ellipsoid_bounds(MvNormal(zeros(ssm.nx),processNoiseList[1]eye(ssm.nx,ssm.nx)),n_w,n_out_w,F) # precompute the w_bound
+  w_bound_samples = ellipsoid_bounds(MvNormal(zeros(ssm.nx),processNoiseList[1]*eye(ssm.nx,ssm.nx)),n_w,n_out_w,F) # precompute the w_bound
   w_bound_avg = mean(w_bound_samples,2) # average samples of the w_bound
   @show w_bound = norm(w_bound_avg*sqrt(processNoiseList[1])) # compute the norm of the STD * the w_bound
-  max_action_count = 100 # how many actions to check before giving up on finding a feasible one
+  max_action_count = 10 # how many actions to check before giving up on finding a feasible one
   action_count = 1
 end
 
@@ -198,16 +198,36 @@ end
 # save name and if CE save file else setup noiseList
 sim_save_name = string(sim_save,"_",prob,"_",sim,"_",cond1,"_",param_type,"_",fullobs)
 #@show sim_save_name
+
+# pass in current MvNormal and get out clipped samples
+function CE_sample(distrib::MvNormal,num_samples::Int,iters::Int,process::Float64,param::Float64,name::String,CE_count::Int)
+    output = []
+    for i in 1:num_samples
+        temp_CE = rand(distrib)
+        # clip samples so the first 3 are min 1, and last is min 0.1
+        temp_CE[1] = max(1.0,floor(temp_CE[1]))
+        temp_CE[2] = max(1.0,floor(temp_CE[2]))
+        temp_CE[3] = max(1.0,floor(temp_CE[3]))
+        temp_CE[4] = max(0.1,floor(temp_CE[4]))
+
+        push!(output,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],iters,process,param,name,i,CE_count))
+    end
+    return output
+end
+
 if cross_entropy
     CEset_list = [states_m,states_std,act_m,act_std,depth_m,depth_std,expl_m,expl_std]
     CEset = MvNormal([states_m,act_m,depth_m,expl_m],diagm([states_std^2,act_std^2,depth_std^2,expl_std^2]))
     distrib = CEset
+    #=
     pmapInput = []
     for i in 1:num_pop
         #push!(pmapInput,(rand(CEset[1]:CEset[2]),rand(CEset[3]:CEset[4]),rand(CEset[5]:CEset[6]),rand(CEset[7]:CEset[8]),rand(CEset[9]:CEset[10]),processNoiseList[1],paramNoiseList[1],sim_save_name,i,1))
         temp_CE = rand(CEset)
         push!(pmapInput,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],n_iters,processNoiseList[1],paramNoiseList[1],sim_save_name,i,1))
     end
+    =#
+    pmapInput = CE_sample(distrib,num_pop,n_iters,processNoiseList[1],paramNoiseList[1],sim_save_name,1)
     try mkdir(data_folder)
     end
     cd(data_folder)
@@ -215,8 +235,11 @@ if cross_entropy
         write(f,string("Sim save: ",sim_save,"\n"))
         write(f,string("CE settings: ",CEset,"\n"))
         write(f,string("PMAP input: ",pmapInput,"\n"))
-        cd("..")
     end
+    open(string(sim_save,"_overall.txt"),"w") do g
+        write(g,string("Init: ",CEset,"\n"))
+    end
+    cd("..")
 else
     CE_iters = 1
     # combine the total name for saving

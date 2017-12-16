@@ -17,9 +17,9 @@
         paramNoise = params[7]
         alpha_act = 1.0/10.0 # alpha for action
         alpha_st = 1.0/20.0 # alpha for state
-        k_act = max(1,floor(params[2]))/(n_iters^alpha_act) # k for action
-        k_st = max(1,floor(params[1]))/(n_iters^alpha_st) # k for state
-        solverCE = DPWSolver(n_iterations = Int(params[5]), depth = Int(max(1,floor(params[3]))), exploration_constant = params[4],
+        k_act = max(1,params[2])/(n_iters^alpha_act) # k for action
+        k_st = max(1,params[1])/(n_iters^alpha_st) # k for state
+        solverCE = DPWSolver(n_iterations = Int(params[5]), depth = Int(params[3]), exploration_constant = params[4],
         k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
         policyCE = solve(solverCE,mdp)
     else
@@ -123,6 +123,8 @@
             #@show est_temp = MvNormal(mean(xNew)[ssm.states+1:end],cov(xNew)[ssm.states+1:end,ssm.states+1:end]) # MvNormal of Ests
 
             if bounds # show the state_bounds and see if they are within the threshold
+              #@show xNew
+              #@show x[:,i]
               @show state_bounds[i] = norm(x[:,i+1])
               @show act_dep_bounds[i] = overall_bounds([-100.0],xNew,u[:,i],w_bound) # setting state_temp = [-100.0] to just use belief
             end
@@ -257,16 +259,21 @@ for k = 1:CE_iters
             write(f,string("Elite Params: ",elite_params,"\n"))
             write(f,string("Elite: ",elite,"\n"))
             write(f,string("Evals: ",evals,"\n"))
-            cd("..")
         end
-
+        open(string(sim_save,"_overall.txt"),"a") do g
+            write(g,string(k,": ",distrib,"\n"))
+        end
+        cd("..")
         if k != CE_iters # update CEset and pmapInput
             CEset = distrib
+            #=
             pmapInput = []
             for i in 1:num_pop
                 temp_CE = rand(CEset)
                 push!(pmapInput,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],n_iters,processNoiseList[1],paramNoiseList[1],sim_save_name,i,k+1))
             end
+            =#
+            pmapInput = CE_sample(distrib,num_pop,n_iters,processNoiseList[1],paramNoiseList[1],sim_save_name,k+1)
         end
         if (k == CE_iters - 1) && save_last # about to start last CE round
             @everywhere saving = true

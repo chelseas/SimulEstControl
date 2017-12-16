@@ -14,9 +14,9 @@ true # ukf_flag
 2D # prob
 # ints
 100 # num_pop
-20 # num_elite
+30 # num_elite
 30 # CE_iters
-20 # numtrials
+30 # numtrials
 10000 # n_iters
 5 # samples_per_state
 20 # samples_per_act
@@ -27,12 +27,12 @@ true # ukf_flag
 0.1 # processNoiseList
 0.75 # paramNoiseList
 # cross entropy variables (floats)
-10.0 # states_m
-5.0 # states_std
-50.0 # act_m
-25.0 # act_std
+4.0 # states_m
+2.0 # states_std
+20.0 # act_m
+10.0 # act_std
 20.0 # depth_m
-10.0 # depth_std
-50.0 # expl_m
-25.0 # expl_std
+5.0 # depth_std
+25.0 # expl_m
+10.0 # expl_std
 # No blank lines beyond this

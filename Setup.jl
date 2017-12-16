@@ -84,8 +84,8 @@ if prob == "2D"
   if (sim == "mcts") || (sim == "qmdp")
     # Parameters for the POMDP
     #500 = 7s, 2000 = 30s, 5000 = 60s
-    alpha_act = 1.0/10.0 # alpha for action
-    alpha_st = 1.0/20.0 # alpha for state
+    alpha_act = 1.0/30.0 # alpha for action
+    alpha_st = 1.0/30.0 # alpha for state
     k_act = samples_per_act/(n_iters^alpha_act) # k for action
     k_st = samples_per_state/(n_iters^alpha_st) # k for state
     pos_control_gain = -80.0 # gain to drive position rollout --> higher = more aggressive

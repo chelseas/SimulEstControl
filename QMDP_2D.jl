@@ -92,7 +92,11 @@ function transition(mdp::AugMDP,s::AugState,a::Array{Float64,1})
   else
 
     # get(n, default): n is nullable, default if null
-    x_assume = rand(get(s.beliefState))  # looks at whole distrib, not just mean
+    if state_mean
+        x_assume = mean(get(s.beliefState))  # looks at whole distrib, not just mean
+    else
+        x_assume = rand(get(s.beliefState))  # looks at whole distrib, not just mean
+    end
     x_p = ssm.f(x_assume,a)
 
     xPred = AugState(x_p)  # have to pass in AugState to observation

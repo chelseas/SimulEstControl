@@ -42,7 +42,11 @@ end
 
 ### Take a stochastic observation of the current state
 function observation(mdp::MassMDP,s::EKFState,a::Array{Float64,1},sp::EKFState)
-    x_assume = rand(s)
+    if state_mean
+        x_assume = mean(s)
+    else
+        x_assume = rand(s)
+    end
     x_p = ssm.f(x_assume,a) # WHY AM I PROPAGATING THIS?
     obs =  ssm.h(x_p,a)
     return obs

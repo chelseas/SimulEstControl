@@ -1,6 +1,6 @@
 using DataFrames
-data_folder = "debug"
-folder = "CE2_2D_mpc_full_none_true"#"test2"# give data folder name to compute averages from
+data_folder = "mean_state_test"
+folder = "qmdpnotmean_2D_qmdp_full_none_false"#"test2"# give data folder name to compute averages from
 
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through

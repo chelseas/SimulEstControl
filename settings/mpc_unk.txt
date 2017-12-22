@@ -4,6 +4,8 @@ mpc_unk_normal # sim_save
 general # data_folder
 false # cross_entropy
 false # save_last
+false # save_best
+false # state_mean
 true # saving
 false # param_change
 none # param_type
@@ -24,7 +26,7 @@ true # ukf_flag
 # floats
 10.0 # expl_constant
 # arrays (floats), put spaces without brackets between all values
-0.001 0.0033 0.01 0.033 0.1 0.33 # processNoiseList
-0.25 0.5 0.75 # paramNoiseList
+0.01 0.025 0.05 0.075 1.0 # processNoiseList
+0.0 0.25 0.5 0.75 # paramNoiseList
 # cross entropy variables (ints)
 # No blank lines beyond this

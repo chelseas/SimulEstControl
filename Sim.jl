@@ -15,13 +15,17 @@
     if cross_entropy
         processNoise = params[6]
         paramNoise = params[7]
-        alpha_act = 1.0/10.0 # alpha for action
-        alpha_st = 1.0/20.0 # alpha for state
+        alpha_act = 1.0/30.0 # alpha for action
+        alpha_st = 1.0/30.0 # alpha for state
         k_act = max(1,params[2])/(n_iters^alpha_act) # k for action
         k_st = max(1,params[1])/(n_iters^alpha_st) # k for state
         solverCE = DPWSolver(n_iterations = Int(params[5]), depth = Int(params[3]), exploration_constant = params[4],
         k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
         policyCE = solve(solverCE,mdp)
+
+        if save_best
+            rew_best = zeros(numtrials)
+        end
     else
         processNoise = params[1]
         paramNoise = params[2] # second element of tuple
@@ -159,6 +163,9 @@
         if print_iters
             @show mean(rewrun)
         end
+        if save_best
+            rew_best[j] = mean(rewrun)
+        end
         totrew += mean(rewrun)
         if saving
           if cross_entropy
@@ -217,6 +224,34 @@
         end
 
         gc() # clear data
+    end# end j loop
+    if save_best # compute avg and std, and maybe write
+        # read in current best mean value
+        cd(data_folder)
+        try # try opening file if it exists
+            g = open(string("best ",processNoise," ",paramNoise," ",sim_save,".txt")) # start reading doc
+            lines = readlines(g)
+            save_best_mean = parse(Float64,lines[1])
+        catch
+            save_best_mean = -10000 # no file so make it always reset the save_best_mean
+        end
+        cd("..")
+        temp_avg = mean(rew_best)
+        if temp_avg > save_best_mean # save this data
+            save_best_mean = temp_avg
+            save_best_std = std(rew_best)
+            # write out to file
+            cd(data_folder)
+            open(string("best ",processNoise," ",paramNoise," ",sim_save,".txt"), "w") do f
+                write(f,string(save_best_mean,"\n")) # avg
+                write(f,string(save_best_std,"\n")) # std
+                write(f,string("Settings: ",params,"\n"))
+            end
+            cd("..")
+        end
+    end
+    if print_iters
+        @show totrew/numtrials
     end
     [params,totrew/numtrials] # place variable here to have it output by evals
   end
@@ -232,7 +267,7 @@ for k = 1:CE_iters
         elite_params = evals[elite] # 1 x num_elite of arrays
         data_distrib = zeros(num_elite, CE_params)
         for e in 1:num_elite # store elite data
-            data_distrib[e,:] = [elite_params[e][1][j] for j in 1:CE_params]
+            data_distrib[e,:] = [elite_params[e][1][j] for j in 2:CE_params+1] # 2:CE+1 because skipping the first value which is fixed as 1 for number of states sampled
         end # data_distrib is num_elite x CE_num
         #data_distrib = convert(Array{Float64,2},data_distrib)
         try

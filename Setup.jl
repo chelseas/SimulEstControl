@@ -3,15 +3,16 @@
 prob = "2D" # set to the "1D" or "2D" problems defined
 sim = "qmdp" # mcts, mpc, qmdp, drqn
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
+state_mean = false # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
 quick_run = true
-numtrials = 2 # number of simulation runs
+numtrials = 1 # number of simulation runs
 noiseList = []
 cond1 = "full"
 
 #NOISE SETTINGS
-processNoiseList = [0.0033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
-paramNoiseList = [0.1,0.3]#,0.5,0.7]
+processNoiseList = [0.1]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
+paramNoiseList = [0.75]#,0.5,0.7]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
 param_change = false # add a cosine term to the unknown param updates
 param_type = "none" # sine or steps
@@ -24,8 +25,8 @@ print_iters = true
 plotting = false # set to true to output plots of the data
 saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
-sim_save = "CE2" # name appended to sim settings for simulation folder to store data from runs
-data_folder = "bounds_test2"
+sim_save = "CEbest" # name appended to sim settings for simulation folder to store data from runs
+data_folder = "CEbestTest"
 fullobs = true # set to false for mpc without full obs
 if sim != "mpc" # set fullobs false for any other sim
   fullobs = false
@@ -33,11 +34,12 @@ end
 
 # CROSS ENTROPY SETTINGS
 cross_entropy = true
-save_last = false
+save_last = true # save last generation of CE trials
+save_best = true # save best overall run, just the reward and std, and params info
 num_pop = 6 #  number of samples to test this round of CE
 num_elite = 6 # number of elite samples to keep to form next distribution
 CE_iters = 3 # number of iterations for cross entropy
-CE_params = 4 # number of params being sampled
+CE_params = 3 # number of params being sampled
 states_m = 10.0
 states_std = 5.0
 act_m = 30.0
@@ -46,22 +48,24 @@ depth_m = 15.0
 depth_std = 10.0
 expl_m = 50.0
 expl_std = 25.0
+#global save_best_mean = -100000.0
+#global save_best_std = 0.0
 
 # Settings for simulation
 measNoise = 0.000001 # standard deviation of measurement noise
 deltaT = 0.1 # timestep for simulation --> decrease for complex systems?
 debug_bounds = false # set to 1 to print out commands to see when limits of state and estimation hit
 cov_thresh = 1000 # threshold where trace(cov) of estimate will be discarded in MCTS
-state_init = 1.0 # gain for teh initial state
+state_init = 1.0 # gain for the initial state
 state_min_tol = 0.1 # prevent states from growing less than X% of original value
 friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
 
 # settings for mcts
-n_iters = 1000#3000#00 # total number of iterations
-samples_per_state = 5#3 # want to be small
+n_iters = 10000#3000#00 # total number of iterations
+samples_per_state = 1#3 # want to be small
 samples_per_act = 20 # want this to be ~20
-depths = 20 # depth of tree
-expl_constant = 10.0#100.0 #exploration const
+depths = 4 # depth of tree
+expl_constant = 12.0#100.0 #exploration const
 
 include("ReadSettings.jl") # read in new values from data file if given
 
@@ -207,17 +211,20 @@ function CE_sample(distrib::MvNormal,num_samples::Int,iters::Int,process::Float6
         # clip samples so the first 3 are min 1, and last is min 0.1
         temp_CE[1] = max(1.0,floor(temp_CE[1]))
         temp_CE[2] = max(1.0,floor(temp_CE[2]))
-        temp_CE[3] = max(1.0,floor(temp_CE[3]))
-        temp_CE[4] = max(0.1,floor(temp_CE[4]))
+        temp_CE[3] = max(0.1,floor(temp_CE[3]))
+        #temp_CE[4] = max(0.1,floor(temp_CE[4]))
 
-        push!(output,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],iters,process,param,name,i,CE_count))
+        #push!(output,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],iters,process,param,name,i,CE_count))
+        push!(output,(samples_per_state,temp_CE[1],temp_CE[2],temp_CE[3],iters,process,param,name,i,CE_count))
     end
     return output
 end
 
 if cross_entropy
-    CEset_list = [states_m,states_std,act_m,act_std,depth_m,depth_std,expl_m,expl_std]
-    CEset = MvNormal([states_m,act_m,depth_m,expl_m],diagm([states_std^2,act_std^2,depth_std^2,expl_std^2]))
+    #CEset_list = [states_m,states_std,act_m,act_std,depth_m,depth_std,expl_m,expl_std]
+    CEset_list = [act_m,act_std,depth_m,depth_std,expl_m,expl_std]
+
+    CEset = MvNormal([act_m,depth_m,expl_m],diagm([act_std^2,depth_std^2,expl_std^2]))
     distrib = CEset
     #=
     pmapInput = []

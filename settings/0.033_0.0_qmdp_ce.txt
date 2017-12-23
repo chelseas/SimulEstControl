@@ -1,6 +1,6 @@
 # strings
 qmdp # sim
-testingMeta # sim_save
+qmdp_normal # sim_save
 qmdp_ce_0.033_0.0 # data_folder
 true # cross_entropy
 true # save_last
@@ -11,15 +11,15 @@ false # param_change
 none # param_type
 false # fullobs
 false # print_iters
-true # quick_run
+false # quick_run
 true # ukf_flag
 2D # prob
 # ints
-5 # num_pop
-5 # num_elite
-2 # CE_iters
-1 # numtrials
-100 # n_iters
+50 # num_pop
+10 # num_elite
+15 # CE_iters
+50 # numtrials
+10000 # n_iters
 1 # samples_per_state
 20 # samples_per_act
 20 # depths

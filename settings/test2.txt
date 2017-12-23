@@ -1,7 +1,7 @@
 # strings
 qmdp # sim
-testingMeta # sim_save
-qmdp_ce_0.033_0.0 # data_folder
+testingMeta2 # sim_save
+2 # data_folder
 true # cross_entropy
 true # save_last
 true # save_best

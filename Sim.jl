@@ -9,8 +9,8 @@
   settings_folder = "settings" # store data files here
   include("Setup.jl")
 
-  function initParams(x0_est)
-    srand(13)
+  function initParams(x0_est,k_iter)
+    srand(12+k_iter)
     est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
     return est_list
   end
@@ -28,21 +28,22 @@
         solverCE = DPWSolver(n_iterations = Int(params[5]), depth = Int(params[3]), exploration_constant = params[4],
         k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
         policyCE = solve(solverCE,mdp)
-
+        k_iter = params[end]
         if save_best
             rew_best = zeros(numtrials)
         end
     else
         processNoise = params[1]
         paramNoise = params[2] # second element of tuple
+        k_iter = 1
     end
 
     # Initializing an array of psuedo-random start states and actual state
     #srand(13) # seeding the est_list values so they will all be the same
     paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
     x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
-    est_list = initParams(x0_est)
-    
+    est_list = initParams(x0_est,k_iter)
+
     if cross_entropy
         srand(params[end-1]) # random seed for each parallel measure --> just want the same initial params
     end

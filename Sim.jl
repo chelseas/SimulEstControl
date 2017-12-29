@@ -9,6 +9,12 @@
   settings_folder = "settings" # store data files here
   include("Setup.jl")
 
+  function initParams(x0_est)
+    srand(13)
+    est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
+    return est_list
+  end
+
   ### processNoise and paramNoise pairs to be fed into numtrials worth simulations each
   function evaluating(params)
     totrew = 0.0 # summing all rewards with this
@@ -35,7 +41,13 @@
     #srand(13) # seeding the est_list values so they will all be the same
     paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
     x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
-    est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
+    est_list = initParams(x0_est)
+    
+    if cross_entropy
+        srand(params[end-1]) # random seed for each parallel measure --> just want the same initial params
+    end
+
+    #est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
     x0_state = state_init*ones(ssm.nx) # actual initial state
 
     Q = diagm(processNoise*ones(ssm.nx))

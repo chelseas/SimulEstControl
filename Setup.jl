@@ -34,7 +34,7 @@ end
 
 # CROSS ENTROPY SETTINGS
 cross_entropy = true
-save_last = true # save last generation of CE trials
+save_last = false # save last generation of CE trials
 save_best = true # save best overall run, just the reward and std, and params info
 num_pop = 6 #  number of samples to test this round of CE
 num_elite = 6 # number of elite samples to keep to form next distribution

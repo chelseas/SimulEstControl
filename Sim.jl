@@ -302,7 +302,7 @@ for k = 1:CE_iters
             distrib = fit(typeof(CEset),data_distrib')
         catch ex
             if ex isa Base.LinAlg.PosDefException
-                println("pos def exception")
+                println("Fit CE distribution has pos def tweaked")
                 data_adj = data_distrib + 0.01*rand(size(data_distrib))
                 distrib = fit(typeof(CEset), data_adj')
             else
@@ -329,16 +329,13 @@ for k = 1:CE_iters
         cd("..")
         if k != CE_iters # update CEset and pmapInput
             CEset = distrib
-            #=
-            pmapInput = []
-            for i in 1:num_pop
-                temp_CE = rand(CEset)
-                push!(pmapInput,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],n_iters,processNoiseList[1],paramNoiseList[1],sim_save_name,i,k+1))
-            end
-            =#
             pmapInput = CE_sample(distrib,num_pop,n_iters,processNoiseList[1],paramNoiseList[1],sim_save_name,k+1)
         end
-        if (k == CE_iters - 1) && save_last # about to start last CE round
+        max_eig = maximum(eigvals(cov(distrib))) # find max eigenvalue of sampled distrib
+        if (saving == true) || ((max_eig < max_eig_cutoff) && !save_last) # i.e. the last round the max eig was less than threshold need to break out
+            break
+        end
+        if ((k == CE_iters - 1) || (max_eig < max_eig_cutoff)) && save_last # about to start last CE round if last iter or max eig below threshold
             @everywhere saving = true
         end
     end

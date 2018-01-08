@@ -4,10 +4,10 @@ prob = "2D" # set to the "1D" or "2D" problems defined
 sim = "mcts" # mcts, mpc, qmdp, drqn
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 state_mean = false # sample mean or rand of the state during transition in MDP
-bounds = true # set bounds for mcts solver
-bounds_print = true # print results for bounds
-quick_run = false
-numtrials = 10 # number of simulation runs
+bounds = false # set bounds for mcts solver
+bounds_print = false # print results for bounds
+quick_run = true
+numtrials = 1 # number of simulation runs
 noiseList = []
 cond1 = "full"
 
@@ -34,21 +34,22 @@ if sim != "mpc" # set fullobs false for any other sim
 end
 
 # CROSS ENTROPY SETTINGS
-cross_entropy = false
-save_last = false # save last generation of CE trials
-save_best = false # save best overall run, just the reward and std, and params info
+cross_entropy = true
+save_last = true # save last generation of CE trials
+save_best = true # save best overall run, just the reward and std, and params info
 num_pop = 6 #  number of samples to test this round of CE
 num_elite = 6 # number of elite samples to keep to form next distribution
-CE_iters = 3 # number of iterations for cross entropy
+CE_iters = 10 # number of iterations for cross entropy
 CE_params = 3 # number of params being sampled
 states_m = 10.0
-states_std = 5.0
-act_m = 30.0
-act_std = 20.0
-depth_m = 15.0
-depth_std = 10.0
-expl_m = 50.0
-expl_std = 25.0
+states_std = 0.1
+act_m = 1.0
+act_std = 0.1
+depth_m = 3.0
+depth_std = 0.1
+expl_m = 1.0
+expl_std = 0.1
+max_eig_cutoff = 1.0
 #global save_best_mean = -100000.0
 #global save_best_std = 0.0
 

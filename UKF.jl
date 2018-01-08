@@ -24,15 +24,15 @@ function nearestSPD(A::Matrix{Float64})
     iteration_count = 0
 
     # tweak the matrix so that it avoids the numerical instability
-    while !worked && iteration_count < 100
+    while !worked && iteration_count < 1000
         iteration_count += 1
         try
             chol(Ahat)
             worked = true
         catch
             ## ERR: matrix wasn't able to be fixed!
-            if iteration_count == 10
-              @show msg = "failed"
+            if (iteration_count%100) == 0
+              @show msg = string("Nearest SPD iter 100",iteration_count)
             end
         end
 

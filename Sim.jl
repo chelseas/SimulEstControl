@@ -57,6 +57,12 @@
     v = MvNormal(zeros(ssm.ny),measNoise*eye(ssm.ny,ssm.ny)) #measurement noise distribution
     step = 1 # count steps
     ### outer loop running for each simulation of the system
+    if bounds_print
+        act_dep_bounds = Array{Float64,1}(nSamples*numtrials) # bounds chosen based on the taken action
+        state_bounds = Array{Float64,1}(nSamples*numtrials) # storing the bounds computed for each next state
+        #within_bounds_cnt = 1
+        rews = zeros(numtrials)
+    end
     for j = 1:numtrials # number of simulation trials run
         # Initialize saving variables between each run
         obs = zeros(ssm.ny,nSamples) #measurement history
@@ -65,8 +71,6 @@
         est = Array{Float64,2}(ssm.nx,nSamples+1) #store mean of state estimate
         uncertainty = Array{Float64,2}(ssm.nx*ssm.nx,nSamples+1) #store covariance of state estimate
         rewrun = Array{Float64,1}(nSamples) # total reward summed for each run
-        act_dep_bounds = Array{Float64,1}(nSamples) # bounds chosen based on the taken action
-        state_bounds = Array{Float64,1}(nSamples) # storing the bounds computed for each next state
 
         # initialize the state, belief, and stored values
         if fullobs
@@ -139,11 +143,12 @@
             #@show state_temp = x[1:ssm.states,i] # first 6 "measured" values
             #@show est_temp = MvNormal(mean(xNew)[ssm.states+1:end],cov(xNew)[ssm.states+1:end,ssm.states+1:end]) # MvNormal of Ests
 
-            if bounds # show the state_bounds and see if they are within the threshold
+            if bounds_print # show the state_bounds and see if they are within the threshold
               #@show xNew
               #@show x[:,i]
-              @show state_bounds[i] = norm(x[:,i+1])
-              @show act_dep_bounds[i] = overall_bounds([-100.0],xNew,u[:,i],w_bound) # setting state_temp = [-100.0] to just use belief
+              @show state_bounds[(j-1)*nSamples+i] = norm(x[:,i+1]) # actual bounds for next state
+              # worst case bounds for selected action based on confidence region samples
+              @show act_dep_bounds[(j-1)*nSamples+i] = overall_bounds([-100.0],xNew,u[:,i],w_bound) # setting state_temp = [-100.0] to just use belief
             end
 
             if !fullobs # if system isn't fully observable update the belief
@@ -237,7 +242,17 @@
         end
 
         gc() # clear data
+        if bounds_print
+            rews[j] = mean(rewrun)
+        end
     end# end j loop
+    if bounds_print
+        thresh_funct = x -> (x > desired_bounds)
+        @show count(thresh_funct,state_bounds)/(numtrials*nSamples)
+        @show count(thresh_funct,act_dep_bounds)/(numtrials*nSamples)
+        @show mean(rews)
+        @show std(rews)
+    end
     if save_best # compute avg and std, and maybe write
         # read in current best mean value
         cd(data_folder)

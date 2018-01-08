@@ -1,3 +1,21 @@
+# input samples and arrays of bounds same length as first dimension of samples
+# this clips samples to those bounds
+function bound_estimates(samples::Array{Float64,2}, lb::Array{Float64,1}, ub::Array{Float64,1})
+    p,n_out = size(samples) # dims by number of output sample points
+    # make sure p and elements in lb/ub are same
+    for i in 1:p
+        lb_lim = lb[i]
+        ub_lim = ub[i]
+
+        lb_idx = samples[i,:] .< lb_lim # indices (list) of points where lb_lim should be enforced
+        samples[i,lb_idx] = lb_lim
+        ub_idx = samples[i,:] .> ub_lim
+        samples[i,ub_idx] = ub_lim
+    end
+
+    return samples
+end
+
 # Pass in a MvNormal, number of samples to compute ellipse, number of sapmles to output of ellipsoid, F statistic
 # F-distrib calculated value based on p, n-p, alpha, Stat Trek
 function ellipsoid_bounds(A::MvNormal,n::Int64,n_out::Int64,F::Float64) # finds ellispoidal bounds of MvNormal passed into it
@@ -20,6 +38,11 @@ function ellipsoid_bounds(A::MvNormal,n::Int64,n_out::Int64,F::Float64) # finds 
   S2 = sqrt.(abs.(S))*sqrt((p*(n-1)*F)/(n*(n-p))) # new eigenvalues of confidence ellipse
 
   ellipse_pts = broadcast(+,mu,U*diagm(S2)*V'*sphere_unit_pts) # proj pnts to confidence ellipse and add offset mu
+
+  if clip_bounds
+      ellipse_pts = bound_estimates(ellipse_pts, lb_clip_lim, ub_clip_lim)
+  end
+
   return ellipse_pts # returns p x n_out array
 end
 
@@ -47,6 +70,10 @@ function ellipsoid_inner(A::MvNormal,n::Int64,n_out::Int64,F::Float64)
   U,S,V = svd(Σ_hat_mean) # SVD of sampled ellipse
   S2 = sqrt.(abs.(S))*sqrt((p*(n-1)*F)/(n*(n-p))) # new eigenvalues of confidence ellipse
   ellipse_pts = broadcast(+,mu,U*diagm(S2)*V'*X) # proj pnts to confidence ellipse and add offset mu
+
+  if clip_bounds
+      ellipse_pts = bound_estimates(ellipse_pts, lb_clip_lim, ub_clip_lim)
+  end
 
   return ellipse_pts
 end
@@ -79,6 +106,12 @@ function ellipsoid_bounds_plus_inner(A::MvNormal,n::Int64,n_out::Int64,F::Float6
 
   ellipse_pts = broadcast(+,mu,U*diagm(S2)*V'*sphere_unit_pts) # proj pnts to confidence ellipse and add offset mu
   ellipse_inner_pts = broadcast(+,mu,U*diagm(S2)*V'*X) # proj pnts to confidence ellipse and add offset mu
+
+  if clip_bounds
+      ellipse_pts = bound_estimates(ellipse_pts, lb_clip_lim, ub_clip_lim)
+      ellipse_inner_pts = bound_estimates(ellipse_inner_pts, lb_clip_lim, ub_clip_lim)
+  end
+
   return (ellipse_pts, ellipse_inner_pts) # returns p x n_out array
 end
 

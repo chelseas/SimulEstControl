@@ -1,18 +1,19 @@
 
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "qmdp" # mcts, mpc, qmdp, drqn
+sim = "mcts" # mcts, mpc, qmdp, drqn
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 state_mean = false # sample mean or rand of the state during transition in MDP
-bounds = false # set bounds for mcts solver
-quick_run = true
-numtrials = 1 # number of simulation runs
+bounds = true # set bounds for mcts solver
+bounds_print = true # print results for bounds
+quick_run = false
+numtrials = 10 # number of simulation runs
 noiseList = []
 cond1 = "full"
 
 #NOISE SETTINGS
-processNoiseList = [0.1]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
-paramNoiseList = [0.75]#,0.5,0.7]
+processNoiseList = [0.01]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
+paramNoiseList = [0.25]#,0.5,0.7]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
 param_change = false # add a cosine term to the unknown param updates
 param_type = "none" # sine or steps
@@ -33,9 +34,9 @@ if sim != "mpc" # set fullobs false for any other sim
 end
 
 # CROSS ENTROPY SETTINGS
-cross_entropy = true
+cross_entropy = false
 save_last = false # save last generation of CE trials
-save_best = true # save best overall run, just the reward and std, and params info
+save_best = false # save best overall run, just the reward and std, and params info
 num_pop = 6 #  number of samples to test this round of CE
 num_elite = 6 # number of elite samples to keep to form next distribution
 CE_iters = 3 # number of iterations for cross entropy
@@ -65,7 +66,7 @@ n_iters = 10000#3000#00 # total number of iterations
 samples_per_state = 1#3 # want to be small
 samples_per_act = 20 # want this to be ~20
 depths = 4 # depth of tree
-expl_constant = 12.0#100.0 #exploration const
+expl_constant = 1.0#100.0 #exploration const
 
 include("ReadSettings.jl") # read in new values from data file if given
 
@@ -169,10 +170,18 @@ if prob == "2D" # load files for 2D problem
 end
 
 
-if bounds
+if bounds || bounds_print
+  clip_bounds = true
+  if prob == "2D"
+      state_init = 1.0 # gain for the initial state
+      state_min_tol = 0.1 # prevent states from growing less than X% of original value
+      friction_lim = 3.0
+      ub_clip_lim = [Inf*ones(6); state_init*state_min_tol; friction_lim; state_init*state_min_tol*ones(3)] # only upper bound friction to prevent explosion
+      lb_clip_lim = [-Inf*ones(6); state_init*state_min_tol*ones(5)]
+  end
   include("EllipseBounds.jl")
   # will need to precompute this for each ProcessNoise case in the sim file so add it to main simulation.jl soon #TODO
-  @show desired_bounds = 7.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
+  @show desired_bounds = 6.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
   n_w = 100 #30
   n_out_w = 100 #10
   F = 1.93 #2.34

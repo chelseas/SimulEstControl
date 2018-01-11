@@ -137,17 +137,27 @@
               end
             end
             x[:,i+1] = state_check(x[:,i+1], debug_bounds) # reality check --> see if values of parameters have gotten too small --> limit
-            rewrun[i] = -sum(abs.(x[1:ssm.states,i])'*Qr) + -sum(abs.(u[:,i])'*Rg) # sum rewards
+
+            if reward_type == "L1"
+                rewrun[i] = -sum(abs.(x[1:ssm.states,i])'*Qr) + -sum(abs.(u[:,i])'*Rg) # sum rewards
+            elseif reward_type == "region"
+                ms = x[1:ssm.states,i]
+                if (ms[4] > region_lb[1]) && (ms[5] > region_lb[2]) && (ms[6] > region_lb[3]) && (ms[4] < region_ub[1]) && (ms[5] < region_ub[2]) && (ms[6] < region_ub[3])
+                    rewrun[i] = rew_in_region
+                    #@show "here"
+                else
+                    rewrun[i] = rew_out_region
+                end
+                #@show x[1:ssm.states,i]
+                #@show rewrun[i]
+            end
 
             # bounds testing
             #@show state_temp = x[1:ssm.states,i] # first 6 "measured" values
             #@show est_temp = MvNormal(mean(xNew)[ssm.states+1:end],cov(xNew)[ssm.states+1:end,ssm.states+1:end]) # MvNormal of Ests
 
             if bounds_print # show the state_bounds and see if they are within the threshold
-              #@show xNew
-              #@show x[:,i]
               @show state_bounds[(j-1)*nSamples+i] = norm(x[:,i+1]) # actual bounds for next state
-              # worst case bounds for selected action based on confidence region samples
               @show act_dep_bounds[(j-1)*nSamples+i] = overall_bounds([-100.0],xNew,u[:,i],w_bound) # setting state_temp = [-100.0] to just use belief
             end
 

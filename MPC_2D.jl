@@ -37,6 +37,15 @@ function MPCAction(x0::MvNormal, n::Int)
     problem.constraints += xs[5,1] == x[5] # init condition
     problem.constraints += xs[6,1] == x[6] # init condition
 
+    if reward_type == "region"
+        problem.constraints += xs[4,n] <= region_ub[1]  # final cond
+        problem.constraints += xs[4,n] >= region_lb[1]  # final cond
+        problem.constraints += xs[5,n] <= region_ub[2]  # final cond
+        problem.constraints += xs[5,n] >= region_lb[2]  # final cond
+        problem.constraints += xs[6,n] <= region_ub[3]  # final cond
+        problem.constraints += xs[6,n] >= region_lb[3]  # final cond
+    end
+
     for i in 1:n-1
         problem.constraints += xs[:, i+1] == A*xs[:, i] + B*u[:,i]
         problem.constraints += u[:,i] <= fRange

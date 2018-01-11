@@ -136,12 +136,27 @@ end
 if prob == "2D"
   ### Calculate the reward for the current state and action
   function POMDPs.reward(mdp::AugMDP,s::AugState,a::Array{Float64,1},sp::AugState)
-    if isnull(s.beliefState)
-      r = sum(abs.(s.trueState)'*-Qg) + sum(abs.(a)'*-Rg)
-    else
-      trueState = mean(get(s.beliefState))
-      r = sum(abs.(trueState)'*-Qg) + sum(abs.(a)'*-Rg)
-    end
+      if reward_type == "L1"
+          if isnull(s.beliefState)
+            r = sum(abs.(s.trueState)'*-Qg) + sum(abs.(a)'*-Rg)
+          else
+            trueState = mean(get(s.beliefState))
+            r = sum(abs.(trueState)'*-Qg) + sum(abs.(a)'*-Rg)
+          end
+      elseif reward_type == "region"
+          if isnull(s.beliefState)
+            ms = s.trueState
+          else
+            trueState = mean(get(s.beliefState))
+            ms = trueState
+          end
+          if (ms[4] > region_lb[1]) && (ms[5] > region_lb[2]) && (ms[6] > region_lb[3]) && (ms[4] < region_ub[1]) && (ms[5] < region_ub[2]) && (ms[6] < region_ub[3])
+              r = rew_in_region
+          else
+              r = rew_out_region
+          end
+      end
+
     return r
   end
 

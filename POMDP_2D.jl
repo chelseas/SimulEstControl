@@ -55,7 +55,17 @@ end
 if prob == "2D"
   ### Calculate the reward for the current state and action
   function POMDPs.reward(mdp::MassMDP,s::EKFState,a::Array{Float64,1},sp::EKFState)
-      r = sum(abs.(mean(s))'*-Qg) + sum(abs.(a)'*-Rg)
+      if reward_type == "L1"
+          r = sum(abs.(mean(s))'*-Qg) + sum(abs.(a)'*-Rg)
+      elseif reward_type == "region"
+          ms = mean(s)
+          if (ms[4] > region_lb[1]) && (ms[5] > region_lb[2]) && (ms[6] > region_lb[3]) && (ms[4] < region_ub[1]) && (ms[5] < region_ub[2]) && (ms[6] < region_ub[3])
+              r = rew_in_region
+          else
+              r = rew_out_region
+          end
+      end
+      #@show r
       return r
   end
 
@@ -78,22 +88,6 @@ if prob == "2D"
   function Base.rand(rng::AbstractRNG, as::FFTActionSpace)
       diff = as.upper-as.lower
       return diff*rand(rng, ssm.nu)+as.lower
-  end
-elseif prob == "1D"
-  function POMDPs.reward(mdp::MassMDP,s::EKFState,a::Array{Float64,1},sp::EKFState)
-      (gv, gp) = diag(-Qg)
-      r = abs(mean(s)[2])*gp + abs(mean(s)[1])*gv + abs(a)*-Rg[1]
-      return r
-  end
-  function POMDPs.actions(mdp::MassMDP)
-      #take rand action within force bounds
-      return mdp.force_range
-  end
-
-  POMDPs.actions(mdp::MassMDP, s::EKFState, as::Normal{Float64})  = actions(mdp)
-  #to use default random rollout policy implement action sampling funct
-  function POMDPs.rand(rng::AbstractRNG, action_space::Normal{Float64}, dummy=nothing)
-     return rand(action_space)
   end
 end
 

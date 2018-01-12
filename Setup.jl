@@ -49,7 +49,7 @@ depth_m = 3.0
 depth_std = 0.1
 expl_m = 1.0
 expl_std = 0.1
-max_eig_cutoff = 1.0
+max_eig_cutoff = 5.0
 #global save_best_mean = -100000.0
 #global save_best_std = 0.0
 

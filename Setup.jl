@@ -230,9 +230,11 @@ function CE_sample(distrib::MvNormal,num_samples::Int,iters::Int,process::Float6
     for i in 1:num_samples
         temp_CE = rand(distrib)
         # clip samples so the first 3 are min 1, and last is min 0.1
-        temp_CE[1] = max(1.0,floor(temp_CE[1]))
-        temp_CE[2] = max(1.0,floor(temp_CE[2]))
-        temp_CE[3] = max(0.1,floor(temp_CE[3]))
+
+        temp_CE[1] = max(1.0,round(temp_CE[1]))
+        temp_CE[2] = max(1.0,round(temp_CE[2]))
+        temp_CE[3] = max(0.1,round(temp_CE[3]))
+
         #temp_CE[4] = max(0.1,floor(temp_CE[4]))
 
         #push!(output,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],iters,process,param,name,i,CE_count))

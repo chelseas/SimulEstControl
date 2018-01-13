@@ -27,7 +27,7 @@
         k_st = max(1,params[1])/(n_iters^alpha_st) # k for state
         solverCE = DPWSolver(n_iterations = Int(params[5]), depth = Int(params[3]), exploration_constant = params[4],
         k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
-        policyCE = solve(solverCE,mdp)
+        policyCE = MCTS.solve(solverCE,mdp)
         k_iter = params[end]
         if save_best
             rew_best = zeros(numtrials)

@@ -219,7 +219,7 @@ if (sim == "mcts") || (sim == "qmdp")
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#, enable_tree_vis = tree_vis)#-4 before
   end
-  policy = solve(solver,mdp) # policy setup for POMDP
+  policy = MCTS.solve(solver,mdp) # policy setup for POMDP
 end
 
 # save name and if CE save file else setup noiseList

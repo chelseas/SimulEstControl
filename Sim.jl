@@ -81,7 +81,7 @@
         x[:,1] = x0_state # set actual initial state # make random? zach
         uncertainty[:,1] = reshape(cov(xNew),ssm.nx*ssm.nx) #store covariance
         est[:,1] = mean(xNew) # store average values of state
-        if print_iters
+        if print_iters || print_trials
             @show j # print the simulation trial number
         end
 

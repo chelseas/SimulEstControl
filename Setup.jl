@@ -1,13 +1,13 @@
 
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mpc" # mcts, mpc, qmdp, drqn
+sim = "mcts" # mcts, mpc, qmdp, drqn
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 state_mean = true # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
-quick_run = false
-numtrials = 50 # number of simulation runs
+quick_run = true
+numtrials = 1 # number of simulation runs
 noiseList = []
 cond1 = "full"
 
@@ -23,18 +23,19 @@ param_freq = 0.3
 # Output settings
 printing = false # set to true to print simple information
 print_iters = false
+print_trials = true
 plotting = false # set to true to output plots of the data
 saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
-sim_save = "MPC_fobs_0.033_0.5" # name appended to sim settings for simulation folder to store data from runs
-data_folder = "MPC"
+sim_save = "testing" # name appended to sim settings for simulation folder to store data from runs
+data_folder = "test"
 fullobs = true # set to false for mpc without full obs
 if sim != "mpc" # set fullobs false for any other sim
   fullobs = false
 end
 
 # CROSS ENTROPY SETTINGS
-cross_entropy = false
+cross_entropy = true
 save_last = false # save last generation of CE trials
 save_best = false # save best overall run, just the reward and std, and params info
 num_pop = 6 #  number of samples to test this round of CE
@@ -74,10 +75,10 @@ state_min_tol = 0.1 # prevent states from growing less than X% of original value
 friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
 
 # settings for mcts
-n_iters = 10000#3000#00 # total number of iterations
+n_iters = 1000#3000#00 # total number of iterations
 samples_per_state = 1#3 # want to be small
-samples_per_act = 40 # want this to be ~20
-depths = 20 # depth of tree
+samples_per_act = 20 # want this to be ~20
+depths = 5 # depth of tree
 expl_constant = 0.1#100.0 #exploration const
 
 include("ReadSettings.jl") # read in new values from data file if given
@@ -197,6 +198,7 @@ if bounds || bounds_print
   n_w = 100 #30
   n_out_w = 100 #10
   F = 1.93 #2.34
+  # shouldn't the bounds of w be calculated like the state norms, the norm of the worst sample from the confidence region?
   w_bound_samples = ellipsoid_bounds(MvNormal(zeros(ssm.nx),processNoiseList[1]*eye(ssm.nx,ssm.nx)),n_w,n_out_w,F) # precompute the w_bound
   w_bound_avg = mean(w_bound_samples,2) # average samples of the w_bound
   @show w_bound = norm(w_bound_avg*sqrt(processNoiseList[1])) # compute the norm of the STD * the w_bound

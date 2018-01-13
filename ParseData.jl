@@ -1,5 +1,5 @@
 using DataFrames
-data_folder = "MPC"
+data_folder = "test"
 
 folder = "MPC_fobs_0.033_0.5_2D_mpc_full_none_true"#"test2"# give data folder name to compute averages from
 

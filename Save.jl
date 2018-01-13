@@ -12,7 +12,8 @@ function save_data(data::Array, head::Vector, simsettings::Vector, data_val::Str
   df = convert(DataFrame,data')
   #rename!(df, [head[i] for i in 1:length(head)])
   #@show df
-  writetable(fname,df)
+  #writetable(fname,df)
+  CSV.write(fname,df)
 end
 
 #=

@@ -36,7 +36,7 @@ end
 
 # CROSS ENTROPY SETTINGS
 cross_entropy = true
-save_last = false # save last generation of CE trials
+save_last = true # save last generation of CE trials
 save_best = false # save best overall run, just the reward and std, and params info
 num_pop = 6 #  number of samples to test this round of CE
 num_elite = 6 # number of elite samples to keep to form next distribution
@@ -115,7 +115,7 @@ end
 
 # Packages
 if (sim == "mcts") || (sim == "qmdp")
-  using Distributions, POMDPs, MCTS, POMDPToolbox # for MCTS
+  using Distributions, CSV, POMDPs, MCTS, POMDPToolbox # for MCTS
     if tree_vis
       using D3Trees
     end

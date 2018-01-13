@@ -123,7 +123,7 @@ if (sim == "mcts") || (sim == "qmdp")
       using ForwardDiff
   end
 elseif sim == "mpc"
-  using Distributions, Convex, SCS, ECOS# for MPC
+  using Distributions, CSV, Convex, SCS, ECOS# for MPC
   if fullobs
     rollout = "fobs"
   else

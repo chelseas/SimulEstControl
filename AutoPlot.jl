@@ -6,14 +6,18 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "general_mod" # name data_folder containing folder_list
+data_folder = "long_0.1_0.5" # name data_folder containing folder_list
 cd(data_folder)
-folder_list = readdir()#["first","second"]
+#folder_list = readdir()#["first","second"]
+folder_list = ["mcts_normal_2D_mcts_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
 cd("..")
-folder_list = ["1","2","3"]
+#folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
 vary = false # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
-profile = true # plot the profile of the results
+profile = false # plot the profile of the results
+profile_rew = false
+profile_init = true
+nSamples2 = 8 # number of steps to show for just the initial parameter estimates
 verbose = false # set to true to print debug statements
 
 for folder in folder_list
@@ -70,7 +74,11 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
     # do this both for the trials vs iteration
     avg = mean(data,1)
     #@show size(avg)
-    std = (var(data,1).^0.5)/runs # standard error of the mean
+    if profile_rew || profile_init
+        std = (var(data,1).^0.5)
+    else
+        std = (var(data,1).^0.5)/runs # standard error of the mean
+    end
     #@show j
     #@show sum(std)
     # cat avg and std matrices together to make it easier to bring in to plots
@@ -424,6 +432,305 @@ if profile # plot the profiles for the runs
   save(string(title3,".tex"),g3, include_preamble=false)
 
 end
+
+if profile_rew # plot the profiles for the runs
+  # avg vs nSamples plots
+  files = readdir() # in processed data for folder in main loop
+  filter!(x->x≠"total rewards",files) # remove total rewards folder
+  # define all variables for plotting here so that they can be used outside the for loop
+  tempName = split(files[1])
+  #@show tempName
+  offset = Int(length(files)/5) # dividing by 5 since 5 types of data for each sim
+  if tempName[2] == "1D"
+    states = 2
+  elseif tempName[2] == "2D"
+    states = 6 # last index of controllabel states for this problem
+  end
+  temp_st = Float64[]
+  temp_est = Float64[]
+  temp_ctrl = Float64[]
+  temp_rew = Float64[]
+  # add the variables for other simtypes
+  for i = 1:offset
+    ctrlCur = Array(readtable(files[i])) # control effort # nSamples x 2*dimensions
+    estCur = Array(readtable(files[i+offset])) # estimates
+    rewCur = Array(readtable(files[i+2*offset])) # rewCur
+    sCur = Array(readtable(files[i+3*offset])) # states
+    difCur = estCur - sCur # take difference of est and current
+    rewCur = rewCur[:,[1,3]]
+    difS = sCur[:,1:states] # don't subtract state values --> want to see go to zero
+    difE = difCur[:,1+states:end]
+    difForm = format_data(difCur)
+    curName = split(files[i]) # get words from conrol file
+    # initialize the arrays that we will plot
+    sim = curName[3]
+    rollout = curName[4]
+    temp_st = format_data(difS) # all of these are nSamples/nSamples+1 x 2 (avg and std)
+    temp_est = format_data(difE)
+    temp_ctrl = format_data(ctrlCur)
+    temp_rew = rewCur
+
+    if sim == "mcts" # add to the array of mcts to plot
+      if rollout == "position"
+        mcts_pos = (temp_st,temp_est,temp_ctrl,temp_rew)
+        #@show size(mcts_pos)
+      elseif rollout == "random"
+        mcts_rand = (temp_st,temp_est,temp_ctrl,temp_rew)
+      elseif rollout == "smooth"
+        mcts_smooth = (temp_st,temp_est,temp_ctrl,temp_rew)
+      end
+    elseif sim == "mpc"
+      if rollout == "fobs"
+        mpc_fobs = (temp_st,temp_est,temp_ctrl,temp_rew)
+      elseif rollout == "unk"
+        mpc_unk = (temp_st,temp_est,temp_ctrl,temp_rew)
+      end
+    elseif sim == "qmdp"
+      qmdp = (temp_st,temp_est,temp_ctrl,temp_rew)
+    elseif sim == "nn"
+      nn = (temp_st,temp_est,temp_ctrl,temp_rew)
+    elseif sim == "dnn"
+      dnn = (temp_st,temp_est,temp_ctrl,temp_rew)
+    elseif sim == "adapt"
+      adapt = (temp_st,temp_est,temp_ctrl,temp_rew)
+    end # ADD HERE
+
+
+  end # end of the 1:offset for loop.
+
+  profile_st = PGFPlots.Plots.Linear[]
+  profile_est = PGFPlots.Plots.Linear[]
+  profile_ctrl = PGFPlots.Plots.Linear[]
+  profile_rew = PGFPlots.Plots.Linear[]
+  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, nn, dnn, adapt) # ADD HERE
+  #@show size(temp_st), "is the first dim nSamples?"
+  nSamples = size(temp_ctrl)[1]
+  # loop through all sims and add all relevant ones to the plots
+  for i in 1:length(sim_list)
+    if length(sim_list[i]) != 0
+      #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
+      cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+      cp_est = Plots.Linear(0:nSamples-1,sim_list[i][2][1:nSamples,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples,2]), style=sim_style_list[i],  mark=mark1)
+      cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+      cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
+
+      append!(profile_st, [cp_st])
+      append!(profile_est, [cp_est])
+      append!(profile_ctrl, [cp_ctrl])
+      append!(profile_rew, [cp_rew])
+    end
+  end
+  # adding horziontal lines at 0:
+  start_zero_line = -1
+  end_zero_line = nSamples+1
+  append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+
+
+  #### Plot all 4 on a subplots
+  stlab = "States"
+  estlab = "Parameters"
+  ctrllab = "Control"
+  rewlab = "Reward"
+  xaxis = "Steps (0.1 seconds)"
+  vertspace = "0.5"
+  horizspace = "0.0"
+  ht = "4cm"
+  ht2 = "6cm"
+  wdth = "8cm"
+
+  # determine if that type of data is available and then add it to the list to pass in if so
+
+  st = Axis(profile_st
+      #Plots.Linear(0:nSamples-1,mcts_pos_st[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_st[1:nSamples,2]), style=mcts_pos_style,  mark=mark1, legendentry=mcts_pos_leg)
+      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+      ,ylabel=stlab, width = wdth, height=ht)
+
+  est = Axis(profile_est
+      #Plots.Linear(0:nSamples-1,mcts_pos_est[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_est[1:nSamples,2]), style=mcts_pos_style,  mark=mark1)
+      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+      , ylabel=estlab, width = wdth, height=ht) #"Velocity (m/s)"
+
+  ctrl = Axis(profile_ctrl
+      #Plots.Linear(1:safeiters,LQG18[1:safeiters,var3+ex], style=mcts_pos_style,  mark=mark1)
+      #Plots.Linear(0:nSamples-1,mcts_pos_ctrl[:,1],errorBars = ErrorBars(y=mcts_pos_ctrl[:,2]), style=mcts_pos_style,  mark=mark1)
+      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+      , ylabel=ctrllab, width = wdth, height=ht)
+
+  rew = Axis(profile_rew
+      #Plots.Linear(0:nSamples-1,mcts_pos_rew[:,1],errorBars = ErrorBars(y=mcts_pos_rew[:,2]), style=mcts_pos_style,  mark=mark1)
+      ,xlabel=xaxis, ylabel=rewlab, legendPos="south west", width = wdth, height = ht2)
+
+  g3 = GroupPlot(1,2, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+  #push!(g3, st)
+  push!(g3, est)
+  #push!(g3, ctrl)
+  push!(g3, rew)
+  title_start = "PROF "
+  title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+
+  ####
+  cd("..")
+  try mkdir(plot_folder)
+  end
+  cd(plot_folder)
+  save(string(title3,".pdf"),g3)
+  save(string(title3,".svg"),g3)
+  save(string(title3,".tex"),g3, include_preamble=false)
+
+end
+
+if profile_init # plot the profiles for the runs
+  # avg vs nSamples plots
+  files = readdir() # in processed data for folder in main loop
+  filter!(x->x≠"total rewards",files) # remove total rewards folder
+  # define all variables for plotting here so that they can be used outside the for loop
+  tempName = split(files[1])
+  #@show tempName
+  offset = Int(length(files)/5) # dividing by 5 since 5 types of data for each sim
+  if tempName[2] == "1D"
+    states = 2
+  elseif tempName[2] == "2D"
+    states = 6 # last index of controllabel states for this problem
+  end
+  temp_st = Float64[]
+  temp_est = Float64[]
+  temp_ctrl = Float64[]
+  temp_rew = Float64[]
+  # add the variables for other simtypes
+  for i = 1:offset
+    ctrlCur = Array(readtable(files[i])) # control effort # nSamples x 2*dimensions
+    estCur = Array(readtable(files[i+offset])) # estimates
+    rewCur = Array(readtable(files[i+2*offset])) # rewCur
+    sCur = Array(readtable(files[i+3*offset])) # states
+    difCur = estCur - sCur # take difference of est and current
+    rewCur = rewCur[:,[1,3]]
+    difS = sCur[:,1:states] # don't subtract state values --> want to see go to zero
+    difE = difCur[:,1+states:end]
+    difForm = format_data(difCur)
+    curName = split(files[i]) # get words from conrol file
+    # initialize the arrays that we will plot
+    sim = curName[3]
+    rollout = curName[4]
+    temp_st = format_data(difS) # all of these are nSamples/nSamples+1 x 2 (avg and std)
+    temp_est = format_data(difE)
+    temp_ctrl = format_data(ctrlCur)
+    temp_rew = rewCur
+
+    if sim == "mcts" # add to the array of mcts to plot
+      if rollout == "position"
+        mcts_pos = (temp_st,temp_est,temp_ctrl,temp_rew)
+        #@show size(mcts_pos)
+      elseif rollout == "random"
+        mcts_rand = (temp_st,temp_est,temp_ctrl,temp_rew)
+      elseif rollout == "smooth"
+        mcts_smooth = (temp_st,temp_est,temp_ctrl,temp_rew)
+      end
+    elseif sim == "mpc"
+      if rollout == "fobs"
+        mpc_fobs = (temp_st,temp_est,temp_ctrl,temp_rew)
+      elseif rollout == "unk"
+        mpc_unk = (temp_st,temp_est,temp_ctrl,temp_rew)
+      end
+    elseif sim == "qmdp"
+      qmdp = (temp_st,temp_est,temp_ctrl,temp_rew)
+    elseif sim == "nn"
+      nn = (temp_st,temp_est,temp_ctrl,temp_rew)
+    elseif sim == "dnn"
+      dnn = (temp_st,temp_est,temp_ctrl,temp_rew)
+    elseif sim == "adapt"
+      adapt = (temp_st,temp_est,temp_ctrl,temp_rew)
+    end # ADD HERE
+
+
+  end # end of the 1:offset for loop.
+
+  profile_st = PGFPlots.Plots.Linear[]
+  profile_est = PGFPlots.Plots.Linear[]
+  profile_ctrl = PGFPlots.Plots.Linear[]
+  profile_rew = PGFPlots.Plots.Linear[]
+  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, nn, dnn, adapt) # ADD HERE
+  #@show size(temp_st), "is the first dim nSamples?"
+  nSamples = size(temp_ctrl)[1]
+  # loop through all sims and add all relevant ones to the plots
+  for i in 1:length(sim_list)
+    if length(sim_list[i]) != 0
+      #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
+      cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+      cp_est = Plots.Linear(0:nSamples2-1,sim_list[i][2][1:nSamples2,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples2,2]), style=sim_style_list[i],  mark=mark1)
+      cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+      cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
+
+      append!(profile_st, [cp_st])
+      append!(profile_est, [cp_est])
+      append!(profile_ctrl, [cp_ctrl])
+      append!(profile_rew, [cp_rew])
+    end
+  end
+  # adding horziontal lines at 0:
+  start_zero_line = -1
+  end_zero_line = nSamples2+1
+  append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+
+
+  #### Plot all 4 on a subplots
+  stlab = "States"
+  estlab = "Parameters"
+  ctrllab = "Control"
+  rewlab = "Reward"
+  xaxis = "Steps (0.1 seconds)"
+  vertspace = "0.5"
+  horizspace = "0.0"
+  ht = "4cm"
+  ht2 = "6cm"
+  wdth = "8cm"
+
+  # determine if that type of data is available and then add it to the list to pass in if so
+
+  st = Axis(profile_st
+      #Plots.Linear(0:nSamples-1,mcts_pos_st[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_st[1:nSamples,2]), style=mcts_pos_style,  mark=mark1, legendentry=mcts_pos_leg)
+      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+      ,ylabel=stlab, width = wdth, height=ht)
+
+  est = Axis(profile_est
+      #Plots.Linear(0:nSamples-1,mcts_pos_est[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_est[1:nSamples,2]), style=mcts_pos_style,  mark=mark1)
+      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+      , ylabel=estlab, width = wdth, height=ht) #"Velocity (m/s)"
+
+  ctrl = Axis(profile_ctrl
+      #Plots.Linear(1:safeiters,LQG18[1:safeiters,var3+ex], style=mcts_pos_style,  mark=mark1)
+      #Plots.Linear(0:nSamples-1,mcts_pos_ctrl[:,1],errorBars = ErrorBars(y=mcts_pos_ctrl[:,2]), style=mcts_pos_style,  mark=mark1)
+      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+      , ylabel=ctrllab, width = wdth, height=ht)
+
+  rew = Axis(profile_rew
+      #Plots.Linear(0:nSamples-1,mcts_pos_rew[:,1],errorBars = ErrorBars(y=mcts_pos_rew[:,2]), style=mcts_pos_style,  mark=mark1)
+      ,xlabel=xaxis, ylabel=rewlab, legendPos="south east", width = wdth, height = ht2)
+
+  g3 = GroupPlot(1,1, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+  #push!(g3, st)
+  push!(g3, est)
+  #push!(g3, ctrl)
+  #push!(g3, rew)
+  title_start = "PROF_init "
+  title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+
+  ####
+  cd("..")
+  try mkdir(plot_folder)
+  end
+  cd(plot_folder)
+  save(string(title3,".pdf"),g3)
+  save(string(title3,".svg"),g3)
+  save(string(title3,".tex"),g3, include_preamble=false)
+
+end
+
 cd("../..")
 
 

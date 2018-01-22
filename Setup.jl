@@ -1,13 +1,13 @@
 
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mcts" # mcts, mpc, qmdp, drqn
+sim = "qmdp" # mcts, mpc, qmdp, drqn
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 state_mean = true # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
 quick_run = true
-numtrials = 1 # number of simulation runs
+numtrials = 2 # number of simulation runs
 noiseList = []
 cond1 = "full"
 

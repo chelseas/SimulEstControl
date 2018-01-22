@@ -1,17 +1,18 @@
 using DataFrames
 using PGFPlots
-using DataFrames
+using CSV
 pushPGFPlotsPreamble("\\usepackage{xfrac}")
 pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "long_0.1_0.5" # name data_folder containing folder_list
+data_folder = "long_mpc_0.01_0.5" # name data_folder containing folder_list
 cd(data_folder)
 #folder_list = readdir()#["first","second"]
-folder_list = ["mcts_normal_2D_mcts_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
+folder_list = ["mpc_normal_2D_mpc_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
 cd("..")
 #folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
+compute_avg = false
 vary = false # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
 profile = false # plot the profile of the results
@@ -27,7 +28,6 @@ for folder in folder_list
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through
 cd(data_folder)
 cd(folder)
-
 # go into all of these folders and compute average values and std devs of the trials
 sim_cases = readdir() # list of filenames in this directory
 if verbose
@@ -37,98 +37,102 @@ end
 f1 = sim_cases[1]
 runs = parse(Int64,split(f1)[end]) # number of runs
 # CREATE AVERAGES AND STD OF DATA FOR PLOTTING
-for i = 1:length(sim_cases) # go through each data folder to compute averages
-  curFolder = sim_cases[i]
-  runs = parse(Int64,split(curFolder)[end]) # number of runs
-  if verbose
-  @show runs
-  end
-  cd(curFolder)
-  dataFiles = readdir() # all names of .csv files in this directory
-  #@show dataFiles
-  #@show dataFiles
-  #@show dataFiles
-  #@show length(dataFiles)
-  dfr = reshape(dataFiles, runs, length(data_type))
-  #@show dfr[:,1]
-  for j = 1:length(data_type) # for each file type
-    #keywords = parse(dfr[1,j]) # words from title of first in trials
-    sim_sets = split(dfr[1,j]) # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
-    gen = readtable(dfr[1,j]) # load first table to get the size information
-    nvars, numSteps = size(gen)
-    data = Array{Float64,3}(runs, nvars, numSteps)
-    if verbose
-    @show size(data)
-    end
-    #std = Array{Float64,3}(runs, numSteps, nvars)
-    for k = 1:runs # for each trial compute an average and std
+if compute_avg
 
-      temp = readtable(dfr[k,j]) # load individual file
+    for i = 1:length(sim_cases) # go through each data folder to compute averages
+      curFolder = sim_cases[i]
+      runs = parse(Int64,split(curFolder)[end]) # number of runs
       if verbose
-      @show dfr[k,j]
-      @show size(temp)
+      @show runs
       end
-      data[k,:,:] = Array(temp)
-    end
-    # save new avg and std values --> just stack next to each other
-    # do this both for the trials vs iteration
-    avg = mean(data,1)
-    #@show size(avg)
-    if profile_rew || profile_init
-        std = (var(data,1).^0.5)
-    else
-        std = (var(data,1).^0.5)/runs # standard error of the mean
-    end
-    #@show j
-    #@show sum(std)
-    # cat avg and std matrices together to make it easier to bring in to plots
-    data = cat(2,avg[1,:,:], std[1,:,:]) # size of num trials x nvars*2
-    #@show size(data)
-    # convert both to dataFrames and save in a new folder called processed data
-    df = convert(DataFrame, data) # should this be transposed?
-    #append!(a,b) to add words on to the end of the list to recreate a title
-    # join(a) to merge list of words into string
-    # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
-    fname_temp = join(sim_sets[1:8], " ") # new name for all but trial and T#
-    #@show fname_temp
-    fname = join([fname_temp ".csv"])
-    #@show fname
-    cd("../..")
-    pdata = " processed data"
-    newF = join([folder,pdata])
-    try mkdir(newF)
-    end
-    cd(newF) # go into processed data file
-    # STORE THE FILES here
-    writetable(fname,df)
+      cd(curFolder)
+      dataFiles = readdir() # all names of .csv files in this directory
+      #@show dataFiles
+      #@show dataFiles
+      #@show dataFiles
+      #@show length(dataFiles)
+      dfr = reshape(dataFiles, runs, length(data_type))
+      #@show dfr[:,1]
+      for j = 1:length(data_type) # for each file type
+        #keywords = parse(dfr[1,j]) # words from title of first in trials
+        sim_sets = split(dfr[1,j]) # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
+        gen = CSV.read(dfr[1,j]) # load first table to get the size information
+        nvars, numSteps = size(gen)
+        data = Array{Float64,3}(runs, nvars, numSteps)
+        if verbose
+        @show size(data)
+        end
+        #std = Array{Float64,3}(runs, numSteps, nvars)
+        for k = 1:runs # for each trial compute an average and std
 
-    # and for reward just overall trail sum (avg, sum, processN, paramN)
-    if j == 3 # corresponding to the reward
-      tot_dir = "total rewards"
-      try mkdir(tot_dir)
+          temp = CSV.read(dfr[k,j]) # load individual file
+          if verbose
+          @show dfr[k,j]
+          @show size(temp)
+          end
+          data[k,:,:] = Array(temp)
+        end
+        # save new avg and std values --> just stack next to each other
+        # do this both for the trials vs iteration
+        avg = mean(data,1)
+        #@show size(avg)
+        if profile_rew || profile_init
+            std = (var(data,1).^0.5)/runs
+        else
+            std = (var(data,1).^0.5)/runs # standard error of the mean
+        end
+        #@show j
+        #@show sum(std)
+        # cat avg and std matrices together to make it easier to bring in to plots
+        data = cat(2,avg[1,:,:], std[1,:,:]) # size of num trials x nvars*2
+        #@show size(data)
+        # convert both to dataFrames and save in a new folder called processed data
+        df = convert(DataFrame, data) # should this be transposed?
+        #append!(a,b) to add words on to the end of the list to recreate a title
+        # join(a) to merge list of words into string
+        # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
+        fname_temp = join(sim_sets[1:8], " ") # new name for all but trial and T#
+        #@show fname_temp
+        fname = join([fname_temp ".csv"])
+        #@show fname
+        cd("../..")
+        pdata = " processed data"
+        newF = join([folder,pdata])
+        try mkdir(newF)
+        end
+        cd(newF) # go into processed data file
+        # STORE THE FILES here
+        CSV.write(fname,df)
+
+        # and for reward just overall trail sum (avg, sum, processN, paramN)
+        if j == 3 # corresponding to the reward
+          tot_dir = "total rewards"
+          try mkdir(tot_dir)
+          end
+          cd(tot_dir)
+          avgtot = mean(data,[1,3])[1,1,1] # return just the value for the mean
+          stdtot = (var(mean(data,3),1)[1,1,1].^0.5)/runs # sum data along all numSteps and take std among runs
+          PN = parse(Float64,sim_sets[6])
+          PRN = parse(Float64,sim_sets[8])
+          rew_ret = [avgtot stdtot PN PRN]' # returning the point to plot
+          df2 = convert(DataFrame, [rew_ret rew_ret]')
+          fname2 = join(["tot " fname])
+          CSV.write(fname2,df2)
+          cd("..")
+        end
+
+        cd("..")
+        cd(folder)
+        cd(curFolder)
       end
-      cd(tot_dir)
-      avgtot = mean(data,[1,3])[1,1,1] # return just the value for the mean
-      stdtot = (var(mean(data,3),1)[1,1,1].^0.5)/runs # sum data along all numSteps and take std among runs
-      PN = parse(Float64,sim_sets[6])
-      PRN = parse(Float64,sim_sets[8])
-      rew_ret = [avgtot stdtot PN PRN]' # returning the point to plot
-      df2 = convert(DataFrame, [rew_ret rew_ret]')
-      fname2 = join(["tot " fname])
-      writetable(fname2,df2)
-      cd("..")
+
+      cd("..") # back out of this folder
     end
 
-    cd("..")
-    cd(folder)
-    cd(curFolder)
-  end
-
-  cd("..") # back out of this folder
+    cd("../..") # change directory back to main folder
+else ## just set parseData folder names
+    cd("../..") # change directory back to main folder
 end
-
-cd("../..") # change directory back to main folder
-
 # Take the data from ParseData and make a variety of plots --> these will be auto passed
 #folder = "2D_0.7_step"#"test2"# give data folder name to compute averages from
 ## ADD A SECOND TRIAL OF THE MPC SETTINGS AND RUN FOR VARYING AND SEE IF IT STILL PLOTS FINE
@@ -195,7 +199,7 @@ if vary
   tempName = split(tot_files[1])
   for i = 1:length(tot_files)
     curFile = tot_files[i]
-    curData = readtable(curFile)
+    curData = CSV.read(curFile)
     curVec = Array(curData[1,:]) # array that I can use
     curName = split(curFile) # get words
     # initialize the arrays that we will plot
@@ -303,10 +307,10 @@ if profile # plot the profiles for the runs
   temp_rew = Float64[]
   # add the variables for other simtypes
   for i = 1:offset
-    ctrlCur = Array(readtable(files[i])) # control effort # nSamples x 2*dimensions
-    estCur = Array(readtable(files[i+offset])) # estimates
-    rewCur = Array(readtable(files[i+2*offset])) # rewCur
-    sCur = Array(readtable(files[i+3*offset])) # states
+    ctrlCur = Array(CSV.read(files[i])) # control effort # nSamples x 2*dimensions
+    estCur = Array(CSV.read(files[i+offset])) # estimates
+    rewCur = Array(CSV.read(files[i+2*offset])) # rewCur
+    sCur = Array(CSV.read(files[i+3*offset])) # states
     difCur = estCur - sCur # take difference of est and current
     rewCur = rewCur[:,[1,3]]
     difS = sCur[:,1:states] # don't subtract state values --> want to see go to zero
@@ -357,28 +361,51 @@ if profile # plot the profiles for the runs
   #@show size(temp_st), "is the first dim nSamples?"
   nSamples = size(temp_ctrl)[1]
   # loop through all sims and add all relevant ones to the plots
-  for i in 1:length(sim_list)
-    if length(sim_list[i]) != 0
-      #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
-      cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
-      cp_est = Plots.Linear(0:nSamples-1,sim_list[i][2][1:nSamples,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples,2]), style=sim_style_list[i],  mark=mark1)
-      cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
-      cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
-
-      append!(profile_st, [cp_st])
-      append!(profile_est, [cp_est])
-      append!(profile_ctrl, [cp_ctrl])
-      append!(profile_rew, [cp_rew])
-    end
-  end
   # adding horziontal lines at 0:
-  start_zero_line = -1
-  end_zero_line = nSamples+1
-  append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-  append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-  append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-  append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  if profile_init
+      for i in 1:length(sim_list)
+        if length(sim_list[i]) != 0
+          #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
+          cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+          cp_est = Plots.Linear(0:nSamples2-1,sim_list[i][2][1:nSamples2,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples2,2]), style=sim_style_list[i],  mark=mark1)
+          cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+          cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
 
+          append!(profile_st, [cp_st])
+          append!(profile_est, [cp_est])
+          append!(profile_ctrl, [cp_ctrl])
+          append!(profile_rew, [cp_rew])
+        end
+      end
+      # adding horziontal lines at 0:
+      start_zero_line = -1
+      end_zero_line = nSamples2+1
+      append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  else
+      for i in 1:length(sim_list)
+        if length(sim_list[i]) != 0
+          #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
+          cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+          cp_est = Plots.Linear(0:nSamples-1,sim_list[i][2][1:nSamples,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples,2]), style=sim_style_list[i],  mark=mark1)
+          cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+          cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
+
+          append!(profile_st, [cp_st])
+          append!(profile_est, [cp_est])
+          append!(profile_ctrl, [cp_ctrl])
+          append!(profile_rew, [cp_rew])
+        end
+      end
+      start_zero_line = -1
+      end_zero_line = nSamples+1
+      append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  end
 
   #### Plot all 4 on a subplots
   stlab = "States"
@@ -421,7 +448,33 @@ if profile # plot the profiles for the runs
   push!(g3, rew)
   title_start = "PROF "
   title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
-
+  #=
+  if profile_rew
+      g3 = GroupPlot(1,2, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+      #push!(g3, st)
+      push!(g3, est)
+      #push!(g3, ctrl)
+      push!(g3, rew)
+      title_start = "PROF_rew "
+      title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  elseif profile_init
+      g3 = GroupPlot(1,1, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+      #push!(g3, st)
+      push!(g3, est)
+      #push!(g3, ctrl)
+      #push!(g3, rew)
+      title_start = "PROF_init "
+      title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  else
+      g3 = GroupPlot(1,4, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+      push!(g3, st)
+      push!(g3, est)
+      push!(g3, ctrl)
+      push!(g3, rew)
+      title_start = "PROF "
+      title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  end
+  =#
   ####
   cd("..")
   try mkdir(plot_folder)
@@ -452,10 +505,10 @@ if profile_rew # plot the profiles for the runs
   temp_rew = Float64[]
   # add the variables for other simtypes
   for i = 1:offset
-    ctrlCur = Array(readtable(files[i])) # control effort # nSamples x 2*dimensions
-    estCur = Array(readtable(files[i+offset])) # estimates
-    rewCur = Array(readtable(files[i+2*offset])) # rewCur
-    sCur = Array(readtable(files[i+3*offset])) # states
+    ctrlCur = Array(CSV.read(files[i])) # control effort # nSamples x 2*dimensions
+    estCur = Array(CSV.read(files[i+offset])) # estimates
+    rewCur = Array(CSV.read(files[i+2*offset])) # rewCur
+    sCur = Array(CSV.read(files[i+3*offset])) # states
     difCur = estCur - sCur # take difference of est and current
     rewCur = rewCur[:,[1,3]]
     difS = sCur[:,1:states] # don't subtract state values --> want to see go to zero
@@ -506,28 +559,51 @@ if profile_rew # plot the profiles for the runs
   #@show size(temp_st), "is the first dim nSamples?"
   nSamples = size(temp_ctrl)[1]
   # loop through all sims and add all relevant ones to the plots
-  for i in 1:length(sim_list)
-    if length(sim_list[i]) != 0
-      #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
-      cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
-      cp_est = Plots.Linear(0:nSamples-1,sim_list[i][2][1:nSamples,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples,2]), style=sim_style_list[i],  mark=mark1)
-      cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
-      cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
-
-      append!(profile_st, [cp_st])
-      append!(profile_est, [cp_est])
-      append!(profile_ctrl, [cp_ctrl])
-      append!(profile_rew, [cp_rew])
-    end
-  end
   # adding horziontal lines at 0:
-  start_zero_line = -1
-  end_zero_line = nSamples+1
-  append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-  append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-  append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-  append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  if profile_init
+      for i in 1:length(sim_list)
+        if length(sim_list[i]) != 0
+          #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
+          cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+          cp_est = Plots.Linear(0:nSamples2-1,sim_list[i][2][1:nSamples2,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples2,2]), style=sim_style_list[i],  mark=mark1)
+          cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+          cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
 
+          append!(profile_st, [cp_st])
+          append!(profile_est, [cp_est])
+          append!(profile_ctrl, [cp_ctrl])
+          append!(profile_rew, [cp_rew])
+        end
+      end
+      # adding horziontal lines at 0:
+      start_zero_line = -1
+      end_zero_line = nSamples2+1
+      append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  else
+      for i in 1:length(sim_list)
+        if length(sim_list[i]) != 0
+          #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
+          cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+          cp_est = Plots.Linear(0:nSamples-1,sim_list[i][2][1:nSamples,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples,2]), style=sim_style_list[i],  mark=mark1)
+          cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+          cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
+
+          append!(profile_st, [cp_st])
+          append!(profile_est, [cp_est])
+          append!(profile_ctrl, [cp_ctrl])
+          append!(profile_rew, [cp_rew])
+        end
+      end
+      start_zero_line = -1
+      end_zero_line = nSamples+1
+      append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  end
 
   #### Plot all 4 on a subplots
   stlab = "States"
@@ -561,16 +637,42 @@ if profile_rew # plot the profiles for the runs
 
   rew = Axis(profile_rew
       #Plots.Linear(0:nSamples-1,mcts_pos_rew[:,1],errorBars = ErrorBars(y=mcts_pos_rew[:,2]), style=mcts_pos_style,  mark=mark1)
-      ,xlabel=xaxis, ylabel=rewlab, legendPos="south west", width = wdth, height = ht2)
+      ,xlabel=xaxis, ylabel=rewlab, legendPos="south east", width = wdth, height = ht2)
 
   g3 = GroupPlot(1,2, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
   #push!(g3, st)
   push!(g3, est)
   #push!(g3, ctrl)
   push!(g3, rew)
-  title_start = "PROF "
+  title_start = "PROF_rew "
   title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
-
+  #=
+  if profile_rew
+      g3 = GroupPlot(1,2, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+      #push!(g3, st)
+      push!(g3, est)
+      #push!(g3, ctrl)
+      push!(g3, rew)
+      title_start = "PROF_rew "
+      title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  elseif profile_init
+      g3 = GroupPlot(1,1, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+      #push!(g3, st)
+      push!(g3, est)
+      #push!(g3, ctrl)
+      #push!(g3, rew)
+      title_start = "PROF_init "
+      title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  else
+      g3 = GroupPlot(1,4, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+      push!(g3, st)
+      push!(g3, est)
+      push!(g3, ctrl)
+      push!(g3, rew)
+      title_start = "PROF "
+      title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  end
+  =#
   ####
   cd("..")
   try mkdir(plot_folder)
@@ -601,10 +703,10 @@ if profile_init # plot the profiles for the runs
   temp_rew = Float64[]
   # add the variables for other simtypes
   for i = 1:offset
-    ctrlCur = Array(readtable(files[i])) # control effort # nSamples x 2*dimensions
-    estCur = Array(readtable(files[i+offset])) # estimates
-    rewCur = Array(readtable(files[i+2*offset])) # rewCur
-    sCur = Array(readtable(files[i+3*offset])) # states
+    ctrlCur = Array(CSV.read(files[i])) # control effort # nSamples x 2*dimensions
+    estCur = Array(CSV.read(files[i+offset])) # estimates
+    rewCur = Array(CSV.read(files[i+2*offset])) # rewCur
+    sCur = Array(CSV.read(files[i+3*offset])) # states
     difCur = estCur - sCur # take difference of est and current
     rewCur = rewCur[:,[1,3]]
     difS = sCur[:,1:states] # don't subtract state values --> want to see go to zero
@@ -655,28 +757,51 @@ if profile_init # plot the profiles for the runs
   #@show size(temp_st), "is the first dim nSamples?"
   nSamples = size(temp_ctrl)[1]
   # loop through all sims and add all relevant ones to the plots
-  for i in 1:length(sim_list)
-    if length(sim_list[i]) != 0
-      #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
-      cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
-      cp_est = Plots.Linear(0:nSamples2-1,sim_list[i][2][1:nSamples2,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples2,2]), style=sim_style_list[i],  mark=mark1)
-      cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
-      cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
-
-      append!(profile_st, [cp_st])
-      append!(profile_est, [cp_est])
-      append!(profile_ctrl, [cp_ctrl])
-      append!(profile_rew, [cp_rew])
-    end
-  end
   # adding horziontal lines at 0:
-  start_zero_line = -1
-  end_zero_line = nSamples2+1
-  append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-  append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-  append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-  append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  if profile_init
+      for i in 1:length(sim_list)
+        if length(sim_list[i]) != 0
+          #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
+          cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+          cp_est = Plots.Linear(0:nSamples2-1,sim_list[i][2][1:nSamples2,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples2,2]), style=sim_style_list[i],  mark=mark1)
+          cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+          cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
 
+          append!(profile_st, [cp_st])
+          append!(profile_est, [cp_est])
+          append!(profile_ctrl, [cp_ctrl])
+          append!(profile_rew, [cp_rew])
+        end
+      end
+      # adding horziontal lines at 0:
+      start_zero_line = -1
+      end_zero_line = nSamples2+1
+      append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  else
+      for i in 1:length(sim_list)
+        if length(sim_list[i]) != 0
+          #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
+          cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+          cp_est = Plots.Linear(0:nSamples-1,sim_list[i][2][1:nSamples,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples,2]), style=sim_style_list[i],  mark=mark1)
+          cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+          cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
+
+          append!(profile_st, [cp_st])
+          append!(profile_est, [cp_est])
+          append!(profile_ctrl, [cp_ctrl])
+          append!(profile_rew, [cp_rew])
+        end
+      end
+      start_zero_line = -1
+      end_zero_line = nSamples+1
+      append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+  end
 
   #### Plot all 4 on a subplots
   stlab = "States"
@@ -719,7 +844,33 @@ if profile_init # plot the profiles for the runs
   #push!(g3, rew)
   title_start = "PROF_init "
   title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
-
+  #=
+  if profile_rew
+      g3 = GroupPlot(1,2, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+      #push!(g3, st)
+      push!(g3, est)
+      #push!(g3, ctrl)
+      push!(g3, rew)
+      title_start = "PROF_rew "
+      title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  elseif profile_init
+      g3 = GroupPlot(1,1, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+      #push!(g3, st)
+      push!(g3, est)
+      #push!(g3, ctrl)
+      #push!(g3, rew)
+      title_start = "PROF_init "
+      title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  else
+      g3 = GroupPlot(1,4, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+      push!(g3, st)
+      push!(g3, est)
+      push!(g3, ctrl)
+      push!(g3, rew)
+      title_start = "PROF "
+      title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
+  end
+  =#
   ####
   cd("..")
   try mkdir(plot_folder)

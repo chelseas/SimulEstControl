@@ -5,7 +5,7 @@ function save_data(data::Array, head::Vector, simsettings::Vector, data_val::Str
   if (simsettings[2]== "mcts") || (simsettings[2]== "qmdp")
     (prob,sim,rollout,processNoise,paramNoise,numtrails,run_num) = simsettings
     fname = string(data_val," ",prob," ",sim," ",rollout," PN ",processNoise," VARN ",paramNoise," Trial ",run_num,".csv")
-  elseif simsettings[2]== "mpc"
+  elseif (simsettings[2]== "mpc") || (simsettings[2]== "smpc") || (simsettings[2]== "snmpc")
     (prob,sim,rollout,processNoise,paramNoise,numtrials,run_num) = simsettings
     fname = string(data_val," ",prob," ",sim," ",rollout, " PN ",processNoise," VARN ",paramNoise," Trial ",run_num,".csv")
   end

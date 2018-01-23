@@ -6,19 +6,19 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "long_mpc_0.01_0.5" # name data_folder containing folder_list
+data_folder = "long_0.001_0.25" # name data_folder containing folder_list
 cd(data_folder)
 #folder_list = readdir()#["first","second"]
-folder_list = ["mpc_normal_2D_mpc_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
+folder_list = ["mcts_normal_2D_mcts_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
 cd("..")
 #folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
-compute_avg = false
+compute_avg = true
 vary = false # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
 profile = false # plot the profile of the results
 profile_rew = false
 profile_init = true
-nSamples2 = 8 # number of steps to show for just the initial parameter estimates
+nSamples2 = 20 # number of steps to show for just the initial parameter estimates
 verbose = false # set to true to print debug statements
 
 for folder in folder_list
@@ -842,7 +842,7 @@ if profile_init # plot the profiles for the runs
   push!(g3, est)
   #push!(g3, ctrl)
   #push!(g3, rew)
-  title_start = "PROF_init "
+  title_start = join(["PROF_init ",nSamples2," "])
   title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
   #=
   if profile_rew

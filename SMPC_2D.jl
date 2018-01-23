@@ -1,5 +1,5 @@
 #Finite-horizon MPC controller
-function MPCAction(x0::MvNormal, n::Int)
+function SMPCAction(x0::MvNormal, n::Int)
     unc = trace(cov(x0))
     x = mean(x0)
     # Check this jacobian with forward diff to make sure these are linearized
@@ -25,28 +25,20 @@ function MPCAction(x0::MvNormal, n::Int)
     Rp = diag(Rg)
     u = Convex.Variable(3, n - 1)
     xs = Convex.Variable(6, n)
+    w = MvNormal(zeros(ssm.states),Q[1:ssm.states,1:ssm.states]) # defining process noise
+    w_sample = rand(w,n-1) # taking n samples from process noise for propagating
 
     problem = minimize(sum(abs.(u[1,:])*Rp[1]) + sum(abs.(u[2,:])*Rp[2]) + sum(abs.(u[3,:])*Rp[3]) + sum(abs.(xs[1,:])*Qp[1]) + sum(abs.(xs[2,:])*Qp[2]) + sum(abs.(xs[3,:])*Qp[3]) + sum(abs.(xs[4,:])*Qp[4]) + sum(abs.(xs[5,:])*Qp[5]) + sum(abs.(xs[6,:])*Qp[6]))
 
     problem.constraints += xs[1,1] == x[1] # init condition
-    #problem.constraints += xs[1,n] == 0.0  # final cond
     problem.constraints += xs[2,1] == x[2] # init condition
     problem.constraints += xs[3,1] == x[3] # init condition
     problem.constraints += xs[4,1] == x[4] # init condition
     problem.constraints += xs[5,1] == x[5] # init condition
     problem.constraints += xs[6,1] == x[6] # init condition
 
-    if reward_type == "region"
-        problem.constraints += xs[4,n] <= region_ub[1]  # final cond
-        problem.constraints += xs[4,n] >= region_lb[1]  # final cond
-        problem.constraints += xs[5,n] <= region_ub[2]  # final cond
-        problem.constraints += xs[5,n] >= region_lb[2]  # final cond
-        problem.constraints += xs[6,n] <= region_ub[3]  # final cond
-        problem.constraints += xs[6,n] >= region_lb[3]  # final cond
-    end
-
     for i in 1:n-1
-        problem.constraints += xs[:, i+1] == A*xs[:, i] + B*u[:,i]
+        problem.constraints += xs[:, i+1] == A*xs[:, i] + B*u[:,i] + w_sample[:,i]# system with process noise
         problem.constraints += u[:,i] <= fRange
         problem.constraints += u[:,i] >= -fRange
     end
@@ -54,7 +46,7 @@ function MPCAction(x0::MvNormal, n::Int)
     # Solve the problem by calling solve!
     solve!(problem, ECOSSolver(verbose=0))
 
-     # Check the status of the problem
+    # Check the status of the problem
     problem.status # :Optimal, :Infeasible, :Unbounded etc.
 
     # Get the optimal value

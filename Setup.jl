@@ -1,13 +1,13 @@
 
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "qmdp" # mcts, mpc, qmdp, drqn
+sim = "smpc" # mcts, mpc, qmdp, smpc, snmpc
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 state_mean = true # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
-quick_run = true
-numtrials = 2 # number of simulation runs
+quick_run = false
+numtrials = 1 # number of simulation runs
 noiseList = []
 cond1 = "full"
 
@@ -22,7 +22,7 @@ param_freq = 0.3
 
 # Output settings
 printing = false # set to true to print simple information
-print_iters = false
+print_iters = true
 print_trials = true
 plotting = false # set to true to output plots of the data
 saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
@@ -35,8 +35,8 @@ if sim != "mpc" # set fullobs false for any other sim
 end
 
 # CROSS ENTROPY SETTINGS
-cross_entropy = true
-save_last = true # save last generation of CE trials
+cross_entropy = false
+save_last = false # save last generation of CE trials
 save_best = false # save best overall run, just the reward and std, and params info
 num_pop = 6 #  number of samples to test this round of CE
 num_elite = 6 # number of elite samples to keep to form next distribution
@@ -108,7 +108,7 @@ if prob == "2D"
     k_st = samples_per_state/(n_iters^alpha_st) # k for state
     pos_control_gain = -80.0 # gain to drive position rollout --> higher = more aggressive
     #control_stepsize = 5.0 # maximum change in control effort from previous action
-  elseif sim == "mpc"
+  elseif (sim == "mpc") || (sim == "smpc") || (sim == "snmpc")
     n = 50 # horizon steps
   end
 end
@@ -122,7 +122,7 @@ if (sim == "mcts") || (sim == "qmdp")
   if !ukf_flag
       using ForwardDiff
   end
-elseif sim == "mpc"
+elseif (sim == "mpc") || (sim == "smpc") || (sim == "snmpc")
   using Distributions, CSV, Convex, SCS, ECOS# for MPC
   if fullobs
     rollout = "fobs"
@@ -179,6 +179,10 @@ if prob == "2D" # load files for 2D problem
     include("QMDP_2D.jl")
   elseif sim == "mpc"
     include("MPC_2D.jl") # function to set up MPC opt and solve
+  elseif sim == "smpc"
+    include("SMPC_2D.jl") # function to set up MPC opt and solve
+  elseif sim == "snmpc"
+    include("SNMPC_2D.jl") # function to set up MPC opt and solve
   end
 end
 

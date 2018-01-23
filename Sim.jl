@@ -114,6 +114,10 @@
                 u[:,i] = action(policy, AugNew)
               elseif sim == "mpc"
                 u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+              elseif sim == "smpc"
+                u[:,i] = SMPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+              elseif sim == "snmpc"
+                u[:,i] = SNMPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding control

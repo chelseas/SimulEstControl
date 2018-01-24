@@ -136,6 +136,9 @@ if rollout == "random"
         next_bound = overall_bounds([-100.0],x,u_sample,w_bound) # can I check if the state after the action is within
         action_count = action_count + 1
       end
+      if action_count == max_action_count
+          global action_limit_count = action_limit_count + 1
+      end
       return u_sample
   end
   roll = RandomController(pos_control_gain)

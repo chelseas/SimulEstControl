@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "none" # name of data file to load
+  settings_file = "bound_mcts_lownoise_lowthresh" # name of data file to load
   settings_folder = "settings" # store data files here
   include("Setup.jl")
 
@@ -162,7 +162,7 @@
 
             if bounds_print # show the state_bounds and see if they are within the threshold
               @show state_bounds[(j-1)*nSamples+i] = norm(x[:,i+1]) # actual bounds for next state
-              @show act_dep_bounds[(j-1)*nSamples+i] = overall_bounds([-100.0],xNew,u[:,i],w_bound) # setting state_temp = [-100.0] to just use belief
+              #@show act_dep_bounds[(j-1)*nSamples+i] = overall_bounds([-100.0],xNew,u[:,i],w_bound) # setting state_temp = [-100.0] to just use belief
             end
 
             if !fullobs # if system isn't fully observable update the belief
@@ -263,9 +263,44 @@
     if bounds_print
         thresh_funct = x -> (x > desired_bounds)
         @show count(thresh_funct,state_bounds)/(numtrials*nSamples)
-        @show count(thresh_funct,act_dep_bounds)/(numtrials*nSamples)
+        #@show count(thresh_funct,act_dep_bounds)/(numtrials*nSamples)
         @show mean(rews)
         @show std(rews)
+        if !bounds_save # running standard MCTS without bounds
+            try mkdir(data_folder)
+            end
+            cd(data_folder)
+            open(string(sim_save," ",processNoise," ",paramNoise," Bounds ", desired_bounds,".txt"), "w") do f
+                thresh_funct = x -> (x > desired_bounds)
+                out_of_bounds = count(thresh_funct,state_bounds)/(numtrials*nSamples)
+                write(f,string("Percent out of bounds: ",out_of_bounds,"\n"))
+                write(f,string("Desired Bounds: ",desired_bounds,"\n"))
+                write(f,string("Params: ",processNoise," ",paramNoise,"\n"))
+                write(f,string("Max Action Count: ",max_action_count,"\n"))
+                write(f,string("Rew: ",mean(rews),"\n"))
+                write(f,string("Sample STD: ", std(rews)/sqrt(numtrials),"\n"))
+            end
+            cd("..")
+        end
+    end
+    if bounds_save
+        try mkdir(data_folder)
+        end
+        cd(data_folder)
+        open(string(sim_save," ",processNoise," ",paramNoise," Bounds ", desired_bounds,".txt"), "w") do f
+            thresh_funct = x -> (x > desired_bounds)
+            out_of_bounds = count(thresh_funct,state_bounds)/(numtrials*nSamples)
+            out_of_bounds_possible = (count(thresh_funct,state_bounds) - action_limit_count)/(numtrials*nSamples - action_limit_count)
+            write(f,string("Percent out of bounds: ",out_of_bounds,"\n"))
+            write(f,string("Percent out of bounds for possible actions: ",out_of_bounds_possible,"\n"))
+            write(f,string("Count for no safe actions: ",action_limit_count,"\n"))
+            write(f,string("Desired Bounds: ",desired_bounds,"\n"))
+            write(f,string("Params: ",processNoise," ",paramNoise,"\n"))
+            write(f,string("Max Action Count: ",max_action_count,"\n"))
+            write(f,string("Rew: ",mean(rews),"\n"))
+            write(f,string("Sample STD: ", std(rews)/sqrt(numtrials),"\n"))
+        end
+        cd("..")
     end
     if save_best # compute avg and std, and maybe write
         # read in current best mean value

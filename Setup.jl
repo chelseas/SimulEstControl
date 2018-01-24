@@ -6,6 +6,8 @@ rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
 state_mean = true # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
+bounds_save = false # save file with bounds trial data
+desired_bounds = 6.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
 quick_run = false
 numtrials = 1 # number of simulation runs
 noiseList = []
@@ -193,21 +195,22 @@ if bounds || bounds_print
       state_init = 1.0 # gain for the initial state
       state_min_tol = 0.1 # prevent states from growing less than X% of original value
       friction_lim = 3.0
-      ub_clip_lim = [Inf*ones(6); state_init*state_min_tol; friction_lim; state_init*state_min_tol*ones(3)] # only upper bound friction to prevent explosion
+      ub_general = 100000.0
+      ub_clip_lim = [Inf*ones(6); Inf; friction_lim; Inf*ones(3)] # only upper bound friction to prevent explosion
       lb_clip_lim = [-Inf*ones(6); state_init*state_min_tol*ones(5)]
   end
   include("EllipseBounds.jl")
   # will need to precompute this for each ProcessNoise case in the sim file so add it to main simulation.jl soon #TODO
-  @show desired_bounds = 6.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
   n_w = 100 #30
   n_out_w = 100 #10
-  F = 1.93 #2.34
+  F = 1.9 #2.34
   # shouldn't the bounds of w be calculated like the state norms, the norm of the worst sample from the confidence region?
-  w_bound_samples = ellipsoid_bounds(MvNormal(zeros(ssm.nx),processNoiseList[1]*eye(ssm.nx,ssm.nx)),n_w,n_out_w,F) # precompute the w_bound
+  w_bound_samples = ellipsoid_bounds_noclip(MvNormal(zeros(ssm.nx),processNoiseList[1]*eye(ssm.nx,ssm.nx)),n_w,n_out_w,F) # precompute the w_bound
   w_bound_avg = mean(w_bound_samples,2) # average samples of the w_bound
   @show w_bound = norm(w_bound_avg*sqrt(processNoiseList[1])) # compute the norm of the STD * the w_bound
-  max_action_count = 10 # how many actions to check before giving up on finding a feasible one
+  max_action_count = 100 # how many actions to check before giving up on finding a feasible one
   action_count = 1
+  action_limit_count = 0
 end
 
 if tree_vis

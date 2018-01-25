@@ -1,14 +1,14 @@
 # strings
 mcts # sim
-mcts_normal # sim_save
-long_mcts_0.01_0.5 # data_folder
+mcts_sine # sim_save
+sine_data # data_folder
 false # cross_entropy
 false # save_last
 false # save_best
 true # state_mean
 true # saving
-false # param_change
-none # param_type
+true # param_change
+sine # param_type
 false # fullobs
 false # print_iters
 false # quick_run
@@ -18,8 +18,8 @@ true # ukf_flag
 50 # num_pop
 10 # num_elite
 25 # CE_iters
-10000 # numtrials
-50 # n_iters
+50 # numtrials
+3000 # n_iters
 1 # samples_per_state
 32 # samples_per_act
 5 # depths

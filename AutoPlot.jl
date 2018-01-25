@@ -6,22 +6,23 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "main_performance_mod" # name data_folder containing folder_list
+data_folder = "long_0.01_0.5"#"main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
-folder_list = readdir()#["first","second"]
-#folder_list = ["0.5"]
+#folder_list = readdir()#["first","second"]
+folder_list = ["mcts_normal_2D_mcts_full_none_false"]
+#folder_list = ["0.5","0.25","0.75","1.0e-5"]
 #folder_list = ["mpc_normal_2D_mpc_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
 cd("..")
 #folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
-compute_avg = true
-vary = true # plot varying process or param noise
+compute_avg = false
+vary = false # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
 profile = false # plot the profile of the results
 profile_rew = false
-profile_init = false
-nSamples2 = 20 # number of steps to show for just the initial parameter estimates
+profile_init = true
+nSamples2 = 49 # number of steps to show for just the initial parameter estimates
 verbose = false # set to true to print debug statements
-plot_legend
+add_legend = true
 
 for folder in folder_list
 #folder = "2D_0.7_step"#"test2"# give data folder name to compute averages from
@@ -56,9 +57,9 @@ if compute_avg
                       lines = readlines(f)
                       data = 1.0*zeros(2,4) # appropriately sized array
                       data[:,1] = parse(Float64,lines[1])
-                      data[:,2] = parse(Float64,lines[2])
-                      data[:,3] = parse(Float64,pom_split[2])/sqrt(50) # the sqrt 50 is to account for the sample size during the runs
-                      data[:,4] = parse(Float64,pom_split[3])/sqrt(50)
+                      data[:,2] = parse(Float64,lines[2])/sqrt(50) # the sqrt 50 is to account for the sample size during the runs
+                      data[:,3] = parse(Float64,pom_split[2])
+                      data[:,4] = parse(Float64,pom_split[3])
                       df = convert(DataFrame, data)
                       if curFolder[1:4] == "qmdp"
                           fname = join(["tot rew 2D qmdp random PN ", pom_split[2]," VARN ", pom_split[3],".csv"])
@@ -118,14 +119,14 @@ if compute_avg
             avg = mean(data,1)
             #@show size(avg)
             if profile_rew || profile_init
-                std = (var(data,1).^0.5)/runs
+                std_var = std(data,1)/sqrt(runs)
             else
-                std = (var(data,1).^0.5)/runs # standard error of the mean
+                std_var = std(data,1)/sqrt(runs) # standard error of the mean
             end
             #@show j
             #@show sum(std)
             # cat avg and std matrices together to make it easier to bring in to plots
-            data = cat(2,avg[1,:,:], std[1,:,:]) # size of num trials x nvars*2
+            data = cat(2,avg[1,:,:], std_var[1,:,:]) # size of num trials x nvars*2
             #@show size(data)
             # convert both to dataFrames and save in a new folder called processed data
             df = convert(DataFrame, data) # should this be transposed?
@@ -189,10 +190,10 @@ end
 # set this to determine what plots should be made
 
 # general variables for plot labeling
-mpc_fobs_leg = "MPC Full Obs"
+mpc_fobs_leg = "MPC Oracle"
 mpc_unk_leg = "MPC"
 mcts_pos_leg = "MCTS Position"
-mcts_rand_leg = "MCTS Random"
+mcts_rand_leg = "MCTS"
 mcts_smooth_leg = "MCTS Smooth"
 qmdp_leg = "QMDP"
 smpc_leg = "SMPC"
@@ -206,7 +207,7 @@ mcts_smooth_style = "purple"
 mpc_fobs_style = "green"
 mpc_unk_style = "orange"
 qmdp_style = "blue"
-smpc_style = "purple"
+smpc_style = "magenta"
 dnn_style = "magenta"
 adapt_style = "brown"
 
@@ -220,8 +221,11 @@ smpc = Float64[]
 dnn = Float64[]
 adapt = Float64[]
 
-sim_leg_list = (mcts_pos_leg, mcts_rand_leg, mcts_smooth_leg, mpc_fobs_leg, mpc_unk_leg, qmdp_leg, smpc_leg, dnn_leg, adapt_leg)
-sim_style_list = (mcts_pos_style, mcts_rand_style, mcts_smooth_style, mpc_fobs_style, mpc_unk_style, qmdp_style, smpc_style, dnn_style, adapt_style)
+sim_leg_list = (mpc_fobs_leg, mpc_unk_leg, smpc_leg, qmdp_leg, mcts_pos_leg, mcts_rand_leg, mcts_smooth_leg, dnn_leg, adapt_leg) # ADD HERE
+sim_style_list = (mpc_fobs_style, mpc_unk_style, smpc_style, qmdp_style, mcts_pos_style, mcts_rand_style, mcts_smooth_style, dnn_style, adapt_style) # ADD HERE
+
+#sim_leg_list = (mcts_pos_leg, mcts_rand_leg, mcts_smooth_leg, mpc_fobs_leg, mpc_unk_leg, qmdp_leg, smpc_leg, dnn_leg, adapt_leg)
+#sim_style_list = (mcts_pos_style, mcts_rand_style, mcts_smooth_style, mpc_fobs_style, mpc_unk_style, qmdp_style, smpc_style, dnn_style, adapt_style)
 
 
 col5 = "black"
@@ -794,7 +798,8 @@ if profile_init # plot the profiles for the runs
   profile_est = PGFPlots.Plots.Linear[]
   profile_ctrl = PGFPlots.Plots.Linear[]
   profile_rew = PGFPlots.Plots.Linear[]
-  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, smpc, dnn, adapt) # ADD HERE
+  #sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, smpc, dnn, adapt) # ADD HERE
+  sim_list = (mpc_fobs, mpc_unk, smpc, qmdp, mcts_pos, mcts_rand, mcts_smooth, dnn, adapt) # ADD HERE
   #@show size(temp_st), "is the first dim nSamples?"
   nSamples = size(temp_ctrl)[1]
   # loop through all sims and add all relevant ones to the plots
@@ -862,12 +867,17 @@ if profile_init # plot the profiles for the runs
       #Plots.Linear(0:nSamples-1,mcts_pos_st[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_st[1:nSamples,2]), style=mcts_pos_style,  mark=mark1, legendentry=mcts_pos_leg)
       #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
       ,ylabel=stlab, width = wdth, height=ht)
-
-  est = Axis(profile_est
-      #Plots.Linear(0:nSamples-1,mcts_pos_est[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_est[1:nSamples,2]), style=mcts_pos_style,  mark=mark1)
-      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
-      , ylabel=estlab, width = wdth, height=ht) #"Velocity (m/s)"
-
+  if add_legend
+      est = Axis(profile_est
+          #Plots.Linear(0:nSamples-1,mcts_pos_est[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_est[1:nSamples,2]), style=mcts_pos_style,  mark=mark1)
+          #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+          , ylabel=estlab, legendPos="north west", width = wdth, height=ht) #"Velocity (m/s)"
+  else
+      est = Axis(profile_est
+          #Plots.Linear(0:nSamples-1,mcts_pos_est[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_est[1:nSamples,2]), style=mcts_pos_style,  mark=mark1)
+          #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+          , ylabel=estlab, width = wdth, height=ht) #"Velocity (m/s)"
+  end
   ctrl = Axis(profile_ctrl
       #Plots.Linear(1:safeiters,LQG18[1:safeiters,var3+ex], style=mcts_pos_style,  mark=mark1)
       #Plots.Linear(0:nSamples-1,mcts_pos_ctrl[:,1],errorBars = ErrorBars(y=mcts_pos_ctrl[:,2]), style=mcts_pos_style,  mark=mark1)

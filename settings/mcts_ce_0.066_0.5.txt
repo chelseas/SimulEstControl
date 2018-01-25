@@ -21,10 +21,10 @@ true # ukf_flag
 50 # numtrials
 3000 # n_iters
 1 # samples_per_state
-20 # samples_per_act
-20 # depths
+28 # samples_per_act
+6 # depths
 # floats
-10.0 # expl_constant
+25.4 # expl_constant
 # arrays (floats), put spaces without brackets between all values
 0.066 # processNoiseList
 0.5 # paramNoiseList

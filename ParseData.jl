@@ -1,7 +1,7 @@
 using DataFrames
-data_folder = "test"
+data_folder = "main_performance_mod"
 
-folder = "MPC_fobs_0.033_0.5_2D_mpc_full_none_true"#"test2"# give data folder name to compute averages from
+folder = "0.5"#"test2"# give data folder name to compute averages from
 
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through

@@ -6,20 +6,22 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "long_0.001_0.25" # name data_folder containing folder_list
+data_folder = "main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
-#folder_list = readdir()#["first","second"]
-folder_list = ["mcts_normal_2D_mcts_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
+folder_list = readdir()#["first","second"]
+#folder_list = ["0.5"]
+#folder_list = ["mpc_normal_2D_mpc_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
 cd("..")
 #folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
 compute_avg = true
-vary = false # plot varying process or param noise
+vary = true # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
 profile = false # plot the profile of the results
 profile_rew = false
-profile_init = true
+profile_init = false
 nSamples2 = 20 # number of steps to show for just the initial parameter estimates
 verbose = false # set to true to print debug statements
+plot_legend
 
 for folder in folder_list
 #folder = "2D_0.7_step"#"test2"# give data folder name to compute averages from
@@ -35,97 +37,136 @@ if verbose
 end
 #@show sim_cases
 f1 = sim_cases[1]
-runs = parse(Int64,split(f1)[end]) # number of runs
+try
+    runs = parse(Int64,split(f1)[end]) # number of runs ##UNCOMMENT THIS when done testing qmdp
+catch
+    @show "The first folder is qmdp/mcts and it can't find a number of runs in the title"
+end
 # CREATE AVERAGES AND STD OF DATA FOR PLOTTING
 if compute_avg
-
     for i = 1:length(sim_cases) # go through each data folder to compute averages
       curFolder = sim_cases[i]
-      runs = parse(Int64,split(curFolder)[end]) # number of runs
-      if verbose
-      @show runs
-      end
-      cd(curFolder)
-      dataFiles = readdir() # all names of .csv files in this directory
-      #@show dataFiles
-      #@show dataFiles
-      #@show dataFiles
-      #@show length(dataFiles)
-      dfr = reshape(dataFiles, runs, length(data_type))
-      #@show dfr[:,1]
-      for j = 1:length(data_type) # for each file type
-        #keywords = parse(dfr[1,j]) # words from title of first in trials
-        sim_sets = split(dfr[1,j]) # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
-        gen = CSV.read(dfr[1,j]) # load first table to get the size information
-        nvars, numSteps = size(gen)
-        data = Array{Float64,3}(runs, nvars, numSteps)
-        if verbose
-        @show size(data)
-        end
-        #std = Array{Float64,3}(runs, numSteps, nvars)
-        for k = 1:runs # for each trial compute an average and std
-
-          temp = CSV.read(dfr[k,j]) # load individual file
+      if curFolder[1:4] == "qmdp" || curFolder[1:4] == "mcts"
+          cd(curFolder)
+              pomdpFiles = readdir()
+              for pom in pomdpFiles
+                  if pom[1:4] == "best" # finding best file --> reading avg rew and std vals
+                      pom_split = split(pom) # has.txt on end
+                      f = open(pom)
+                      lines = readlines(f)
+                      data = 1.0*zeros(2,4) # appropriately sized array
+                      data[:,1] = parse(Float64,lines[1])
+                      data[:,2] = parse(Float64,lines[2])
+                      data[:,3] = parse(Float64,pom_split[2])/sqrt(50) # the sqrt 50 is to account for the sample size during the runs
+                      data[:,4] = parse(Float64,pom_split[3])/sqrt(50)
+                      df = convert(DataFrame, data)
+                      if curFolder[1:4] == "qmdp"
+                          fname = join(["tot rew 2D qmdp random PN ", pom_split[2]," VARN ", pom_split[3],".csv"])
+                      else
+                          fname = join(["tot rew 2D mcts random PN ", pom_split[2]," VARN ", pom_split[3],".csv"])
+                      end
+                      cd("../..")
+                      pdata = " processed data"
+                      newF = join([folder,pdata])
+                      try mkdir(newF)
+                      end
+                      cd(newF) # go into processed data file
+                      tot_dir = "total rewards"
+                      try mkdir(tot_dir)
+                      end
+                      cd(tot_dir) # in total dir
+                      CSV.write(fname,df)
+                      cd("../..")
+                      cd(folder)
+                      cd(curFolder)
+                  end
+              end
+      else
+          runs = parse(Int64,split(curFolder)[end]) # number of runs
           if verbose
-          @show dfr[k,j]
-          @show size(temp)
+          @show runs
           end
-          data[k,:,:] = Array(temp)
-        end
-        # save new avg and std values --> just stack next to each other
-        # do this both for the trials vs iteration
-        avg = mean(data,1)
-        #@show size(avg)
-        if profile_rew || profile_init
-            std = (var(data,1).^0.5)/runs
-        else
-            std = (var(data,1).^0.5)/runs # standard error of the mean
-        end
-        #@show j
-        #@show sum(std)
-        # cat avg and std matrices together to make it easier to bring in to plots
-        data = cat(2,avg[1,:,:], std[1,:,:]) # size of num trials x nvars*2
-        #@show size(data)
-        # convert both to dataFrames and save in a new folder called processed data
-        df = convert(DataFrame, data) # should this be transposed?
-        #append!(a,b) to add words on to the end of the list to recreate a title
-        # join(a) to merge list of words into string
-        # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
-        fname_temp = join(sim_sets[1:8], " ") # new name for all but trial and T#
-        #@show fname_temp
-        fname = join([fname_temp ".csv"])
-        #@show fname
-        cd("../..")
-        pdata = " processed data"
-        newF = join([folder,pdata])
-        try mkdir(newF)
-        end
-        cd(newF) # go into processed data file
-        # STORE THE FILES here
-        CSV.write(fname,df)
+          cd(curFolder)
+          dataFiles = readdir() # all names of .csv files in this directory
+          #@show dataFiles
+          #@show dataFiles
+          #@show dataFiles
+          #@show length(dataFiles)
+          dfr = reshape(dataFiles, runs, length(data_type))
+          #@show dfr[:,1]
+          for j = 1:length(data_type) # for each file type
+            #keywords = parse(dfr[1,j]) # words from title of first in trials
+            sim_sets = split(dfr[1,j]) # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
+            gen = CSV.read(dfr[1,j]) # load first table to get the size information
+            nvars, numSteps = size(gen)
+            data = Array{Float64,3}(runs, nvars, numSteps)
+            if verbose
+            @show size(data)
+            end
+            #std = Array{Float64,3}(runs, numSteps, nvars)
+            for k = 1:runs # for each trial compute an average and std
 
-        # and for reward just overall trail sum (avg, sum, processN, paramN)
-        if j == 3 # corresponding to the reward
-          tot_dir = "total rewards"
-          try mkdir(tot_dir)
+              temp = readtable(dfr[k,j]) # load individual file
+              if verbose
+              @show dfr[k,j]
+              @show size(temp)
+              end
+              data[k,:,:] = Array(temp)
+            end
+            # save new avg and std values --> just stack next to each other
+            # do this both for the trials vs iteration
+            avg = mean(data,1)
+            #@show size(avg)
+            if profile_rew || profile_init
+                std = (var(data,1).^0.5)/runs
+            else
+                std = (var(data,1).^0.5)/runs # standard error of the mean
+            end
+            #@show j
+            #@show sum(std)
+            # cat avg and std matrices together to make it easier to bring in to plots
+            data = cat(2,avg[1,:,:], std[1,:,:]) # size of num trials x nvars*2
+            #@show size(data)
+            # convert both to dataFrames and save in a new folder called processed data
+            df = convert(DataFrame, data) # should this be transposed?
+            #append!(a,b) to add words on to the end of the list to recreate a title
+            # join(a) to merge list of words into string
+            # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
+            fname_temp = join(sim_sets[1:8], " ") # new name for all but trial and T#
+            #@show fname_temp
+            fname = join([fname_temp ".csv"])
+            #@show fname
+            cd("../..")
+            pdata = " processed data"
+            newF = join([folder,pdata])
+            try mkdir(newF)
+            end
+            cd(newF) # go into processed data file
+            # STORE THE FILES here
+            CSV.write(fname,df)
+
+            # and for reward just overall trail sum (avg, sum, processN, paramN)
+            if j == 3 # corresponding to the reward
+              tot_dir = "total rewards"
+              try mkdir(tot_dir)
+              end
+              cd(tot_dir)
+              avgtot = mean(data,[1,3])[1,1,1] # return just the value for the mean
+              stdtot = (var(mean(data,3),1)[1,1,1].^0.5)/runs # sum data along all numSteps and take std among runs
+              PN = parse(Float64,sim_sets[6])
+              PRN = parse(Float64,sim_sets[8])
+              rew_ret = [avgtot stdtot PN PRN]' # returning the point to plot
+              df2 = convert(DataFrame, [rew_ret rew_ret]')
+              fname2 = join(["tot " fname])
+              CSV.write(fname2,df2)
+              cd("..")
+            end
+
+            cd("..")
+            cd(folder)
+            cd(curFolder)
           end
-          cd(tot_dir)
-          avgtot = mean(data,[1,3])[1,1,1] # return just the value for the mean
-          stdtot = (var(mean(data,3),1)[1,1,1].^0.5)/runs # sum data along all numSteps and take std among runs
-          PN = parse(Float64,sim_sets[6])
-          PRN = parse(Float64,sim_sets[8])
-          rew_ret = [avgtot stdtot PN PRN]' # returning the point to plot
-          df2 = convert(DataFrame, [rew_ret rew_ret]')
-          fname2 = join(["tot " fname])
-          CSV.write(fname2,df2)
-          cd("..")
-        end
-
-        cd("..")
-        cd(folder)
-        cd(curFolder)
-      end
-
+      end # for the if/else dividing qmdp/mcts
       cd("..") # back out of this folder
     end
 
@@ -154,7 +195,7 @@ mcts_pos_leg = "MCTS Position"
 mcts_rand_leg = "MCTS Random"
 mcts_smooth_leg = "MCTS Smooth"
 qmdp_leg = "QMDP"
-nn_leg = "NN"
+smpc_leg = "SMPC"
 dnn_leg = "DNN"
 adapt_leg = "Adaptive"
 # ADD HERE
@@ -165,7 +206,7 @@ mcts_smooth_style = "purple"
 mpc_fobs_style = "green"
 mpc_unk_style = "orange"
 qmdp_style = "blue"
-nn_style = "grey"
+smpc_style = "purple"
 dnn_style = "magenta"
 adapt_style = "brown"
 
@@ -175,12 +216,12 @@ mcts_smooth = Float64[]
 mpc_fobs = Float64[]
 mpc_unk = Float64[]
 qmdp = Float64[]
-nn = Float64[]
+smpc = Float64[]
 dnn = Float64[]
 adapt = Float64[]
 
-sim_leg_list = (mcts_pos_leg, mcts_rand_leg, mcts_smooth_leg, mpc_fobs_leg, mpc_unk_leg, qmdp_leg, nn_leg, dnn_leg, adapt_leg)
-sim_style_list = (mcts_pos_style, mcts_rand_style, mcts_smooth_style, mpc_fobs_style, mpc_unk_style, qmdp_style, nn_style, dnn_style, adapt_style)
+sim_leg_list = (mcts_pos_leg, mcts_rand_leg, mcts_smooth_leg, mpc_fobs_leg, mpc_unk_leg, qmdp_leg, smpc_leg, dnn_leg, adapt_leg)
+sim_style_list = (mcts_pos_style, mcts_rand_style, mcts_smooth_style, mpc_fobs_style, mpc_unk_style, qmdp_style, smpc_style, dnn_style, adapt_style)
 
 
 col5 = "black"
@@ -222,8 +263,8 @@ if vary
       end
     elseif sim == "qmdp"
       qmdp = vcat(qmdp, curVec)
-    elseif sim == "nn"
-      nn = vcat(nn,curVec)
+    elseif sim == "smpc"
+      smpc = vcat(smpc,curVec)
     elseif sim == "dnn"
       dnn = vcat(dnn,curVec)
     elseif sim == "adapt"
@@ -253,7 +294,7 @@ if vary
   # check if the arrays for all the floats are filled with data and add to the plotting lists accordingly
 
   # have to define sim_list after the data has been stored in the arrays
-  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, nn, dnn, adapt) # ADD HERE
+  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, smpc, dnn, adapt) # ADD HERE
   varyPlot_list = PGFPlots.Plots.Linear[] # start blank and add for each possible sim with values
   for i in 1:length(sim_list)
     if length(sim_list[i]) != 0
@@ -342,8 +383,8 @@ if profile # plot the profiles for the runs
       end
     elseif sim == "qmdp"
       qmdp = (temp_st,temp_est,temp_ctrl,temp_rew)
-    elseif sim == "nn"
-      nn = (temp_st,temp_est,temp_ctrl,temp_rew)
+    elseif sim == "smpc"
+      smpc = (temp_st,temp_est,temp_ctrl,temp_rew)
     elseif sim == "dnn"
       dnn = (temp_st,temp_est,temp_ctrl,temp_rew)
     elseif sim == "adapt"
@@ -357,7 +398,7 @@ if profile # plot the profiles for the runs
   profile_est = PGFPlots.Plots.Linear[]
   profile_ctrl = PGFPlots.Plots.Linear[]
   profile_rew = PGFPlots.Plots.Linear[]
-  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, nn, dnn, adapt) # ADD HERE
+  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, smpc, dnn, adapt) # ADD HERE
   #@show size(temp_st), "is the first dim nSamples?"
   nSamples = size(temp_ctrl)[1]
   # loop through all sims and add all relevant ones to the plots
@@ -540,8 +581,8 @@ if profile_rew # plot the profiles for the runs
       end
     elseif sim == "qmdp"
       qmdp = (temp_st,temp_est,temp_ctrl,temp_rew)
-    elseif sim == "nn"
-      nn = (temp_st,temp_est,temp_ctrl,temp_rew)
+    elseif sim == "smpc"
+      smpc = (temp_st,temp_est,temp_ctrl,temp_rew)
     elseif sim == "dnn"
       dnn = (temp_st,temp_est,temp_ctrl,temp_rew)
     elseif sim == "adapt"
@@ -555,7 +596,7 @@ if profile_rew # plot the profiles for the runs
   profile_est = PGFPlots.Plots.Linear[]
   profile_ctrl = PGFPlots.Plots.Linear[]
   profile_rew = PGFPlots.Plots.Linear[]
-  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, nn, dnn, adapt) # ADD HERE
+  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, smpc, dnn, adapt) # ADD HERE
   #@show size(temp_st), "is the first dim nSamples?"
   nSamples = size(temp_ctrl)[1]
   # loop through all sims and add all relevant ones to the plots
@@ -738,8 +779,8 @@ if profile_init # plot the profiles for the runs
       end
     elseif sim == "qmdp"
       qmdp = (temp_st,temp_est,temp_ctrl,temp_rew)
-    elseif sim == "nn"
-      nn = (temp_st,temp_est,temp_ctrl,temp_rew)
+    elseif sim == "smpc"
+      smpc = (temp_st,temp_est,temp_ctrl,temp_rew)
     elseif sim == "dnn"
       dnn = (temp_st,temp_est,temp_ctrl,temp_rew)
     elseif sim == "adapt"
@@ -753,7 +794,7 @@ if profile_init # plot the profiles for the runs
   profile_est = PGFPlots.Plots.Linear[]
   profile_ctrl = PGFPlots.Plots.Linear[]
   profile_rew = PGFPlots.Plots.Linear[]
-  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, nn, dnn, adapt) # ADD HERE
+  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, smpc, dnn, adapt) # ADD HERE
   #@show size(temp_st), "is the first dim nSamples?"
   nSamples = size(temp_ctrl)[1]
   # loop through all sims and add all relevant ones to the plots

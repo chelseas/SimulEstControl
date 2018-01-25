@@ -1,7 +1,7 @@
 # strings
 mpc # sim
 mpc_normal # sim_save
-long_mpc_0.1_0.5 # data_folder
+long_0.1_0.5 # data_folder
 false # cross_entropy
 false # save_last
 false # save_best

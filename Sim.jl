@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "long_mpc_0.0001_0.25" # name of data file to load
+  settings_file = "nobound_mcts_highnoise_12" # name of data file to load
   settings_folder = "settings" # store data files here
   include("Setup.jl")
 

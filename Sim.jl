@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "bound_mcts_lownoise_lowthresh" # name of data file to load
+  settings_file = "long_mpc_0.0001_0.25" # name of data file to load
   settings_folder = "settings" # store data files here
   include("Setup.jl")
 
@@ -161,7 +161,7 @@
             #@show est_temp = MvNormal(mean(xNew)[ssm.states+1:end],cov(xNew)[ssm.states+1:end,ssm.states+1:end]) # MvNormal of Ests
 
             if bounds_print # show the state_bounds and see if they are within the threshold
-              @show state_bounds[(j-1)*nSamples+i] = norm(x[:,i+1]) # actual bounds for next state
+              @show state_bounds[(j-1)*nSamples+i] = norm(x[1:6,i+1]) # actual bounds for next state
               #@show act_dep_bounds[(j-1)*nSamples+i] = overall_bounds([-100.0],xNew,u[:,i],w_bound) # setting state_temp = [-100.0] to just use belief
             end
 

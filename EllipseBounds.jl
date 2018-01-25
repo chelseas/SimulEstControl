@@ -189,7 +189,7 @@ function overall_bounds(state::Array{Float64,1},est::MvNormal,u::Array{Float64,1
       sample_state = [state; est_bound[:,i]] # form combined "state" from state and est samples
     end
     sample_next_state = ssm.f(sample_state,u) # propagating the sample_state and given action forward
-    sample_state_bound = norm(sample_next_state) # taking norm
+    sample_state_bound = norm(sample_next_state[1:6]) # taking norm
     if sample_state_bound > state_bound
       state_bound = sample_state_bound # keep largest bound from samples
     end

@@ -1,15 +1,12 @@
 # strings
-mcts # sim
-mcts_bound # sim_save
-bound_mcts # data_folder
+mpc # sim
+mpc_normal # sim_save
+long_0.0001_0.25 # data_folder
 false # cross_entropy
 false # save_last
 false # save_best
 true # state_mean
-true # bounds
-true # bounds_save
-true # bounds_print
-false # saving
+true # saving
 false # param_change
 none # param_type
 false # fullobs
@@ -18,18 +15,19 @@ false # quick_run
 true # ukf_flag
 2D # prob
 # ints
-10 # numtrials
+50 # num_pop
+10 # num_elite
+25 # CE_iters
+100 # numtrials
 50 # n_iters
 1 # samples_per_state
-32 # samples_per_act
-5 # depths
+49 # samples_per_act
+6 # depths
 # floats
-4.0 # desired_bounds
-1.93 # F
-20.1 # expl_constant
+16 # expl_constant
 # arrays (floats), put spaces without brackets between all values
-0.01 # processNoiseList
-0.5 # paramNoiseList
+0.0001 # processNoiseList
+0.25 # paramNoiseList
 # cross entropy variables (floats)
 1.0 # states_m
 1.0 # states_std

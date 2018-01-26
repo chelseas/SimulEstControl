@@ -6,20 +6,20 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "long_0.01_0.5"#"main_performance_mod" # name data_folder containing folder_list
+data_folder = "main_performance_mod"#"main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
-#folder_list = readdir()#["first","second"]
-folder_list = ["mcts_normal_2D_mcts_full_none_false"]
+folder_list = readdir()#["first","second"]
+#folder_list = ["mcts_normal_2D_mcts_full_none_false"]
 #folder_list = ["0.5","0.25","0.75","1.0e-5"]
 #folder_list = ["mpc_normal_2D_mpc_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
 cd("..")
 #folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
-compute_avg = false
-vary = false # plot varying process or param noise
+compute_avg = true
+vary = true # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
 profile = false # plot the profile of the results
 profile_rew = false
-profile_init = true
+profile_init = false
 nSamples2 = 49 # number of steps to show for just the initial parameter estimates
 verbose = false # set to true to print debug statements
 add_legend = true
@@ -34,7 +34,7 @@ cd(folder)
 # go into all of these folders and compute average values and std devs of the trials
 sim_cases = readdir() # list of filenames in this directory
 if verbose
-@show sim_cases
+    @show sim_cases
 end
 #@show sim_cases
 f1 = sim_cases[1]
@@ -153,7 +153,7 @@ if compute_avg
               end
               cd(tot_dir)
               avgtot = mean(data,[1,3])[1,1,1] # return just the value for the mean
-              stdtot = (var(mean(data,3),1)[1,1,1].^0.5)/runs # sum data along all numSteps and take std among runs
+              stdtot = (var(mean(data,3),1)[1,1,1].^0.5)/sqrt(runs) # sum data along all numSteps and take std among runs
               PN = parse(Float64,sim_sets[6])
               PRN = parse(Float64,sim_sets[8])
               rew_ret = [avgtot stdtot PN PRN]' # returning the point to plot
@@ -226,8 +226,6 @@ sim_style_list = (mpc_fobs_style, mpc_unk_style, smpc_style, qmdp_style, mcts_po
 
 #sim_leg_list = (mcts_pos_leg, mcts_rand_leg, mcts_smooth_leg, mpc_fobs_leg, mpc_unk_leg, qmdp_leg, smpc_leg, dnn_leg, adapt_leg)
 #sim_style_list = (mcts_pos_style, mcts_rand_style, mcts_smooth_style, mpc_fobs_style, mpc_unk_style, qmdp_style, smpc_style, dnn_style, adapt_style)
-
-
 col5 = "black"
 mark1 = "none"
 
@@ -298,22 +296,25 @@ if vary
   # check if the arrays for all the floats are filled with data and add to the plotting lists accordingly
 
   # have to define sim_list after the data has been stored in the arrays
-  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, smpc, dnn, adapt) # ADD HERE
+  sim_list = (mpc_fobs, mpc_unk, smpc, qmdp, mcts_pos, mcts_rand, mcts_smooth, dnn, adapt) # ADD HERE
   varyPlot_list = PGFPlots.Plots.Linear[] # start blank and add for each possible sim with values
   for i in 1:length(sim_list)
     if length(sim_list[i]) != 0
-      cp = Plots.Linear(sim_list[i][:,vv],sim_list[i][:,1], errorBars = ErrorBars(y=sim_list[i][:,2]),style=sim_style_list[i],  mark=mark1, legendentry = sim_leg_list[i])
-      append!(varyPlot_list, [cp]) # should end up with a list of
+        if add_legend && (folder == "1.0e-5") # need legend on first graph in series
+            cp = Plots.Linear(sim_list[i][:,vv],sim_list[i][:,1], errorBars = ErrorBars(y=sim_list[i][:,2]),style=sim_style_list[i],  mark=mark1, legendentry = sim_leg_list[i])
+        else
+            cp = Plots.Linear(sim_list[i][:,vv],sim_list[i][:,1], errorBars = ErrorBars(y=sim_list[i][:,2]),style=sim_style_list[i],  mark=mark1)
+        end
+        append!(varyPlot_list, [cp]) # should end up with a list of
     end
   end
 
-  varyProcessPlot = Axis(varyPlot_list# comment out lines below if that sim type is not going to be plotted
-      #Plots.Linear(mcts_pos[:,vv],mcts_pos[:,1], errorBars = ErrorBars(y=mcts_pos[:,2]),style=mcts_pos_style,  mark=mark1, legendentry = mcts_pos_leg)
-      #Plots.Linear(mcts_rand[:,vv],mcts_rand[:,1], errorBars = ErrorBars(y=mcts_rand[:,2]),style=mcts_pos_style,  mark=mark1, legendentry = mcts_rand_leg)
-      #Plots.Linear(mcts_rand[:,vv],mcts_rand[:,1], errorBars = ErrorBars(y=mcts_rand[:,2]),style=mcts_pos_style,  mark=mark1, legendentry = mcts_rand_leg)
-      #Plots.Linear(mcts_smooth[:,vv],mcts_smooth[:,1], errorBars = ErrorBars(y=mcts_smooth[:,2]),style=col4,  mark=mark1, legendentry = mcts_smooth_leg)
-      #Plots.Linear(qmdp[:,vv],qmdp[:,vv], errorBars = ErrorBars(y=qmdp[:,vv]),style=col5,  mark=mark1, legendentry = qmdp_leg)
-      ,xmode="log",xlabel = xaxis,ylabel=yaxis,legendPos="south west")
+  if add_legend && (folder == "1.0e-5") # need legend on first graph in series
+      varyProcessPlot = Axis(varyPlot_list,xlabel = xaxis,ylabel=yaxis,legendPos="south west")
+  else
+      varyProcessPlot = Axis(varyPlot_list,xlabel = xaxis,ylabel=yaxis)
+  end
+
   title1 = join([folder, title_start," TR ", tempName[3], " PN ", tempName[7], " VARN ", tempName[9][1:end-4]])
   save(string(title1,".pdf"),varyProcessPlot)
   save(string(title1,".svg"),varyProcessPlot)
@@ -328,10 +329,6 @@ function format_data(A::Matrix)
   Afinal = [A1 A2]
   return Afinal
 end
-
-
-# Need to get 4 matrices of vars for all possible sims
-# compute the 4 matrices for each one present --> store as a tuple in a sim array
 
 if profile # plot the profiles for the runs
   # avg vs nSamples plots
@@ -402,7 +399,7 @@ if profile # plot the profiles for the runs
   profile_est = PGFPlots.Plots.Linear[]
   profile_ctrl = PGFPlots.Plots.Linear[]
   profile_rew = PGFPlots.Plots.Linear[]
-  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, smpc, dnn, adapt) # ADD HERE
+  sim_list = (mpc_fobs, mpc_unk, smpc, qmdp, mcts_pos, mcts_rand, mcts_smooth, dnn, adapt) # ADD HERE
   #@show size(temp_st), "is the first dim nSamples?"
   nSamples = size(temp_ctrl)[1]
   # loop through all sims and add all relevant ones to the plots
@@ -528,7 +525,6 @@ if profile # plot the profiles for the runs
   save(string(title3,".pdf"),g3)
   save(string(title3,".svg"),g3)
   save(string(title3,".tex"),g3, include_preamble=false)
-
 end
 
 if profile_rew # plot the profiles for the runs
@@ -600,7 +596,7 @@ if profile_rew # plot the profiles for the runs
   profile_est = PGFPlots.Plots.Linear[]
   profile_ctrl = PGFPlots.Plots.Linear[]
   profile_rew = PGFPlots.Plots.Linear[]
-  sim_list = (mcts_pos, mcts_rand, mcts_smooth, mpc_fobs, mpc_unk, qmdp, smpc, dnn, adapt) # ADD HERE
+  sim_list = (mpc_fobs, mpc_unk, smpc, qmdp, mcts_pos, mcts_rand, mcts_smooth, dnn, adapt) # ADD HERE
   #@show size(temp_st), "is the first dim nSamples?"
   nSamples = size(temp_ctrl)[1]
   # loop through all sims and add all relevant ones to the plots
@@ -726,7 +722,6 @@ if profile_rew # plot the profiles for the runs
   save(string(title3,".pdf"),g3)
   save(string(title3,".svg"),g3)
   save(string(title3,".tex"),g3, include_preamble=false)
-
 end
 
 if profile_init # plot the profiles for the runs
@@ -930,10 +925,7 @@ if profile_init # plot the profiles for the runs
   save(string(title3,".pdf"),g3)
   save(string(title3,".svg"),g3)
   save(string(title3,".tex"),g3, include_preamble=false)
-
 end
 
 cd("../..")
-
-
 end # end the outer for loop for all given folders

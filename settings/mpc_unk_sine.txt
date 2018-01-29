@@ -9,7 +9,7 @@ false # state_mean
 true # saving
 true # param_change
 sine # param_type
-true # fullobs
+false # fullobs
 false # print_iters
 false # quick_run
 true # ukf_flag

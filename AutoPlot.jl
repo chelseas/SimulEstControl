@@ -6,7 +6,7 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "main_performance_mod"#"main_performance_mod" # name data_folder containing folder_list
+data_folder = "sine_data_mod"#"main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
 folder_list = readdir()#["first","second"]
 #folder_list = ["mcts_normal_2D_mcts_full_none_false"]

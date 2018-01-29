@@ -1,11 +1,12 @@
 # strings
-mpc # sim
-mpc_normal # sim_save
-long_0.01_0.5 # data_folder
+mcts # sim
+mcts_dpw # sim_save
+dpw_reg # data_folder
+region # reward_type
 false # cross_entropy
 false # save_last
 false # save_best
-true # state_mean
+false # state_mean
 true # saving
 false # param_change
 none # param_type
@@ -18,15 +19,15 @@ true # ukf_flag
 50 # num_pop
 10 # num_elite
 25 # CE_iters
-10000 # numtrials
-50 # n_iters
-1 # samples_per_state
-16 # samples_per_act
+50 # numtrials
+3000 # n_iters
+3 # samples_per_state
+20 # samples_per_act
 6 # depths
 # floats
-20.0 # expl_constant
+25.0 # expl_constant
 # arrays (floats), put spaces without brackets between all values
-0.01 # processNoiseList
+0.066 # processNoiseList
 0.5 # paramNoiseList
 # cross entropy variables (floats)
 1.0 # states_m

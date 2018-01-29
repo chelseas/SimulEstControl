@@ -2,7 +2,7 @@
 # Format: data_folder in SimulEst git folders
 # Inside this have all folders one inside main sim: ex mpc_unk/mp_normal_2D_mpc_full_none_true
 # have mpc_normal_2D... inside the data_folder
-data_folder = "main_performance"
+data_folder = "sine_data"
 new_data_folder = string(data_folder,"_mod")
 varn = true # group into folders for given varn values
 

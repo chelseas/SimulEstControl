@@ -6,7 +6,7 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "sine_data_mod"#"main_performance_mod" # name data_folder containing folder_list
+data_folder = "dpw_reg"#"main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
 folder_list = readdir()#["first","second"]
 #folder_list = ["mcts_normal_2D_mcts_full_none_false"]
@@ -15,9 +15,9 @@ folder_list = readdir()#["first","second"]
 cd("..")
 #folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
 compute_avg = true
-vary = true # plot varying process or param noise
+vary = false # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
-profile = false # plot the profile of the results
+profile = true # plot the profile of the results
 profile_rew = false
 profile_init = false
 nSamples2 = 49 # number of steps to show for just the initial parameter estimates
@@ -481,7 +481,7 @@ if profile # plot the profiles for the runs
 
   rew = Axis(profile_rew
       #Plots.Linear(0:nSamples-1,mcts_pos_rew[:,1],errorBars = ErrorBars(y=mcts_pos_rew[:,2]), style=mcts_pos_style,  mark=mark1)
-      ,xlabel=xaxis, ylabel=rewlab, legendPos="south east", width = wdth, height = ht2)
+      ,xlabel=xaxis, ylabel=rewlab, legendPos="north east", width = wdth, height = ht2)
 
   g3 = GroupPlot(1,4, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
   push!(g3, st)

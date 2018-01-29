@@ -59,8 +59,8 @@ max_eig_cutoff = 5.0
 # Reward type settings
 reward_type = "L1" # L1 (standard L1 cost function) or region (for being within a desired zone)
 if prob == "2D"
-    state_bound_value = 0.5#0.05
-    th_bound_value = 1.0#0.174
+    state_bound_value = 2.0#0.05
+    th_bound_value = 2.0#0.174
     region_lb = [-state_bound_value, -state_bound_value, -th_bound_value] # values for x,y,theta lower bound for being in the reward area
     region_ub = [state_bound_value, state_bound_value, th_bound_value]
     rew_in_region = 0.0

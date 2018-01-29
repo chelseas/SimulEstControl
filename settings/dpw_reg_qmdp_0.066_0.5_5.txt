@@ -1,7 +1,7 @@
 # strings
 qmdp # sim
 qmdp_dpw # sim_save
-dpw_reg # data_folder
+dpw_reg5 # data_folder
 region # reward_type
 false # cross_entropy
 false # save_last

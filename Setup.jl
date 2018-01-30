@@ -59,19 +59,6 @@ max_eig_cutoff = 5.0
 # Reward type settings
 reward_type = "L1" # L1 (standard L1 cost function) or region (for being within a desired zone)
 reward_region = "large"
-if prob == "2D"
-    if reward_region == "large"
-        state_bound_value = 2.0#0.05
-        th_bound_value = 2.0#0.174
-    elseif reward_region == "small"
-        state_bound_value = 0.5
-        th_bound_value = 3.14159/4
-    end
-    region_lb = [-state_bound_value, -state_bound_value, -th_bound_value] # values for x,y,theta lower bound for being in the reward area
-    region_ub = [state_bound_value, state_bound_value, th_bound_value]
-    rew_in_region = 0.0
-    rew_out_region = -1.0
-end
 
 # Settings for simulation
 measNoise = 0.000001 # standard deviation of measurement noise
@@ -90,6 +77,20 @@ depths = 5 # depth of tree
 expl_constant = 0.1#100.0 #exploration const
 
 include("ReadSettings.jl") # read in new values from data file if given
+
+if prob == "2D"
+    if reward_region == "large"
+        state_bound_value = 2.0#0.05
+        th_bound_value = 2.0#0.174
+    elseif reward_region == "small"
+        state_bound_value = 0.5
+        th_bound_value = 3.14159/4
+    end
+    region_lb = [-state_bound_value, -state_bound_value, -th_bound_value] # values for x,y,theta lower bound for being in the reward area
+    region_ub = [state_bound_value, state_bound_value, th_bound_value]
+    rew_in_region = 0.0
+    rew_out_region = -1.0
+end
 
 if quick_run
   nSamples = 5 # quick amount of steps for debug_bounds

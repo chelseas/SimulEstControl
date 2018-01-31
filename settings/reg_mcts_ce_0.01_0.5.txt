@@ -7,7 +7,7 @@ true # save_last
 true # save_best
 true # state_mean
 region # reward_type
-small # reward_type
+small # reward_region
 false # saving
 false # param_change
 none # param_type

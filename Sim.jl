@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "nobound_mcts_highnoise_12" # name of data file to load
+  settings_file = "none" # name of data file to load
   settings_folder = "settings" # store data files here
   include("Setup.jl")
 
@@ -23,9 +23,9 @@
         paramNoise = params[7]
         alpha_act = 1.0/30.0 # alpha for action
         alpha_st = 1.0/30.0 # alpha for state
-        k_act = max(1,params[2])/(n_iters^alpha_act) # k for action
-        k_st = max(1,params[1])/(n_iters^alpha_st) # k for state
-        solverCE = DPWSolver(n_iterations = Int(params[5]), depth = Int(params[3]), exploration_constant = params[4],
+        k_act = max(1,params[1])/(n_iters^alpha_act) # k for action
+        k_st = max(1,params[4])/(n_iters^alpha_st) # k for state
+        solverCE = DPWSolver(n_iterations = Int(params[5]), depth = Int(params[2]), exploration_constant = params[3],
         k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)
         policyCE = MCTS.solve(solverCE,mdp)
         k_iter = params[end]
@@ -338,13 +338,13 @@ end #@everywhere
 for k = 1:CE_iters
     evals = pmap(evaluating,pmapInput)#,paramNoiseList)
     if cross_entropy
-        evals
+        #evals
         sorted = sortperm([evals[i][2] for i in 1:num_pop],rev=true)
         elite = sorted[1:num_elite]
         elite_params = evals[elite] # 1 x num_elite of arrays
         data_distrib = zeros(num_elite, CE_params)
         for e in 1:num_elite # store elite data
-            data_distrib[e,:] = [elite_params[e][1][j] for j in 2:CE_params+1] # 2:CE+1 because skipping the first value which is fixed as 1 for number of states sampled
+            data_distrib[e,:] = [elite_params[e][1][j] for j in 1:CE_params] # 2:CE+1 because skipping the first value which is fixed as 1 for number of states sampled
         end # data_distrib is num_elite x CE_num
         #data_distrib = convert(Array{Float64,2},data_distrib)
         try

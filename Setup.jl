@@ -1,15 +1,15 @@
 
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "smpc" # mcts, mpc, qmdp, smpc, snmpc
+sim = "mcts" # mcts, mpc, qmdp, smpc, snmpc
 rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
-state_mean = true # sample mean or rand of the state during transition in MDP
+state_mean = false # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
 bounds_save = false # save file with bounds trial data
 desired_bounds = 6.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
-quick_run = false
-numtrials = 1 # number of simulation runs
+quick_run = true
+numtrials = 2 # number of simulation runs
 noiseList = []
 cond1 = "full"
 
@@ -24,8 +24,8 @@ param_freq = 0.3
 
 # Output settings
 printing = false # set to true to print simple information
-print_iters = true
-print_trials = true
+print_iters = false
+print_trials = false
 plotting = false # set to true to output plots of the data
 saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
@@ -37,16 +37,16 @@ if sim != "mpc" # set fullobs false for any other sim
 end
 
 # CROSS ENTROPY SETTINGS
-cross_entropy = false
-save_last = false # save last generation of CE trials
-save_best = false # save best overall run, just the reward and std, and params info
-num_pop = 6 #  number of samples to test this round of CE
-num_elite = 6 # number of elite samples to keep to form next distribution
-CE_iters = 10 # number of iterations for cross entropy
-CE_params = 3 # number of params being sampled
+cross_entropy = true
+save_last = true # save last generation of CE trials
+save_best = true # save best overall run, just the reward and std, and params info
+num_pop = 8 #  number of samples to test this round of CE
+num_elite = 8 # number of elite samples to keep to form next distribution
+CE_iters = 3 # number of iterations for cross entropy
+CE_params = 4 # number of params being sampled
 states_m = 10.0
 states_std = 0.1
-act_m = 1.0
+act_m = 4.0
 act_std = 0.1
 depth_m = 3.0
 depth_std = 0.1
@@ -57,7 +57,7 @@ max_eig_cutoff = 5.0
 #global save_best_std = 0.0
 
 # Reward type settings
-reward_type = "L1" # L1 (standard L1 cost function) or region (for being within a desired zone)
+reward_type = "region" # L1 (standard L1 cost function) or region (for being within a desired zone)
 reward_region = "large"
 
 # Settings for simulation
@@ -250,20 +250,21 @@ function CE_sample(distrib::MvNormal,num_samples::Int,iters::Int,process::Float6
         temp_CE[1] = max(1.0,round(temp_CE[1]))
         temp_CE[2] = max(1.0,round(temp_CE[2]))
         temp_CE[3] = max(0.1,round(temp_CE[3]))
-
+        temp_CE[4] = max(1.0,round(temp_CE[4]))
         #temp_CE[4] = max(0.1,floor(temp_CE[4]))
 
         #push!(output,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],iters,process,param,name,i,CE_count))
-        push!(output,(samples_per_state,temp_CE[1],temp_CE[2],temp_CE[3],iters,process,param,name,i,CE_count))
+        #push!(output,(samples_per_state,temp_CE[1],temp_CE[2],temp_CE[3],iters,process,param,name,i,CE_count))
+        push!(output,(temp_CE[1],temp_CE[2],temp_CE[3],temp_CE[4],iters,process,param,name,i,CE_count))
     end
     return output
 end
 
 if cross_entropy
     #CEset_list = [states_m,states_std,act_m,act_std,depth_m,depth_std,expl_m,expl_std]
-    CEset_list = [act_m,act_std,depth_m,depth_std,expl_m,expl_std]
+    CEset_list = [act_m,act_std,depth_m,depth_std,expl_m,expl_std,states_m,states_std]
 
-    CEset = MvNormal([act_m,depth_m,expl_m],diagm([act_std^2,depth_std^2,expl_std^2]))
+    CEset = MvNormal([act_m,depth_m,expl_m,states_m],diagm([act_std^2,depth_std^2,expl_std^2,states_std^2]))
     distrib = CEset
     #=
     pmapInput = []

@@ -6,7 +6,7 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "dpw_reg_ln_list_large"#"main_performance_mod" # name data_folder containing folder_list
+data_folder = "pp3"#"main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
 folder_list = readdir()#["first","second"]
 #folder_list = ["mcts_normal_2D_mcts_full_none_false"]
@@ -15,12 +15,12 @@ folder_list = readdir()#["first","second"]
 cd("..")
 #folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
 compute_avg = true
-vary = true # plot varying process or param noise
-varyMass = true # false if fixing mass and varying Process, true if varying mass
+vary = false # plot varying process or param noise
+varyMass = false # false if fixing mass and varying Process, true if varying mass
 profile = false # plot the profile of the results
 profile_rew = false
-profile_init = false
-nSamples2 = 49 # number of steps to show for just the initial parameter estimates
+profile_init = true
+nSamples2 = 30 # number of steps to show for just the initial parameter estimates
 verbose = false # set to true to print debug statements
 add_legend = true
 
@@ -804,7 +804,7 @@ if profile_init # plot the profiles for the runs
         if length(sim_list[i]) != 0
           #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
           cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
-          cp_est = Plots.Linear(0:nSamples2-1,sim_list[i][2][1:nSamples2,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples2,2]), style=sim_style_list[i],  mark=mark1)
+          cp_est = Plots.Linear(0:nSamples2-1,sim_list[i][2][1:nSamples2,1], style=sim_style_list[i],  mark=mark1) # ,errorBars = ErrorBars(y=sim_list[i][2][1:nSamples2,2])
           cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
           cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
 

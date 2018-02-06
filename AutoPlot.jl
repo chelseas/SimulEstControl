@@ -6,7 +6,7 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "pp3"#"main_performance_mod" # name data_folder containing folder_list
+data_folder = "po2"#"main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
 folder_list = readdir()#["first","second"]
 #folder_list = ["mcts_normal_2D_mcts_full_none_false"]
@@ -20,7 +20,7 @@ varyMass = false # false if fixing mass and varying Process, true if varying mas
 profile = false # plot the profile of the results
 profile_rew = false
 profile_init = true
-nSamples2 = 30 # number of steps to show for just the initial parameter estimates
+nSamples2 = 49 # number of steps to show for just the initial parameter estimates
 verbose = false # set to true to print debug statements
 add_legend = true
 

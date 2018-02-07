@@ -187,7 +187,11 @@ if prob == "2D" # load files for 2D problem
   elseif sim == "qmdp"
     include("QMDP_2D.jl")
   elseif sim == "mpc"
-    include("MPC_2D.jl") # function to set up MPC opt and solve
+      if reward_type == "region"
+          include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
+      else
+          include("MPC_2D.jl") # function to set up MPC opt and solve
+      end
   elseif sim == "smpc"
     include("SMPC_2D.jl") # function to set up MPC opt and solve
   elseif sim == "snmpc"

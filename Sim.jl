@@ -113,7 +113,11 @@
                 AugNew = AugState(xNew)
                 u[:,i] = action(policy, AugNew)
               elseif sim == "mpc"
-                u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+                  if reward_type == "region"
+                      u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+                  else
+                      u[:,i] = MPCActionConstrained(xNew,nSamples+2-i,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+                  end
               elseif sim == "smpc"
                 u[:,i] = SMPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               elseif sim == "snmpc"

@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "none" # name of data file to load
+  settings_file = "reg_mpc_fobs_list" # name of data file to load
   settings_folder = "settings" # store data files here
   include("Setup.jl")
 
@@ -114,9 +114,9 @@
                 u[:,i] = action(policy, AugNew)
               elseif sim == "mpc"
                   if reward_type == "region"
-                      u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
-                  else
                       u[:,i] = MPCActionConstrained(xNew,nSamples+2-i,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+                  else
+                      u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
                   end
               elseif sim == "smpc"
                 u[:,i] = SMPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)

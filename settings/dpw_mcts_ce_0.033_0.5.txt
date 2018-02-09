@@ -6,6 +6,7 @@ true # cross_entropy
 true # save_last
 true # save_best
 true # state_mean
+L1 # reward_type
 false # saving
 false # param_change
 none # param_type

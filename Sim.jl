@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "reg_mpc_fobs_list" # name of data file to load
+  settings_file = "dpw_qmdp_ce_0.033_0.5" # name of data file to load
   settings_folder = "settings" # store data files here
   include("Setup.jl")
 

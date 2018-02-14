@@ -1,12 +1,14 @@
 # strings
 mcts # sim
-mcts_normal # sim_save
-mcts_ce_0.033_0.0 # data_folder
-true # cross_entropy
-true # save_last
-true # save_best
-true # state_mean
-false # saving
+mcts_dpw # sim_save
+reg2 # data_folder
+region # reward_type
+small # reward_region
+false # cross_entropy
+false # save_last
+false # save_best
+false # state_mean
+true # saving
 false # param_change
 none # param_type
 false # fullobs
@@ -20,14 +22,14 @@ true # ukf_flag
 25 # CE_iters
 50 # numtrials
 3000 # n_iters
-1 # samples_per_state
-20 # samples_per_act
-20 # depths
+6 # samples_per_state
+23 # samples_per_act
+7 # depths
 # floats
-10.0 # expl_constant
+26.6 # expl_constant
 # arrays (floats), put spaces without brackets between all values
-0.033 # processNoiseList
-0.00001 # paramNoiseList
+0.01 0.033 0.066 0.1# processNoiseList
+0.00001 0.25 0.5 0.75 # paramNoiseList
 # cross entropy variables (floats)
 1.0 # states_m
 1.0 # states_std

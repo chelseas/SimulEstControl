@@ -2,7 +2,7 @@
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
 sim = "mcts" # mcts, mpc, qmdp, smpc, snmpc
-rollout = "random" # MCTS/QMDP: random/position, DRQN: train/test
+rollout = "random" # MCTS/QMDP: random/position
 state_mean = false # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
@@ -131,6 +131,9 @@ if (sim == "mcts") || (sim == "qmdp")
   if !ukf_flag
       using ForwardDiff
   end
+  if rollout == "mpc"
+      using Convex, SCS, ECOS
+  end
 elseif (sim == "mpc") || (sim == "smpc") || (sim == "snmpc")
   using Distributions, CSV, Convex, SCS, ECOS# for MPC
   if fullobs
@@ -184,6 +187,13 @@ if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
   if sim == "mcts"
     include("POMDP_2D.jl") # functions for POMDP definition
+    if rollout == "mpc"
+        if reward_type == "region"
+            include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
+        else
+            include("MPC_2D.jl") # function to set up MPC opt and solve
+        end
+    end
   elseif sim == "qmdp"
     include("QMDP_2D.jl")
   elseif sim == "mpc"
@@ -236,6 +246,9 @@ if (sim == "mcts") || (sim == "qmdp")
   elseif rollout == "random"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#, enable_tree_vis = tree_vis)#-4 before
+  elseif rollout == "mpc"
+    solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
+    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#, enable_tree_vis = tree_vis)#-4 before
   end
   policy = MCTS.solve(solver,mdp) # policy setup for POMDP
 end

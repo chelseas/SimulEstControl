@@ -2,7 +2,7 @@
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
 sim = "mcts" # mcts, mpc, qmdp, smpc, snmpc
-rollout = "mpc2" # MCTS/QMDP: random/position/mpc/valest
+rollout = "mpc" # MCTS/QMDP: random/position/mpc/valest
 trial_parallel = true # parallelize by num_trials for non-CE runs
 state_mean = false # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver

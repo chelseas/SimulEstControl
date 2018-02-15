@@ -1,7 +1,7 @@
 using DataFrames
-data_folder = "main_performance_mod"
+data_folder = "mcts_mpc_est1"
 
-folder = "0.5"#"test2"# give data folder name to compute averages from
+folder = readdir()#"0.5"#"test2"# give data folder name to compute averages from
 
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through

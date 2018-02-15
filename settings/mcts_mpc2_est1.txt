@@ -22,7 +22,7 @@ true # ukf_flag
 50 # num_pop
 10 # num_elite
 25 # CE_iters
-50 # numtrials
+10 # numtrials
 100 # n_iters
 3 # samples_per_state
 5 # samples_per_act

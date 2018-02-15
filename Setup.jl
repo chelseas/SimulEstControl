@@ -199,7 +199,7 @@ if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
   if sim == "mcts"
     include("POMDP_2D.jl") # functions for POMDP definition
-    if rollout == "mpc"
+    if rollout == "mpc" || rollout == "mpc2"
         if reward_type == "region"
             include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
             include("MPC_2D.jl") # function to set up MPC opt and solve

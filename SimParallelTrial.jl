@@ -29,9 +29,7 @@
     x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
     #est_list = initParams(x0_est,k_iter)
     est_list = params[4] # just 1 vector, not a list
-    if cross_entropy
-        srand(params[end-1]) # random seed for each parallel measure --> just want the same initial params
-    end
+
     x0_state = state_init*ones(ssm.nx) # actual initial state
 
     Q = diagm(processNoise*ones(ssm.nx))
@@ -237,9 +235,6 @@
     end
 
     gc() # clear data
-    if bounds_print
-        rews[j] = mean(rewrun)
-    end
     [params,totrew]
   end
 end #@everywhere

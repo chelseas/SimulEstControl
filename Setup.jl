@@ -2,7 +2,7 @@
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
 sim = "mcts" # mcts, mpc, qmdp, smpc, snmpc
-rollout = "mpc" # MCTS/QMDP: random/position/mpc/valest
+rollout = "mpc2" # MCTS/QMDP: random/position/mpc/valest
 trial_parallel = true # parallelize by num_trials for non-CE runs
 state_mean = false # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
@@ -143,7 +143,7 @@ if (sim == "mcts") || (sim == "qmdp")
   if !ukf_flag
       using ForwardDiff
   end
-  if rollout == "mpc"
+  if (rollout == "mpc") || (rollout[1:3] == "mpc")
       using Convex, SCS, ECOS
   end
 elseif (sim == "mpc") || (sim == "smpc") || (sim == "snmpc")
@@ -199,7 +199,7 @@ if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
   if sim == "mcts"
     include("POMDP_2D.jl") # functions for POMDP definition
-    if rollout == "mpc" || rollout == "mpc2"
+    if (rollout == "mpc") || (rollout == "mpc2")
         if reward_type == "region"
             include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
             include("MPC_2D.jl") # function to set up MPC opt and solve

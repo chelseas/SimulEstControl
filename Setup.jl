@@ -2,20 +2,21 @@
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
 sim = "mcts" # mcts, mpc, qmdp, smpc, snmpc
-rollout = "random" # MCTS/QMDP: random/position
+rollout = "mpc" # MCTS/QMDP: random/position/mpc/valest
+trial_parallel = true # parallelize by num_trials for non-CE runs
 state_mean = false # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
 bounds_save = false # save file with bounds trial data
 desired_bounds = 6.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
 quick_run = true
-numtrials = 2 # number of simulation runs
+numtrials = 3 # number of simulation runs
 noiseList = []
 cond1 = "full"
 
 #NOISE SETTINGS
 processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
-paramNoiseList = [0.5]#,0.5,0.7]
+paramNoiseList = [0.25,0.5]#,0.5,0.7]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
 param_change = false # add a cosine term to the unknown param updates
 param_type = "none" # sine or steps
@@ -23,11 +24,11 @@ param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
 param_freq = 0.3
 
 # Output settings
-printing = false # set to true to print simple information
+printing = true # set to true to print simple information
 print_iters = false
 print_trials = false
 plotting = false # set to true to output plots of the data
-saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
 sim_save = "testing" # name appended to sim settings for simulation folder to store data from runs
 data_folder = "test"
@@ -37,9 +38,9 @@ if sim != "mpc" # set fullobs false for any other sim
 end
 
 # CROSS ENTROPY SETTINGS
-cross_entropy = true
-save_last = true # save last generation of CE trials
-save_best = true # save best overall run, just the reward and std, and params info
+cross_entropy = false
+save_last = false # save last generation of CE trials
+save_best = false # save best overall run, just the reward and std, and params info
 num_pop = 8 #  number of samples to test this round of CE
 num_elite = 8 # number of elite samples to keep to form next distribution
 CE_iters = 3 # number of iterations for cross entropy
@@ -58,7 +59,7 @@ max_eig_cutoff = 5.0
 
 # Reward type settings
 reward_type = "region" # L1 (standard L1 cost function) or region (for being within a desired zone)
-reward_region = "large"
+reward_region = "small"
 
 # Settings for simulation
 measNoise = 0.000001 # standard deviation of measurement noise
@@ -70,11 +71,11 @@ state_min_tol = 0.1 # prevent states from growing less than X% of original value
 friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
 
 # settings for mcts
-n_iters = 1000#3000#00 # total number of iterations
+n_iters = 5#3000#00 # total number of iterations
 samples_per_state = 1#3 # want to be small
 samples_per_act = 20 # want this to be ~20
 depths = 5 # depth of tree
-expl_constant = 0.1#100.0 #exploration const
+expl_constant = 20.0#100.0 #exploration const
 
 include("ReadSettings.jl") # read in new values from data file if given
 
@@ -91,6 +92,17 @@ if prob == "2D"
     rew_in_region = 0.0
     rew_out_region = -1.0
 end
+
+#=
+function within_goal(s::MvNormal,region_lb,region_ub)
+    ms = mean(s)
+    if (ms[4] > region_lb[1]) && (ms[5] > region_lb[2]) && (ms[6] > region_lb[3]) && (ms[4] < region_ub[1]) && (ms[5] < region_ub[2]) && (ms[6] < region_ub[3])
+        return true
+    else
+        return false
+    end
+end
+=#
 
 if quick_run
   nSamples = 5 # quick amount of steps for debug_bounds
@@ -190,6 +202,7 @@ if prob == "2D" # load files for 2D problem
     if rollout == "mpc"
         if reward_type == "region"
             include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
+            include("MPC_2D.jl") # function to set up MPC opt and solve
         else
             include("MPC_2D.jl") # function to set up MPC opt and solve
         end
@@ -248,6 +261,9 @@ if (sim == "mcts") || (sim == "qmdp")
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#, enable_tree_vis = tree_vis)#-4 before
   elseif rollout == "mpc"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
+    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(rollout_policy))#, enable_tree_vis = tree_vis)#-4 before
+  elseif rollout == "mpc2"
+    solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#, enable_tree_vis = tree_vis)#-4 before
   end
   policy = MCTS.solve(solver,mdp) # policy setup for POMDP
@@ -304,6 +320,20 @@ if cross_entropy
         write(g,string("Init: ",CEset,"\n"))
     end
     cd("..")
+elseif trial_parallel # parallelize by number of trials
+    CE_iters = 1
+    srand(13)
+    for PRN in processNoiseList
+        for PMN in paramNoiseList
+            paramCov = PMN*eye(ssm.nx,ssm.nx) # covariance from paramNoise
+            x0_est = MvNormal(state_init*ones(ssm.nx),paramCov)
+            est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
+            for i in 1:numtrials
+                push!(noiseList,(PRN,PMN,i,est_list[:,i],numtrials))
+            end
+        end
+    end
+    pmapInput = noiseList
 else
     CE_iters = 1
     # combine the total name for saving

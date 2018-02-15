@@ -259,7 +259,7 @@ if (sim == "mcts") || (sim == "qmdp")
   elseif rollout == "random"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#, enable_tree_vis = tree_vis)#-4 before
-  elseif rollout == "mpc2 "
+  elseif rollout == "mpc2"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, next_action=heur)#, enable_tree_vis = tree_vis)#-4 before
   elseif rollout == "mpc"

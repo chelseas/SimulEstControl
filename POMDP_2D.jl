@@ -143,21 +143,16 @@ if rollout == "random" && bounds == true # add this?
   end
   roll = RandomController(pos_control_gain)
   heur = nothing
-elseif rollout == "mpc" # estimate value somehow to improve
+elseif rollout == "mpc" || rollout == "mpc2" # estimate value somehow to improve
     rollout_policy = FunctionPolicy() do s
         return MPCAction(s,depths)
     end
-elseif rollout == "mpc2"
-    type MPCController <: Policy # Policy{MvNormal}
-        horizon::Int64
+
+    type MyHeuristic # to be used to pass depth to MPC
+        depth::Int64
     end
-    function POMDPs.action(policy::MPCController, x::EKFState, a::Array{Float64,1}=zeros(ssm.nu))
-        if reward_type == "region"
-            return MPCActionConstrained(x,policy.horizon,policy.horizon)#n) # take an action MPC (n: # length of prediction horizon)
-        else
-            return MPCAction(x,policy.horizon) # function to set up MPC opt and solve
-        end
+    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode::DPWStateNode)
+        return MPCAction(s,h.depth)
     end
-    roll = MPCController(depths)
-    heur = nothing
+    heur = MyHeuristic(depths)
 end

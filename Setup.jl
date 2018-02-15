@@ -10,13 +10,13 @@ bounds_print = false # print results for bounds
 bounds_save = false # save file with bounds trial data
 desired_bounds = 6.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
 quick_run = true
-numtrials = 3 # number of simulation runs
+numtrials = 2 # number of simulation runs
 noiseList = []
 cond1 = "full"
 
 #NOISE SETTINGS
 processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
-paramNoiseList = [0.25,0.5]#,0.5,0.7]
+paramNoiseList = [0.25]#,0.5,0.7]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
 param_change = false # add a cosine term to the unknown param updates
 param_type = "none" # sine or steps
@@ -259,12 +259,12 @@ if (sim == "mcts") || (sim == "qmdp")
   elseif rollout == "random"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st)#, enable_tree_vis = tree_vis)#-4 before
+  elseif rollout == "mpc2 "
+    solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
+    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, next_action=heur)#, enable_tree_vis = tree_vis)#-4 before
   elseif rollout == "mpc"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
-    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(rollout_policy))#, enable_tree_vis = tree_vis)#-4 before
-  elseif rollout == "mpc2"
-    solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
-    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(roll))#, enable_tree_vis = tree_vis)#-4 before
+    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(rollout_policy), next_action=heur)#, enable_tree_vis = tree_vis)#-4 before
   end
   policy = MCTS.solve(solver,mdp) # policy setup for POMDP
 end

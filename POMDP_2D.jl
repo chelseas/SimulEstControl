@@ -143,7 +143,11 @@ if rollout == "random" && bounds == true # add this?
   end
   roll = RandomController(pos_control_gain)
   heur = nothing
-elseif rollout == "mpc"
+elseif rollout == "mpc" # estimate value somehow to improve
+    rollout_policy = FunctionPolicy() do s
+        return MPCAction(s,depths)
+    end
+elseif rollout == "mpc2"
     type MPCController <: Policy # Policy{MvNormal}
         horizon::Int64
     end

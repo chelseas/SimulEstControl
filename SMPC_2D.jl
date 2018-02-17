@@ -1,7 +1,7 @@
 #Finite-horizon MPC controller
 function SMPCAction(x0::MvNormal, n::Int)
     unc = trace(cov(x0))
-    x = mean(x0)
+    x = rand(x0)
     # Check this jacobian with forward diff to make sure these are linearized
     # Dynamics for 2D problem
     firstOrder = deltaT*x[8]/x[7];
@@ -47,7 +47,7 @@ function SMPCAction(x0::MvNormal, n::Int)
     solve!(problem, ECOSSolver(verbose=0))
 
     # Check the status of the problem
-    problem.status # :Optimal, :Infeasible, :Unbounded etc.
+    #problem.status # :Optimal, :Infeasible, :Unbounded etc.
 
     # Get the optimal value
     u_return = Convex.evaluate(u)

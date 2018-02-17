@@ -13,8 +13,10 @@ end
 
 ### Default constructor for MDP
 function MassMDP()
-    return MassMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+    return MassMDP(0.95,0.0,fDist)#,ssm.v,ssm.w)
 end
+
+POMDPs.discount(mdp::MassMDP) = mdp.discount_factor
 
 # initializing to default
 mdp = MassMDP()
@@ -143,16 +145,20 @@ if rollout == "random" && bounds == true # add this?
   end
   roll = RandomController(pos_control_gain)
   heur = nothing
-elseif rollout == "mpc" || rollout == "mpc2" # estimate value somehow to improve
-    rollout_policy = FunctionPolicy() do s
-        return MPCAction(s,depths)
-    end
-
+elseif (rollout == "mpc") || (rollout == "mpc2") # estimate value somehow to improve
+    #rollout_policy = FunctionPolicy() do s
+    #    return MPCAction(s,depths)
+    #end
     type MyHeuristic # to be used to pass depth to MPC
         depth::Int64
     end
-    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode::DPWStateNode)
-        return MPCAction(s,h.depth)
+    # for region reward function the action isn't needed so passing in zeros
+    function MCTS.estimate_value(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
+        return reward(mdp, s, [0.0,0.0,0.0], s)/(1-discount(mdp))
+    end
+    # print something to verify, see if state passed in and actions look good
+    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
+        return SMPCAction(s,h.depth)
     end
     heur = MyHeuristic(depths)
 end

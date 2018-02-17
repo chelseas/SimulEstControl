@@ -9,7 +9,7 @@ bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
 bounds_save = false # save file with bounds trial data
 desired_bounds = 6.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
-quick_run = true
+quick_run = false
 numtrials = 2 # number of simulation runs
 noiseList = []
 cond1 = "full"
@@ -24,11 +24,11 @@ param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
 param_freq = 0.3
 
 # Output settings
-printing = true # set to true to print simple information
+printing = false # set to true to print simple information
 print_iters = false
 print_trials = false
 plotting = false # set to true to output plots of the data
-saving = true # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
+saving = false # set to true to save simulation data to a folder # MCTS trial at ~500 iters is 6 min ea, 1hr for 10
 tree_vis = false # visual MCTS tree
 sim_save = "testing" # name appended to sim settings for simulation folder to store data from runs
 data_folder = "test"
@@ -71,11 +71,11 @@ state_min_tol = 0.1 # prevent states from growing less than X% of original value
 friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
 
 # settings for mcts
-n_iters = 5#3000#00 # total number of iterations
-samples_per_state = 1#3 # want to be small
-samples_per_act = 20 # want this to be ~20
-depths = 5 # depth of tree
-expl_constant = 20.0#100.0 #exploration const
+n_iters = 100#3000#00 # total number of iterations
+samples_per_state = 2#3 # want to be small
+samples_per_act = 4# want this to be ~20
+depths = 20# depth of tree
+expl_constant = 1.0#100.0 #exploration const
 
 include("ReadSettings.jl") # read in new values from data file if given
 
@@ -203,8 +203,10 @@ if prob == "2D" # load files for 2D problem
         if reward_type == "region"
             include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
             include("MPC_2D.jl") # function to set up MPC opt and solve
+            include("SMPC_2D.jl") # function to set up MPC opt and solve
         else
             include("MPC_2D.jl") # function to set up MPC opt and solve
+            include("SMPC_2D.jl") # function to set up MPC opt and solve
         end
     end
   elseif sim == "qmdp"
@@ -264,7 +266,7 @@ if (sim == "mcts") || (sim == "qmdp")
     k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, next_action=heur)#, enable_tree_vis = tree_vis)#-4 before
   elseif rollout == "mpc"
     solver = DPWSolver(n_iterations = n_iters, depth = depths, exploration_constant = expl_constant,
-    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=RolloutEstimator(rollout_policy), next_action=heur)#, enable_tree_vis = tree_vis)#-4 before
+    k_action = k_act, alpha_action = alpha_act, k_state = k_st, alpha_state = alpha_st, estimate_value=heur, next_action=heur)#, enable_tree_vis = tree_vis)#-4 before #
   end
   policy = MCTS.solve(solver,mdp) # policy setup for POMDP
 end

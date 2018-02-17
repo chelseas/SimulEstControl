@@ -107,7 +107,7 @@
                 if tree_vis # visualize the MCTS tree for 1 run and break
                   inchrome(D3Tree(policy, title="whatever"))#,xNew)
                   @show "Plotting Tree"
-                  break
+                  #break
                 end
               elseif sim == "qmdp"
                 AugNew = AugState(xNew)

@@ -41,11 +41,11 @@ end
 
 if prob == "Car"
   function AugMDP()
-    return AugMDP(0.99, 0.0, fDist[1], fDist[2])
+    return AugMDP(0.95, 0.0, fDist[1], fDist[2])
   end
 else
   function AugMDP()
-    return AugMDP(0.99,0.0,fDist)#,ssm.v,ssm.w)
+    return AugMDP(0.95,0.0,fDist)#,ssm.v,ssm.w)
   end
 end
 

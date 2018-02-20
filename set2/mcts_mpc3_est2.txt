@@ -1,7 +1,7 @@
 # strings
 mcts # sim
 mcts_dpw # sim_save
-mcts_mpc3_est1 # data_folder
+mcts_mpc3_est2 # data_folder
 region # reward_type
 small # reward_region
 false # cross_entropy

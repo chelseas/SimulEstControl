@@ -5,8 +5,8 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "none" # name of data file to load
-  settings_folder = "settings" # store data files here
+  settings_file = "mcts_mpc3_est1"#mpc_unk_reg_depth10" # name of data file to load
+  settings_folder = "set2" # store data files here
   include("Setup.jl")
 
   function initParams(x0_est,k_iter)

@@ -158,7 +158,21 @@ elseif (rollout == "mpc") || (rollout == "mpc2") # estimate value somehow to imp
     end
     # print something to verify, see if state passed in and actions look good
     function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
-        return SMPCAction(s,h.depth)
+        return MPCAction(s,h.depth,h.depth)
     end
     heur = MyHeuristic(depths)
+elseif rollout == "mpc3"
+    type MyHeuristic # to be used to pass depth to MPC
+        depth::Int64
+        epsilon::Float64
+    end
+    # print something to verify, see if state passed in and actions look good
+    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
+        if rand() <= h.epsilon
+            return MPCAction(s,h.depth,h.depth) # MPC action
+        else
+            return fRange*(2*rand()-1)*ones(ssm.nu) # rand action
+        end
+    end
+    heur = MyHeuristic(depths, 0.2)
 end

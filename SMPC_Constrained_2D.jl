@@ -1,9 +1,17 @@
 #using Distributions, Convex, ECOS, SCS
 
 #Finite-horizon MPC controller
-function MPCAction(x0::MvNormal, n::Int, k::Int) # k is the number of steps where the problem is tried
-    unc = trace(cov(x0))
-    x = mean(x0)
+function MPCAction(x0, n::Int, k::Int) # k is the number of steps where the problem is tried
+    #unc = trace(cov(x0))
+    if typeof(x0) == Distributions.MvNormal{Float64,PDMats.PDMat{Float64,Array{Float64,2}},Array{Float64,1}}
+        x = mean(x0)
+    else # augState
+        if isnull(x0.beliefState)
+            x = x0.trueState
+        else
+            x = mean(get(x0.beliefState))
+        end
+    end
     # Check this jacobian with forward diff to make sure these are linearized
     # Dynamics for 2D problem
     firstOrder = deltaT*x[8]/x[7];
@@ -72,7 +80,7 @@ function MPCAction(x0::MvNormal, n::Int, k::Int) # k is the number of steps wher
     return u_return[:,1]
 end
 
-function MPCActionConstrained(x0::MvNormal, n::Int, k::Int)
+function MPCActionConstrained(x0, n::Int, k::Int)
     u_error = [-10.0,-10.0,-10.0]
     for i = 0:k
         #@show i

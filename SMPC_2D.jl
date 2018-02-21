@@ -1,7 +1,15 @@
 #Finite-horizon MPC controller
-function SMPCAction(x0::MvNormal, n::Int)
-    unc = trace(cov(x0))
-    x = rand(x0)
+function MPCAction(x0, n::Int)
+    #unc = trace(cov(x0))
+    if typeof(x0) == Distributions.MvNormal{Float64,PDMats.PDMat{Float64,Array{Float64,2}},Array{Float64,1}}
+        x = mean(x0)
+    else # augState
+        if isnull(x0.beliefState)
+            x = x0.trueState
+        else
+            x = mean(get(x0.beliefState))
+        end
+    end
     # Check this jacobian with forward diff to make sure these are linearized
     # Dynamics for 2D problem
     firstOrder = deltaT*x[8]/x[7];

@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "mcts_mpc3_est1"#mpc_unk_reg_depth10" # name of data file to load
+  settings_file = "none"#mpc_unk_reg_depth10" # name of data file to load
   settings_folder = "set2" # store data files here
   include("Setup.jl")
 
@@ -114,14 +114,14 @@
                 u[:,i] = action(policy, AugNew)
               elseif sim == "mpc"
                   if reward_type == "region"
-                      u[:,i] = MPCActionConstrained(xNew,nSamples+2-i,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+                      u[:,i] = MPCActionConstrained(xNew,depths,depths)#nSamples+2-i,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
                   else
-                      u[:,i] = MPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+                      u[:,i] = MPCAction(xNew,depths)#nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
                   end
               elseif sim == "smpc"
-                u[:,i] = SMPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+                u[:,i] = SMPCAction(xNew,depths)#nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               elseif sim == "snmpc"
-                u[:,i] = SNMPCAction(xNew,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+                u[:,i] = SNMPCAction(xNew,depths)#nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
               end
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding control

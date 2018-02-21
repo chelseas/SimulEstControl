@@ -169,7 +169,11 @@ elseif rollout == "mpc3"
     # print something to verify, see if state passed in and actions look good
     function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
         if rand() <= h.epsilon
-            return MPCAction(s,h.depth,h.depth) # MPC action
+            if reward_type == "region"
+                return MPCActionConstrained(s,h.depth,h.depth) # MPC action
+            else
+                return MPCAction(s,h.depth) # MPC action
+            end
         else
             return fRange*(2*rand()-1)*ones(ssm.nu) # rand action
         end

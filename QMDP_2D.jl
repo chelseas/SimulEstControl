@@ -265,3 +265,22 @@ end
 
 # don't need to define an action fxn; default action() in MCTS will sample
 # random action from FFTActionSpace
+if rollout == "mpc3"
+    type MyHeuristic # to be used to pass depth to MPC
+        depth::Int64
+        epsilon::Float64
+    end
+    # print something to verify, see if state passed in and actions look good
+    function MCTS.next_action(h::MyHeuristic, mdp::AugMDP, s::AugState, snode)
+        if rand() <= h.epsilon
+            if reward_type == "region"
+                return MPCActionConstrained(s,h.depth,h.depth) # MPC action
+            else
+                return MPCAction(s,h.depth) # MPC action
+            end
+        else
+            return fRange*(2*rand()-1)*ones(ssm.nu) # rand action
+        end
+    end
+    heur = MyHeuristic(depths, 0.2)
+end

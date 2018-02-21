@@ -1,8 +1,8 @@
 
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
-sim = "mcts" # mcts, mpc, qmdp, smpc, snmpc
-rollout = "mpc" # MCTS/QMDP: random/position/mpc/valest
+sim = "mpc" # mcts, mpc, qmdp, smpc, snmpc
+rollout = "mpc3" # MCTS/QMDP: random/position/mpc/valest
 trial_parallel = false # parallelize by num_trials for non-CE runs
 state_mean = false # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
@@ -203,14 +203,24 @@ if prob == "2D" # load files for 2D problem
         if reward_type == "region"
             include("SMPC_Constrained_2D.jl") # function to set up MPC opt and solve
             #include("MPC_2D.jl") # function to set up MPC opt and solve
-            include("SMPC_2D.jl") # function to set up MPC opt and solve
+            #include("SMPC_2D.jl") # function to set up MPC opt and solve
         else
-            include("MPC_2D.jl") # function to set up MPC opt and solve
             include("SMPC_2D.jl") # function to set up MPC opt and solve
+            #include("SMPC_2D.jl") # function to set up MPC opt and solve
         end
     end
   elseif sim == "qmdp"
     include("QMDP_2D.jl")
+    if (rollout[1:3] == "mpc")# || (rollout == "mpc2")
+        if reward_type == "region"
+            include("SMPC_Constrained_2D.jl") # function to set up MPC opt and solve
+            #include("MPC_2D.jl") # function to set up MPC opt and solve
+            #include("SMPC_2D.jl") # function to set up MPC opt and solve
+        else
+            include("SMPC_2D.jl") # function to set up MPC opt and solve
+            #include("SMPC_2D.jl") # function to set up MPC opt and solve
+        end
+    end
   elseif sim == "mpc"
       if reward_type == "region"
           include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve

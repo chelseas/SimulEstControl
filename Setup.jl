@@ -223,7 +223,8 @@ if prob == "2D" # load files for 2D problem
     end
   elseif sim == "mpc"
       if reward_type == "region"
-          include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
+          #include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
+          include("MPC_2D.jl") # function to set up MPC opt and solve
       else
           include("MPC_2D.jl") # function to set up MPC opt and solve
       end

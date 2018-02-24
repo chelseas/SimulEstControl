@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "none"#mpc_unk_reg_depth10" # name of data file to load
+  settings_file = "qmdp_test2_L1_mpc3"#mpc_unk_reg_depth10" # name of data file to load
   settings_folder = "set2" # store data files here
   include("Setup.jl")
 
@@ -114,7 +114,7 @@
                 u[:,i] = action(policy, AugNew)
               elseif sim == "mpc"
                   if reward_type == "region"
-                      u[:,i] = MPCActionConstrained(xNew,depths,depths)#nSamples+2-i,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
+                      u[:,i] = MPCAction(xNew,depths)#MPCActionConstrained(xNew,depths,depths)#nSamples+2-i,nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
                   else
                       u[:,i] = MPCAction(xNew,depths)#nSamples+2-i)#n) # take an action MPC (n: # length of prediction horizon)
                   end

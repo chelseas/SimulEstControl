@@ -4,7 +4,7 @@
 function MPCAction(x0, n::Int, k::Int) # k is the number of steps where the problem is tried
     #unc = trace(cov(x0))
     if typeof(x0) == Distributions.MvNormal{Float64,PDMats.PDMat{Float64,Array{Float64,2}},Array{Float64,1}}
-        x = mean(x0)
+        x = rand(x0)
     else # augState
         if isnull(x0.beliefState)
             x = x0.trueState
@@ -36,8 +36,8 @@ function MPCAction(x0, n::Int, k::Int) # k is the number of steps where the prob
     Rp = diag(Rg)
     u = Convex.Variable(3, n - 1)
     xs = Convex.Variable(6, n)
-    w = MvNormal(zeros(ssm.states),Q[1:ssm.states,1:ssm.states]) # defining process noise
-    w_sample = rand(w,n-1) # taking n samples from process noise for propagating
+    #w = MvNormal(zeros(ssm.states),Q[1:ssm.states,1:ssm.states]) # defining process noise
+    #w_sample = rand(w,n-1) # taking n samples from process noise for propagating
 
 
     problem = minimize(sum(abs.(u[1,:])*Rp[1]) + sum(abs.(u[2,:])*Rp[2]) + sum(abs.(u[3,:])*Rp[3]) + sum(abs.(xs[1,:])*Qp[1]) + sum(abs.(xs[2,:])*Qp[2]) + sum(abs.(xs[3,:])*Qp[3]) + sum(abs.(xs[4,:])*Qp[4]) + sum(abs.(xs[5,:])*Qp[5]) + sum(abs.(xs[6,:])*Qp[6]))
@@ -60,7 +60,7 @@ function MPCAction(x0, n::Int, k::Int) # k is the number of steps where the prob
     end
 
     for i in 1:n-1
-        problem.constraints += xs[:, i+1] == A*xs[:, i] + B*u[:,i] + w_sample[:,i]# system with process noise
+        problem.constraints += xs[:, i+1] == A*xs[:, i] + B*u[:,i]# + w_sample[:,i]# system with process noise
         problem.constraints += u[:,i] <= fRange
         problem.constraints += u[:,i] >= -fRange
     end

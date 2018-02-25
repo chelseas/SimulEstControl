@@ -69,6 +69,12 @@ cov_thresh = 1000 # threshold where trace(cov) of estimate will be discarded in 
 state_init = 1.0 # gain for the initial state
 state_min_tol = 0.1 # prevent states from growing less than X% of original value
 friction_lim = 3.0 # limit to 2D friction case to prevent exploding growth
+fRange = 5.0 # bounds on controls allowed within +- fRange
+if quick_run
+  nSamples = 5 # quick amount of steps for debug_bounds
+else
+  nSamples = 50
+end
 
 # settings for mcts
 n_iters = 100#3000#00 # total number of iterations
@@ -104,15 +110,8 @@ function within_goal(s::MvNormal,region_lb,region_ub)
 end
 =#
 
-if quick_run
-  nSamples = 5 # quick amount of steps for debug_bounds
-else
-  nSamples = 50
-end
-
 if prob == "2D"
   # Settings for simulation
-  fRange = 5.0 # bounds on controls allowed within +- fRange
   state_init = 1.0 # gain for the initial state
   fDist_disc = 1000 # discrete points in fDist force linspace
   # Reward shaping

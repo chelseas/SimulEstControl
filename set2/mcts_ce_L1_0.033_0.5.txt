@@ -18,11 +18,12 @@ false # quick_run
 true # ukf_flag
 2D # prob
 # ints
-50 # num_pop
+40 # num_pop
 10 # num_elite
 25 # CE_iters
-50 # numtrials
+15 # numtrials
 3000 # n_iters
+25 # nSamples
 1 # samples_per_state
 20 # samples_per_act
 20 # depths

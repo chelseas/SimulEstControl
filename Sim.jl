@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "mpc_test3_L1_unk"#mpc_unk_reg_depth10" # name of data file to load
+  settings_file = "mcts_ce_L1_0.033_0.5"#mpc_unk_reg_depth10" # name of data file to load
   settings_folder = "set2" # store data files here
   include("Setup.jl")
 

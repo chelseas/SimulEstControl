@@ -3,6 +3,7 @@ mcts # sim
 mcts_mpc # sim_save
 2test_L1_mctsmpc # data_folder
 L1 # reward_type
+mpc # rollout
 small # reward_region
 false # cross_entropy
 false # save_last

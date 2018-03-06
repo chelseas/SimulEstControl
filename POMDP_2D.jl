@@ -158,7 +158,7 @@ elseif (rollout == "mpc") || (rollout == "mpc2") # estimate value somehow to imp
         return reward(mdp, s, [0.0,0.0,0.0], s)/(1-discount(mdp))
     end
     # print something to verify, see if state passed in and actions look good
-    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
+    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, ::Any)
         if rand() <= h.epsilon
             if reward_type == "region"
                 return MPCActionConstrained(s,h.depth,h.depth) # MPC action
@@ -176,7 +176,7 @@ elseif rollout == "mpc3"
         epsilon::Float64
     end
     # print something to verify, see if state passed in and actions look good
-    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
+    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, ::Any)
         if rand() <= h.epsilon
             if reward_type == "region"
                 return MPCActionConstrained(s,h.depth,h.depth) # MPC action

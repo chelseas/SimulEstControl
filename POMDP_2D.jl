@@ -16,10 +16,10 @@ function MassMDP()
     return MassMDP(0.95,0.0,fDist)#,ssm.v,ssm.w)
 end
 
-POMDPs.discount(mdp::MassMDP) = mdp.discount_factor
-
 # initializing to default
 mdp = MassMDP()
+
+POMDPs.discount(mdp::MassMDP) = mdp.discount_factor
 
 # redefining == for checking EKF states with logic
 import Base.==
@@ -114,7 +114,7 @@ function POMDPs.isterminal(mdp::MassMDP, s::EKFState) # just for a leaf --> reac
 end
 
 # Set discount factor to that defined in MDP abstract
-POMDPs.discount(mdp::MassMDP) = mdp.discount_factor
+#POMDPs.discount(mdp::MassMDP) = mdp.discount_factor
 
 #call the function below to return sp (MvNormal), reward Float(64)
 function POMDPs.generate_sr(mdp::MassMDP, s::EKFState, a::Array{Float64,1}, rng::AbstractRNG, sp::EKFState = create_state(mdp))
@@ -151,6 +151,7 @@ elseif (rollout == "mpc") || (rollout == "mpc2") # estimate value somehow to imp
     #end
     type MyHeuristic # to be used to pass depth to MPC
         depth::Int64
+        epsilon::Float64
     end
     # for region reward function the action isn't needed so passing in zeros
     function MCTS.estimate_value(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
@@ -158,9 +159,17 @@ elseif (rollout == "mpc") || (rollout == "mpc2") # estimate value somehow to imp
     end
     # print something to verify, see if state passed in and actions look good
     function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
-        return MPCAction(s,h.depth,h.depth)
+        if rand() <= h.epsilon
+            if reward_type == "region"
+                return MPCActionConstrained(s,h.depth,h.depth) # MPC action
+            else
+                return MPCAction(s,h.depth) # MPC action
+            end
+        else
+            return fRange*(2*rand()-1)*ones(ssm.nu) # rand action
+        end
     end
-    heur = MyHeuristic(depths)
+    heur = MyHeuristic(depths, 0.2)
 elseif rollout == "mpc3"
     type MyHeuristic # to be used to pass depth to MPC
         depth::Int64

@@ -283,4 +283,26 @@ if rollout == "mpc3"
         end
     end
     heur = MyHeuristic(depths, 0.2)
+elseif rollout == "mpc"
+    type MyHeuristic # to be used to pass depth to MPC
+        depth::Int64
+        epsilon::Float64
+    end
+    # for region reward function the action isn't needed so passing in zeros
+    function MCTS.estimate_value(h::MyHeuristic, mdp::AugMDP, s::AugState, snode)
+        return reward(mdp, s, [0.0,0.0,0.0], s)/(1-discount(mdp))
+    end
+    # print something to verify, see if state passed in and actions look good
+    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
+        if rand() <= h.epsilon
+            if reward_type == "region"
+                return MPCActionConstrained(s,h.depth,h.depth) # MPC action
+            else
+                return MPCAction(s,h.depth) # MPC action
+            end
+        else
+            return fRange*(2*rand()-1)*ones(ssm.nu) # rand action
+        end
+    end
+    heur = MyHeuristic(depths, 0.2)
 end

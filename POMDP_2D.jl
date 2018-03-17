@@ -37,7 +37,7 @@ function transition(mdp::MassMDP,s::EKFState,a::Array{Float64,1})
     if ukf_flag
       sp = ukf(ssm,obs,s,Q,R,a) # this is using UKF and causing divergence during simulation ERR
     else
-      sp = filter(ssm, obs, s, Q, R, a)#was [a] before DIF for EKF
+      sp = filter(ssm, obs, s, Q, R, a) # was [a] before DIF for EKF
     end
     return sp
 end

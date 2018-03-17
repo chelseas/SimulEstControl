@@ -1,8 +1,8 @@
 # strings
-mcts # sim
-mcts_dpw # sim_save
-dpw_reg_ln5 # data_folder
-region # reward_type
+mpc # sim
+mpc_unk # sim_save
+final_mpc_unk_L1 # data_folder
+L1 # reward_type
 small # reward_region
 false # cross_entropy
 false # save_last
@@ -17,19 +17,16 @@ false # quick_run
 true # ukf_flag
 2D # prob
 # ints
-50 # num_pop
-10 # num_elite
-25 # CE_iters
-50 # numtrials
+40 # numtrials
 3000 # n_iters
 5 # samples_per_state
-20 # samples_per_act
-6 # depths
+22 # samples_per_act
+12 # depths
 # floats
-25.0 # expl_constant
+26.6 # expl_constant
 # arrays (floats), put spaces without brackets between all values
-0.01 # processNoiseList
-0.5 # paramNoiseList
+0.01 0.033 0.066 # processNoiseList
+0.25 0.5 # paramNoiseList
 # cross entropy variables (floats)
 1.0 # states_m
 1.0 # states_std

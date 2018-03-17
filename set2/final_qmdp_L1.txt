@@ -1,8 +1,10 @@
 # strings
-mcts # sim
-mcts_dpw # sim_save
-dpw_reg5 # data_folder
-region # reward_type
+qmdp # sim
+qmdp_mpc # sim_save
+final_qmdp_L1 # data_folder
+L1 # reward_type
+mpc # rollout
+small # reward_region
 false # cross_entropy
 false # save_last
 false # save_best
@@ -16,19 +18,18 @@ false # quick_run
 true # ukf_flag
 2D # prob
 # ints
-50 # num_pop
-10 # num_elite
-25 # CE_iters
-50 # numtrials
+40 # numtrials
 3000 # n_iters
 5 # samples_per_state
-20 # samples_per_act
-6 # depths
+22 # samples_per_act
+12 # depths
+50 # nSamples
 # floats
-25.0 # expl_constant
+26.6 # expl_constant
+5.0 # fRange
 # arrays (floats), put spaces without brackets between all values
-0.066 # processNoiseList
-0.5 # paramNoiseList
+0.01 0.033 0.066 # processNoiseList
+0.25 0.5 # paramNoiseList
 # cross entropy variables (floats)
 1.0 # states_m
 1.0 # states_std

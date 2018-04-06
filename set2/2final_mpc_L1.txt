@@ -1,7 +1,7 @@
 # strings
 mpc # sim
-mpc_fobs # sim_save
-final_mpc_fobs_L1 # data_folder
+mpc_unk # sim_save
+2final_mpc_unk_L1 # data_folder
 L1 # reward_type
 small # reward_region
 false # cross_entropy
@@ -11,7 +11,7 @@ false # state_mean
 true # saving
 false # param_change
 none # param_type
-true # fullobs
+false # fullobs
 false # print_iters
 false # quick_run
 true # ukf_flag
@@ -24,9 +24,10 @@ true # ukf_flag
 12 # depths
 # floats
 26.6 # expl_constant
+10.0 # fRange
 # arrays (floats), put spaces without brackets between all values
-0.01 0.033 0.066 # processNoiseList
-0.25 0.5 # paramNoiseList
+0.01 0.04 0.07 # processNoiseList
+0.5 # paramNoiseList
 # cross entropy variables (floats)
 1.0 # states_m
 1.0 # states_std

@@ -1,7 +1,7 @@
 # strings
 mcts # sim
 mcts_mpc # sim_save
-lim0.05_mcts # data_folder
+lim0.1_mcts # data_folder
 L1 # reward_type
 mpc # rollout
 small # reward_region
@@ -27,7 +27,7 @@ true # ukf_flag
 # floats
 26.6 # expl_constant
 5.0 # fRange
-0.05 # state_min_tol
+0.1 # state_min_tol
 # arrays (floats), put spaces without brackets between all values
 0.01 # processNoiseList
 0.5 # paramNoiseList

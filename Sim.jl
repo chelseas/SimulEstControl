@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "qmdp_2test1_L1_mpc"#mpc_unk_reg_depth10" # name of data file to load
+  settings_file = "bound_mcts"#mpc_unk_reg_depth10" # name of data file to load
   settings_folder = "set2" # store data files here
   include("Setup.jl")
 

@@ -145,6 +145,45 @@ if rollout == "random" && bounds == true # add this?
   end
   roll = RandomController(pos_control_gain)
   heur = nothing
+elseif rollout == "mpc" && bounds == true # add this?
+    #rollout_policy = FunctionPolicy() do s
+    #    return MPCAction(s,depths)
+    #end
+    type MyHeuristic # to be used to pass depth to MPC
+        depth::Int64
+        epsilon::Float64
+    end
+    # for region reward function the action isn't needed so passing in zeros
+    function MCTS.estimate_value(h::MyHeuristic, mdp::MassMDP, s::EKFState, snode)
+        return reward(mdp, s, [0.0,0.0,0.0], s)/(1-discount(mdp))
+    end
+    # print something to verify, see if state passed in and actions look good
+    function MCTS.next_action(h::MyHeuristic, mdp::MassMDP, s::EKFState, ::Any)
+        next_bound = desired_bounds + 1.0 # make more so it isn't true initially
+        action_count = 0
+        u_sample = zeros(ssm.nu)
+        while (next_bound > desired_bounds) && (action_count < max_action_count)
+          #u_sample = fRange*(2*rand()-1)*ones(ssm.nu)
+          if rand() <= h.epsilon
+              if reward_type == "region"
+                  u_sample = MPCActionConstrained(s,h.depth,h.depth) # MPC action
+              else
+                  u_sample = MPCAction(s,h.depth) # MPC action
+              end
+          else
+              u_sample = fRange*(2*rand()-1)*ones(ssm.nu) # rand action
+          end
+
+          next_bound = overall_bounds([-100.0],s,u_sample,w_bound) # can I check if the state after the action is within
+          action_count = action_count + 1
+        end
+        if action_count == max_action_count
+            global action_limit_count = action_limit_count + 1
+        end
+        return u_sample
+    end
+    heur = MyHeuristic(depths, 0.2)
+
 elseif (rollout == "mpc") || (rollout == "mpc2") # estimate value somehow to improve
     #rollout_policy = FunctionPolicy() do s
     #    return MPCAction(s,depths)

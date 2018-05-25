@@ -1,8 +1,9 @@
 # strings
-mpc # sim
-mpc_unk # sim_save
-1.5lim0.0875_mpc # data_folder
+mcts # sim
+mcts_mpc # sim_save
+lim0.025_mcts # data_folder
 L1 # reward_type
+mpc # rollout
 small # reward_region
 false # cross_entropy
 false # save_last
@@ -12,7 +13,7 @@ true # saving
 false # param_change
 none # param_type
 false # fullobs
-true # print_iters
+false # print_iters
 false # quick_run
 true # ukf_flag
 2D # prob
@@ -22,10 +23,11 @@ true # ukf_flag
 5 # samples_per_state
 22 # samples_per_act
 12 # depths
+50 # nSamples
 # floats
 26.6 # expl_constant
 5.0 # fRange
-0.0875 # state_min_tol
+0.025 # state_min_tol
 # arrays (floats), put spaces without brackets between all values
 0.01 # processNoiseList
 0.5 # paramNoiseList

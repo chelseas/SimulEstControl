@@ -1,7 +1,7 @@
 # strings
 mpc # sim
 mpc_unk # sim_save
-lim0.075_mpc # data_folder
+1.5lim0.075_mpc # data_folder
 L1 # reward_type
 small # reward_region
 false # cross_entropy
@@ -12,7 +12,7 @@ true # saving
 false # param_change
 none # param_type
 false # fullobs
-false # print_iters
+true # print_iters
 false # quick_run
 true # ukf_flag
 2D # prob

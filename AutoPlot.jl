@@ -6,7 +6,7 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "dpw_reg_opt"#"main_performance_mod" # name data_folder containing folder_list
+data_folder = "ParamPlot"#"main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
 folder_list = readdir()#["first","second"]
 #folder_list = ["mcts_normal_2D_mcts_full_none_false"]
@@ -15,14 +15,20 @@ folder_list = readdir()#["first","second"]
 cd("..")
 #folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
 compute_avg = true
-vary = true # plot varying process or param noise
-varyMass = true # false if fixing mass and varying Process, true if varying mass
-profile = false # plot the profile of the results
-profile_rew = false
+vary = false # plot varying process or param noise
+varyMass = false # false if fixing mass and varying Process, true if varying mass
+profile = true # plot the profile of the results
+profile_rew_plot = false
 profile_init = false
-nSamples2 = 49 # number of steps to show for just the initial parameter estimates
+nSamples2 = 50 # number of steps to show for just the initial parameter estimates
 verbose = false # set to true to print debug statements
 add_legend = true
+varyLimit = true
+
+axis_lims = true
+yrew_min = -1500
+yst_max = 50
+yparam_max = 350
 
 for folder in folder_list
 #folder = "2D_0.7_step"#"test2"# give data folder name to compute averages from
@@ -118,11 +124,11 @@ if compute_avg
             # do this both for the trials vs iteration
             avg = mean(data,1)
             #@show size(avg)
-            if profile_rew || profile_init
-                std_var = std(data,1)/sqrt(runs)
-            else
+            #if profile_rew || profile_init
+            #    std_var = std(data,1)/sqrt(runs)
+            #else
                 std_var = std(data,1)/sqrt(runs) # standard error of the mean
-            end
+            #end
             #@show j
             #@show sum(std)
             # cat avg and std matrices together to make it easier to bring in to plots
@@ -149,7 +155,7 @@ if compute_avg
             # and for reward just overall trail sum (avg, sum, processN, paramN)
             if j == 3 # corresponding to the reward
               tot_dir = "total rewards"
-              try mkdir(tot_dir)
+              try mkdir(tot_dir)d
               end
               cd(tot_dir)
               avgtot = mean(data,[1,3])[1,1,1] # return just the value for the mean
@@ -196,7 +202,7 @@ mcts_pos_leg = "MCTS Position"
 mcts_rand_leg = "MCTS"
 mcts_smooth_leg = "MCTS Smooth"
 qmdp_leg = "QMDP"
-smpc_leg = "SMPC"
+smpc_leg = "MPC Cautious"
 dnn_leg = "DNN"
 adapt_leg = "Adaptive"
 # ADD HERE
@@ -207,7 +213,7 @@ mcts_smooth_style = "purple"
 mpc_fobs_style = "green"
 mpc_unk_style = "orange"
 qmdp_style = "blue"
-smpc_style = "magenta"
+smpc_style = "purple"
 dnn_style = "magenta"
 adapt_style = "brown"
 
@@ -252,7 +258,7 @@ if vary
       if rollout == "position"
         mcts_pos = vcat(mcts_pos,curVec)
         #@show size(mcts_pos)
-      elseif rollout == "random"
+      elseif (rollout == "random") || (rollout == "mpc")
         mcts_rand = vcat(mcts_rand,curVec)
       elseif rollout == "smooth"
         mcts_smooth = vcat(mcts_smooth,curVec)
@@ -279,13 +285,21 @@ if vary
   try mkdir(plot_folder)
   end
   cd(plot_folder) # in plots
-  xaxis = L"Process Noise ($\sigma$)"
+  if varyLimit
+      xaxis = "Unknown Parameter Lower Limit"
+  else
+      xaxis = L"Process Noise ($\sigma$)"
+  end
+
   yaxis = "Total Reward"
   vertspace = "0.0"
   horizspace = "0.5"
   if varyMass
     vv = 4
     title_start = "PRMV" # Param Varying start of plot name
+  elseif varyLimit
+    vv = 3
+    title_start = "LLV"
   else
     vv = 3 # make 3 to plot for varying process, set to 4 for varyingParamNoise
     title_start = "PV" # Process varying start of plot name
@@ -300,7 +314,7 @@ if vary
   varyPlot_list = PGFPlots.Plots.Linear[] # start blank and add for each possible sim with values
   for i in 1:length(sim_list)
     if length(sim_list[i]) != 0
-        if add_legend && (folder == "1.0e-5") # need legend on first graph in series
+        if add_legend #&& (folder == "1.0e-5") # need legend on first graph in series
             cp = Plots.Linear(sim_list[i][:,vv],sim_list[i][:,1], errorBars = ErrorBars(y=sim_list[i][:,2]),style=sim_style_list[i],  mark=mark1, legendentry = sim_leg_list[i])
         else
             cp = Plots.Linear(sim_list[i][:,vv],sim_list[i][:,1], errorBars = ErrorBars(y=sim_list[i][:,2]),style=sim_style_list[i],  mark=mark1)
@@ -309,8 +323,12 @@ if vary
     end
   end
 
-  if add_legend && (folder == "1.0e-5") # need legend on first graph in series
-      varyProcessPlot = Axis(varyPlot_list,xlabel = xaxis,ylabel=yaxis,legendPos="south west")
+  if add_legend #&& (folder == "1.0e-5") # need legend on first graph in series
+      if varyLimit
+          varyProcessPlot = Axis(varyPlot_list,xlabel = xaxis,ylabel=yaxis,legendPos="south east")
+      else
+          varyProcessPlot = Axis(varyPlot_list,xlabel = xaxis,ylabel=yaxis,legendPos="south west")
+      end
   else
       varyProcessPlot = Axis(varyPlot_list,xlabel = xaxis,ylabel=yaxis)
   end
@@ -368,14 +386,7 @@ if profile # plot the profiles for the runs
     temp_rew = rewCur
 
     if sim == "mcts" # add to the array of mcts to plot
-      if rollout == "position"
-        mcts_pos = (temp_st,temp_est,temp_ctrl,temp_rew)
-        #@show size(mcts_pos)
-      elseif rollout == "random"
-        mcts_rand = (temp_st,temp_est,temp_ctrl,temp_rew)
-      elseif rollout == "smooth"
-        mcts_smooth = (temp_st,temp_est,temp_ctrl,temp_rew)
-      end
+      mcts_rand = (temp_st,temp_est,temp_ctrl,temp_rew)
     elseif sim == "mpc"
       if rollout == "fobs"
         mpc_fobs = (temp_st,temp_est,temp_ctrl,temp_rew)
@@ -408,45 +419,45 @@ if profile # plot the profiles for the runs
       for i in 1:length(sim_list)
         if length(sim_list[i]) != 0
           #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
-          cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+          cp_st = Plots.Linear(0:nSamples2-1,sim_list[i][1][1:nSamples2,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
           cp_est = Plots.Linear(0:nSamples2-1,sim_list[i][2][1:nSamples2,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples2,2]), style=sim_style_list[i],  mark=mark1)
-          cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
-          cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
+          #cp_ctrl = Plots.Linear(0:nSamples2-1,sim_list[i][3][:,1],style=sim_style_list[i],  mark=mark1)#,errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+          cp_rew = Plots.Linear(0:nSamples2-1,sim_list[i][4][:,1], style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])#errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
 
           append!(profile_st, [cp_st])
           append!(profile_est, [cp_est])
-          append!(profile_ctrl, [cp_ctrl])
+          #append!(profile_ctrl, [cp_ctrl])
           append!(profile_rew, [cp_rew])
         end
       end
       # adding horziontal lines at 0:
       start_zero_line = -1
       end_zero_line = nSamples2+1
-      append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_st, [Plots.Linear([start_zero_line, nSamples2],[0,0], style=col5,  mark=mark1)])
       append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-      append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-      append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      #append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_rew, [Plots.Linear([start_zero_line, nSamples2],[0,0], style=col5,  mark=mark1)])
   else
       for i in 1:length(sim_list)
         if length(sim_list[i]) != 0
           #sim_list[i] = 4x1 tuple --> [1-4] are st,est,ctrl,rew
-          cp_st = Plots.Linear(0:nSamples-1,sim_list[i][1][1:nSamples,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
-          cp_est = Plots.Linear(0:nSamples-1,sim_list[i][2][1:nSamples,1],errorBars = ErrorBars(y=sim_list[i][2][1:nSamples,2]), style=sim_style_list[i],  mark=mark1)
-          cp_ctrl = Plots.Linear(0:nSamples-1,sim_list[i][3][:,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
-          cp_rew = Plots.Linear(0:nSamples-1,sim_list[i][4][:,1],errorBars = ErrorBars(y=sim_list[i][4][:,2]), style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
+          cp_st = Plots.Linear(0:nSamples2-1,sim_list[i][1][1:nSamples2,1], style=sim_style_list[i],  mark=mark1) # removed error bars cuz veloc & pos together are confusing: errorBars = ErrorBars(y=sim_list[i][1][1:nSamples,2]),
+          cp_est = Plots.Linear(0:nSamples2-1,sim_list[i][2][1:nSamples2,1], style=sim_style_list[i],  mark=mark1)
+          #cp_ctrl = Plots.Linear(0:nSamples2-1,sim_list[i][3][1:nSamples2-1,1],errorBars = ErrorBars(y=sim_list[i][3][:,2]), style=sim_style_list[i],  mark=mark1)
+          cp_rew = Plots.Linear(0:nSamples2-1,sim_list[i][4][1:nSamples2,1], style=sim_style_list[i],  mark=mark1, legendentry=sim_leg_list[i])
 
           append!(profile_st, [cp_st])
           append!(profile_est, [cp_est])
-          append!(profile_ctrl, [cp_ctrl])
+          #append!(profile_ctrl, [cp_ctrl])
           append!(profile_rew, [cp_rew])
         end
       end
       start_zero_line = -1
       end_zero_line = nSamples+1
-      append!(profile_st, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-      append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-      append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
-      append!(profile_rew, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      append!(profile_st, [Plots.Linear([start_zero_line, nSamples2],[0,0], style=col5,  mark=mark1)])
+      #append!(profile_est, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      #append!(profile_ctrl, [Plots.Linear([start_zero_line, end_zero_line],[0,0], style=col5,  mark=mark1)])
+      #append!(profile_rew, [Plots.Linear([start_zero_line, nSamples2],[0,0], style=col5,  mark=mark1)])
   end
 
   #### Plot all 4 on a subplots
@@ -458,35 +469,56 @@ if profile # plot the profiles for the runs
   vertspace = "0.5"
   horizspace = "0.0"
   ht = "4cm"
-  ht2 = "6cm"
+  ht2 = "5cm"
   wdth = "8cm"
 
   # determine if that type of data is available and then add it to the list to pass in if so
+  if axis_lims
+      st = Axis(profile_st
+          #Plots.Linear(0:nSamples-1,mcts_pos_st[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_st[1:nSamples,2]), style=mcts_pos_style,  mark=mark1, legendentry=mcts_pos_leg)
+          #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+          ,ylabel=stlab, width = wdth, height=ht, ymin = 0, ymax = yst_max)
 
-  st = Axis(profile_st
-      #Plots.Linear(0:nSamples-1,mcts_pos_st[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_st[1:nSamples,2]), style=mcts_pos_style,  mark=mark1, legendentry=mcts_pos_leg)
-      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
-      ,ylabel=stlab, width = wdth, height=ht)
+      est = Axis(profile_est
+          #Plots.Linear(0:nSamples-1,mcts_pos_est[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_est[1:nSamples,2]), style=mcts_pos_style,  mark=mark1)
+          #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+          , ylabel=estlab, width = wdth, height=ht2) #"Velocity (m/s)"
 
-  est = Axis(profile_est
-      #Plots.Linear(0:nSamples-1,mcts_pos_est[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_est[1:nSamples,2]), style=mcts_pos_style,  mark=mark1)
-      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
-      , ylabel=estlab, width = wdth, height=ht) #"Velocity (m/s)"
+      ctrl = Axis(profile_ctrl
+          #Plots.Linear(1:safeiters,LQG18[1:safeiters,var3+ex], style=mcts_pos_style,  mark=mark1)
+          #Plots.Linear(0:nSamples-1,mcts_pos_ctrl[:,1],errorBars = ErrorBars(y=mcts_pos_ctrl[:,2]), style=mcts_pos_style,  mark=mark1)
+          #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+          , ylabel=ctrllab, width = wdth, height=ht)
 
-  ctrl = Axis(profile_ctrl
-      #Plots.Linear(1:safeiters,LQG18[1:safeiters,var3+ex], style=mcts_pos_style,  mark=mark1)
-      #Plots.Linear(0:nSamples-1,mcts_pos_ctrl[:,1],errorBars = ErrorBars(y=mcts_pos_ctrl[:,2]), style=mcts_pos_style,  mark=mark1)
-      #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
-      , ylabel=ctrllab, width = wdth, height=ht)
+      rew = Axis(profile_rew
+          #Plots.Linear(0:nSamples-1,mcts_pos_rew[:,1],errorBars = ErrorBars(y=mcts_pos_rew[:,2]), style=mcts_pos_style,  mark=mark1)
+          ,xlabel=xaxis, ylabel=rewlab, legendPos="south west", width = wdth, height = ht2, ymin = yrew_min, ymax = 0)
 
-  rew = Axis(profile_rew
-      #Plots.Linear(0:nSamples-1,mcts_pos_rew[:,1],errorBars = ErrorBars(y=mcts_pos_rew[:,2]), style=mcts_pos_style,  mark=mark1)
-      ,xlabel=xaxis, ylabel=rewlab, legendPos="north east", width = wdth, height = ht2)
+  else
+      st = Axis(profile_st
+          #Plots.Linear(0:nSamples-1,mcts_pos_st[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_st[1:nSamples,2]), style=mcts_pos_style,  mark=mark1, legendentry=mcts_pos_leg)
+          #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+          ,ylabel=stlab, width = wdth, height=ht)
 
-  g3 = GroupPlot(1,4, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
-  push!(g3, st)
+      est = Axis(profile_est
+          #Plots.Linear(0:nSamples-1,mcts_pos_est[1:nSamples,1],errorBars = ErrorBars(y=mcts_pos_est[1:nSamples,2]), style=mcts_pos_style,  mark=mark1)
+          #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+          , ylabel=estlab, width = wdth, height=ht) #"Velocity (m/s)"
+
+      ctrl = Axis(profile_ctrl
+          #Plots.Linear(1:safeiters,LQG18[1:safeiters,var3+ex], style=mcts_pos_style,  mark=mark1)
+          #Plots.Linear(0:nSamples-1,mcts_pos_ctrl[:,1],errorBars = ErrorBars(y=mcts_pos_ctrl[:,2]), style=mcts_pos_style,  mark=mark1)
+          #Plots.Linear([0, nSamples-1],[0,0], style=col5,  mark=mark1)
+          , ylabel=ctrllab, width = wdth, height=ht)
+
+      rew = Axis(profile_rew
+          #Plots.Linear(0:nSamples-1,mcts_pos_rew[:,1],errorBars = ErrorBars(y=mcts_pos_rew[:,2]), style=mcts_pos_style,  mark=mark1)
+          ,xlabel=xaxis, ylabel=rewlab, legendPos="south west", width = wdth, height = ht2)
+  end
+  g3 = GroupPlot(1,3, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
+  #push!(g3, st)
   push!(g3, est)
-  push!(g3, ctrl)
+  #push!(g3, ctrl)
   push!(g3, rew)
   title_start = "PROF "
   title3 = join([folder,title_start, tempName[2], " PN ", tempName[6], " VARN ", tempName[8][1:end-4]])
@@ -527,7 +559,7 @@ if profile # plot the profiles for the runs
   save(string(title3,".tex"),g3, include_preamble=false)
 end
 
-if profile_rew # plot the profiles for the runs
+if profile_rew_plot # plot the profiles for the runs
   # avg vs nSamples plots
   files = readdir() # in processed data for folder in main loop
   filter!(x->x≠"total rewards",files) # remove total rewards folder
@@ -565,14 +597,7 @@ if profile_rew # plot the profiles for the runs
     temp_rew = rewCur
 
     if sim == "mcts" # add to the array of mcts to plot
-      if rollout == "position"
-        mcts_pos = (temp_st,temp_est,temp_ctrl,temp_rew)
-        #@show size(mcts_pos)
-      elseif rollout == "random"
-        mcts_rand = (temp_st,temp_est,temp_ctrl,temp_rew)
-      elseif rollout == "smooth"
-        mcts_smooth = (temp_st,temp_est,temp_ctrl,temp_rew)
-      end
+      mcts_rand = (temp_st,temp_est,temp_ctrl,temp_rew)
     elseif sim == "mpc"
       if rollout == "fobs"
         mpc_fobs = (temp_st,temp_est,temp_ctrl,temp_rew)
@@ -678,7 +703,7 @@ if profile_rew # plot the profiles for the runs
 
   rew = Axis(profile_rew
       #Plots.Linear(0:nSamples-1,mcts_pos_rew[:,1],errorBars = ErrorBars(y=mcts_pos_rew[:,2]), style=mcts_pos_style,  mark=mark1)
-      ,xlabel=xaxis, ylabel=rewlab, legendPos="south east", width = wdth, height = ht2)
+      ,xlabel=xaxis, ylabel=rewlab, legendPos="south west", width = wdth, height = ht2)
 
   g3 = GroupPlot(1,2, groupStyle = string("horizontal sep = ",horizspace,"cm, vertical sep = ",vertspace,"cm"))
   #push!(g3, st)

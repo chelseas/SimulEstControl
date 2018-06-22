@@ -3,12 +3,13 @@
 prob = "2D" # set to the "1D" or "2D" problems defined
 sim = "mpc" # mcts, mpc, qmdp, smpc, snmpc
 rollout = "mpc3" # MCTS/QMDP: random/position/mpc/valest
+lin_params = false # if want to estimate 1/m and 1/J (not directly m or J) then set to true
 trial_parallel = false # parallelize by num_trials for non-CE runs
 state_mean = false # sample mean or rand of the state during transition in MDP
 bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
 bounds_save = false # save file with bounds trial data
-desired_bounds = 6.0#norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
+desired_bounds = 6.0 # norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
 quick_run = false
 numtrials = 2 # number of simulation runs
 noiseList = []
@@ -22,6 +23,7 @@ param_change = false # add a cosine term to the unknown param updates
 param_type = "none" # sine or steps
 param_magn = 0.2 # magnitude of cosine additive term # use >0.6 for steps
 param_freq = 0.3
+add_noise = 0.0
 
 # Output settings
 printing = false # set to true to print simple information
@@ -163,7 +165,11 @@ if plotting
 end
 
 # First have to load SSM to define params for rest of the setup
-include("SSM.jl") # contains SSM definitions and functions
+if lin_params
+    include("linSSM.jl")
+else
+    include("SSM.jl") # contains SSM definitions and functions
+end
 if prob == "2D"
   ssm = build2DSSM(deltaT)#,processNoise,measNoise) # building state-space
   prob_params = ["vx","vy","w","x","y","theta","m","uv","J","rx","ry"]
@@ -223,9 +229,17 @@ if prob == "2D" # load files for 2D problem
   elseif sim == "mpc"
       if reward_type == "region"
           #include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
-          include("MPC_2D.jl") # function to set up MPC opt and solve
+          if lin_params
+              include("linMPC_2D.jl")
+          else
+              include("MPC_2D.jl") # function to set up MPC opt and solve
+          end
       else
-          include("MPC_2D.jl") # function to set up MPC opt and solve
+          if lin_params
+              include("linMPC_2D.jl")
+          else
+              include("MPC_2D.jl") # function to set up MPC opt and solve
+          end
       end
   elseif sim == "smpc"
     include("SMPC_2D.jl") # function to set up MPC opt and solve

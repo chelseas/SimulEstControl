@@ -1,7 +1,7 @@
 using DataFrames
-data_folder = "mcts_mpc_est1"
+data_folder = "ParamPlot"
 
-folder = readdir()#"0.5"#"test2"# give data folder name to compute averages from
+folder = "mcts_mpc_2D_mcts_full_none_false"#""qmdp_mpc3_2D_qmdp_full_none_false"#mcts_dpw_2D_mcts_full_none_false"#"0.5"#"test2"# give data folder name to compute averages from
 
 # assuming you have all the
 data_type = ["ctrl","est","rew","states","unc"] # all the first words of csv files to loop through
@@ -22,6 +22,10 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
   @show runs
   cd(curFolder)
   dataFiles = readdir() # all names of .csv files in this directory
+  ## ADDING FOR LLIMIT PLOTS
+  PN_var = split(curFolder)[5]
+  @show PN_var
+  ##
   #@show dataFiles
   #@show dataFiles
   #@show dataFiles
@@ -37,9 +41,9 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
     @show size(data)
     #std = Array{Float64,3}(runs, numSteps, nvars)
     for k = 1:runs # for each trial compute an average and std
-      @show dfr[k,j]
+      #@show dfr[k,j]
       temp = readtable(dfr[k,j]) # load individual file
-      @show size(temp)
+      #@show size(temp)
       data[k,:,:] = Array(temp)
     end
     # save new avg and std values --> just stack next to each other
@@ -57,6 +61,9 @@ for i = 1:length(sim_cases) # go through each data folder to compute averages
     #append!(a,b) to add words on to the end of the list to recreate a title
     # join(a) to merge list of words into string
     # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
+    @show sim_sets[1:5], PN_var, sim_sets[7:8]
+    sim_sets[6] = PN_var
+    @show sim_sets[1:8]
     fname_temp = join(sim_sets[1:8], " ") # new name for all but trial and T#
     #@show fname_temp
     fname = join([fname_temp ".csv"])

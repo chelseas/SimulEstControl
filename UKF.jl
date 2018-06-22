@@ -94,7 +94,7 @@ function ukf(m::NonLinearSSM, # NL SSM
     a::Array{Float64,2} = x_ + K*(z-z_) # updated estimate
     x_new::Array{Float64,1} = a[:,1] # new estimate mean
 
-    cov_new = nearestSPD(P_-K*Pxy') # new estimate cov
+    cov_new = nearestSPD((P_-K*Pxy')) #+ eye(size(P_)) # new estimate cov # multiply this here?
     try
         MvNormal(x_new,cov_new)
     catch

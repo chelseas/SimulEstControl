@@ -5,7 +5,7 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "bound_mcts"#mpc_unk_reg_depth10" # name of data file to load
+  settings_file = "mpc_highnoise"#mpc_unk_reg_depth10" # name of data file to load
   settings_folder = "set2" # store data files here
   include("Setup.jl")
 
@@ -51,9 +51,11 @@
     #est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
     x0_state = state_init*ones(ssm.nx) # actual initial state
 
+    Qadd = diagm(add_noise*ones(ssm.nx))
     Q = diagm(processNoise*ones(ssm.nx))
     R = diagm(measNoise*ones(ssm.ny))
     w = MvNormal(zeros(ssm.nx),Q) # process noise distribution
+    w_add = MvNormal(zeros(ssm.nx),Q+Qadd) # process noise distribution
     v = MvNormal(zeros(ssm.ny),measNoise*eye(ssm.ny,ssm.ny)) #measurement noise distribution
     step = 1 # count steps
     ### outer loop running for each simulation of the system
@@ -125,7 +127,19 @@
               end
             end
             u[:,i] = control_check(u[:,i], x[:,i], debug_bounds) # bounding control
-            x[:,i+1] = ssm.f(x[:,i],u[:,i]) + rand(w) # propagating the state
+            # for inverting the mass need to change how process noise is added here ***
+            if lin_params
+                new_rand = rand(w)
+                x[:,i+1] = ssm.f(x[:,i],u[:,i])
+                x[7,i+1] = 1/(1/x[7,i+1] + new_rand[7])
+                x[9,i+1] = 1/(1/x[9,i+1] + new_rand[9])
+                x[1:6,i+1] = x[1:6,i+1] + new_rand[1:6]
+                x[8,i+1] = x[8,i+1] + new_rand[8]
+                x[10:end,i+1] = x[10:end,i+1] + new_rand[10:end]
+            else # do normal update
+                x[:,i+1] = ssm.f(x[:,i],u[:,i]) + rand(w) # propagating the state
+            end
+            # add the process noise to 1/the mass/J terms and then invert and replace them --> also change in SSM.
             if param_change # add additional term to the unknown params
               if param_type == "sine"
                 x[:,i+1] = x[:,i+1] + [zeros(ssm.states); param_magn*cos(param_freq*i)*ones(ssm.nx - ssm.states)]
@@ -175,7 +189,7 @@
 
               # update belief with current measurment, input
               if cov_check < cov_thresh # then update belief because we trust it
-                  xNew = ukf(ssm,obs[:,i],xNew,cov(w),cov(v),u[:,i]) # for UKF
+                  xNew = ukf(ssm,obs[:,i],xNew,cov(w_add),cov(v),u[:,i]) # for UKF
               end
 
               # reality check --> see if estimates have gotten too extreme --> limit

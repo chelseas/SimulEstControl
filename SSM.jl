@@ -90,7 +90,8 @@ function build2DSSM(deltaT::Float64)
         r = [0.0; 0.0; 0.0;
             rx; ry; 0.0;
             0.0; 0.0; 0.0];
-        return C*x + D*u + r;
+        y = C*x + D*u + r; # measurement
+        return y
     end
 
     # Defining observability of system --> measuring all outputs

@@ -17,7 +17,7 @@ cond1 = "full"
 
 #NOISE SETTINGS
 processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full
-paramNoiseList = [0.25]#,0.5,0.7]
+paramNoiseList = [0.5]#,0.5,0.7]
 ukf_flag = true # use ukf as the update method when computing mcts predictions
 param_change = false # add a cosine term to the unknown param updates
 param_type = "none" # sine or steps
@@ -263,12 +263,14 @@ if bounds || bounds_print
   # will need to precompute this for each ProcessNoise case in the sim file so add it to main simulation.jl soon #TODO
   n_w = 100 #30
   n_out_w = 100 #10
-  F = 1.9 #2.34
+  F = 1.96 #2.34
   # shouldn't the bounds of w be calculated like the state norms, the norm of the worst sample from the confidence region?
-  w_bound_samples = ellipsoid_bounds_noclip(MvNormal(zeros(ssm.nx),processNoiseList[1]*eye(ssm.nx,ssm.nx)),n_w,n_out_w,F) # precompute the w_bound
-  w_bound_avg = mean(w_bound_samples,2) # average samples of the w_bound
-  @show w_bound = norm(w_bound_avg*sqrt(processNoiseList[1])) # compute the norm of the STD * the w_bound
-  max_action_count = 100 # how many actions to check before giving up on finding a feasible one
+  #w_bound_samples = ellipsoid_bounds_noclip(MvNormal(zeros(ssm.nx),processNoiseList[1]*eye(ssm.nx,ssm.nx)),n_w,n_out_w,F) # precompute the w_bound
+  #w_bound_avg = mean(w_bound_samples,2) # average samples of the w_bound
+  #@show w_bound = norm(w_bound_avg*sqrt(processNoiseList[1])) # compute the norm of the STD * the w_bound
+  w_bound = sqrt(processNoiseList[1])*F # only 1 element in the noise list, want the standard dev * 1.96
+  @show w_bound
+  max_action_count = 50 # how many actions to check before giving up on finding a feasible one
   action_count = 1
   action_limit_count = 0
 end

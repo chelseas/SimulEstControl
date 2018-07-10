@@ -5,8 +5,8 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "mpc_highnoise"#mpc_unk_reg_depth10" # name of data file to load
-  settings_folder = "set2" # store data files here
+  settings_file = "6b_mcts"#mpc_unk_reg_depth10" # name of data file to load
+  settings_folder = "set3" # store data files here
   include("Setup.jl")
 
   function initParams(x0_est,k_iter)
@@ -43,6 +43,7 @@
     paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
     x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
     est_list = initParams(x0_est,k_iter)
+    @show est_list
 
     if cross_entropy
         srand(params[end-1]) # random seed for each parallel measure --> just want the same initial params

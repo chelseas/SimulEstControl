@@ -6,7 +6,7 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "ParamPlot"#"main_performance_mod" # name data_folder containing folder_list
+data_folder = "NoiseVar2"#"main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
 folder_list = readdir()#["first","second"]
 #folder_list = ["mcts_normal_2D_mcts_full_none_false"]
@@ -14,16 +14,16 @@ folder_list = readdir()#["first","second"]
 #folder_list = ["mpc_normal_2D_mpc_full_none_false"] # make sure all the folders with data that should be plotted on same graph are in this folder
 cd("..")
 #folder_list = ["mcts_normal_2D_mcts_full_none_false","2","3"]
-compute_avg = true
-vary = false # plot varying process or param noise
+compute_avg = false
+vary = true # plot varying process or param noise
 varyMass = false # false if fixing mass and varying Process, true if varying mass
-profile = true # plot the profile of the results
+profile = false # plot the profile of the results
 profile_rew_plot = false
 profile_init = false
 nSamples2 = 50 # number of steps to show for just the initial parameter estimates
 verbose = false # set to true to print debug statements
 add_legend = true
-varyLimit = true
+varyLimit = false
 
 axis_lims = true
 yrew_min = -1500

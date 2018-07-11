@@ -285,7 +285,7 @@
         #@show count(thresh_funct,act_dep_bounds)/(numtrials*nSamples)
         @show mean(rews)
         @show std(rews)
-        if !bounds_save # running standard MCTS without bounds
+        if bounds_save # running standard MCTS without bounds
             try mkdir(data_folder)
             end
             cd(data_folder)

@@ -6,7 +6,7 @@ pdata = " processed data" # don't change
 tot_dir = "total rewards" # don't change
 
 plot_folder = "plots" # what to name new plots folder
-data_folder = "NoiseVar2"#"main_performance_mod" # name data_folder containing folder_list
+data_folder = "LimitVar"#"main_performance_mod" # name data_folder containing folder_list
 cd(data_folder)
 folder_list = readdir()#["first","second"]
 #folder_list = ["mcts_normal_2D_mcts_full_none_false"]
@@ -53,6 +53,7 @@ end
 if compute_avg
     for i = 1:length(sim_cases) # go through each data folder to compute averages
       curFolder = sim_cases[i]
+      #=
       if curFolder[1:4] == "qmdp" || curFolder[1:4] == "mcts"
           cd(curFolder)
               pomdpFiles = readdir()
@@ -89,7 +90,9 @@ if compute_avg
                   end
               end
       else
+      =#
           runs = parse(Int64,split(curFolder)[end]) # number of runs
+          fold_name = split(curFolder)
           if verbose
           @show runs
           end
@@ -132,6 +135,7 @@ if compute_avg
             #@show j
             #@show sum(std)
             # cat avg and std matrices together to make it easier to bring in to plots
+            data_orig = data
             data = cat(2,avg[1,:,:], std_var[1,:,:]) # size of num trials x nvars*2
             #@show size(data)
             # convert both to dataFrames and save in a new folder called processed data
@@ -139,6 +143,8 @@ if compute_avg
             #append!(a,b) to add words on to the end of the list to recreate a title
             # join(a) to merge list of words into string
             # data_type(1), prob(2), sim(3), roll/obs(4), PN(5), PN#(6), VN(7), VN#(8), Trial, T#
+            # replacing process noise from individual file with that of the folder
+            sim_sets[6] = fold_name[5]
             fname_temp = join(sim_sets[1:8], " ") # new name for all but trial and T#
             #@show fname_temp
             fname = join([fname_temp ".csv"])
@@ -155,11 +161,26 @@ if compute_avg
             # and for reward just overall trail sum (avg, sum, processN, paramN)
             if j == 3 # corresponding to the reward
               tot_dir = "total rewards"
-              try mkdir(tot_dir)d
+              try mkdir(tot_dir)
               end
               cd(tot_dir)
-              avgtot = mean(data,[1,3])[1,1,1] # return just the value for the mean
-              stdtot = (var(mean(data,3),1)[1,1,1].^0.5)/sqrt(runs) # sum data along all numSteps and take std among runs
+              avg_across_steps = mean(data_orig,2)[:,1,1]
+              #@show size(avg_across_steps)
+              #@show avg_across_steps
+              avg_steps_trials = mean(avg_across_steps,1)[1]
+              std_steps_trials = std(avg_across_steps)/sqrt(runs)
+              #@show std_steps_trials
+              #@show avg_steps_trials
+              #avgtot = mean(data_orig,[1,3])[1,1,1] # return just the value for the mean
+              #@show avgtot
+              #stdtot = (var(mean(data_orig,3),1)[1,1,1].^0.5)/sqrt(runs) # sum data along all numSteps and take std among runs
+              #@show data
+              #@show size(data_orig)
+              #@show size(mean(data,3))
+              #@show size(var(mean(data,3),1)[1,1,1])
+              avgtot = avg_steps_trials
+              stdtot = std_steps_trials
+              #@show stdtot
               PN = parse(Float64,sim_sets[6])
               PRN = parse(Float64,sim_sets[8])
               rew_ret = [avgtot stdtot PN PRN]' # returning the point to plot
@@ -173,7 +194,7 @@ if compute_avg
             cd(folder)
             cd(curFolder)
           end
-      end # for the if/else dividing qmdp/mcts
+      #end # for the if/else dividing qmdp/mcts
       cd("..") # back out of this folder
     end
 

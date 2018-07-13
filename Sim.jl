@@ -5,14 +5,14 @@
   cd(dir)
 
   # all parameter variables, packages, etc are defined here
-  settings_file = "6b_mcts"#mpc_unk_reg_depth10" # name of data file to load
-  settings_folder = "set3" # store data files here
+  settings_file = "lim0.0875_mcts"#mpc_unk_reg_depth10" # name of data file to load
+  settings_folder = "set4" # store data files here
   include("Setup.jl")
 
   function initParams(x0_est,k_iter)
     srand(12+k_iter)
     est_list = rand(x0_est,numtrials) # pick random values around the actual state based on paramNoise for start of each trial
-    return est_list
+    return est_list[:, 1+trials_offset:end] # returns matrix size x0est x numtrials
   end
 
   ### processNoise and paramNoise pairs to be fed into numtrials worth simulations each
@@ -43,7 +43,7 @@
     paramCov = paramNoise*eye(ssm.nx,ssm.nx) # covariance from paramNoise
     x0_est = MvNormal(state_init*ones(ssm.nx),paramCov) # initial belief
     est_list = initParams(x0_est,k_iter)
-    @show est_list
+    #@show est_list
 
     if cross_entropy
         srand(params[end-1]) # random seed for each parallel measure --> just want the same initial params
@@ -66,7 +66,7 @@
         #within_bounds_cnt = 1
         rews = zeros(numtrials)
     end
-    for j = 1:numtrials # number of simulation trials run
+    for j = 1:(numtrials-trials_offset) # number of simulation trials run
         # Initialize saving variables between each run
         obs = zeros(ssm.ny,nSamples) #measurement history
         u = Array{Float64,2}(ssm.nu,nSamples) #input history
@@ -224,7 +224,7 @@
               sim_names = [string(params[end],sim_save_name),prob,sim,rollout,string(processNoise),string(paramNoise),string(numtrials),string(j)]
           else
               parallel_num = [""]
-              sim_names = [sim_save_name,prob,sim,rollout,string(processNoise),string(paramNoise),string(numtrials),string(j)]
+              sim_names = [sim_save_name,prob,sim,rollout,string(processNoise),string(paramNoise),string(numtrials),string(j+trials_offset)]
           end
           save_simulation_data(x,est,u,[rewrun rewrun]',uncertainty,prob_params,sim_names,parallel_num)
           # I'm putting two reward vectors to avoid vector error

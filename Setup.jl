@@ -11,9 +11,10 @@ bounds_print = false # print results for bounds
 bounds_save = false # save file with bounds trial data
 desired_bounds = 6.0 # norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
 quick_run = false
-numtrials = 2 # number of simulation runs
+numtrials = 5 # number of simulation runs
 noiseList = []
 cond1 = "full"
+trials_offset = 2 # offset of number of trials to start count and correctly initialize params.
 
 #NOISE SETTINGS
 processNoiseList = [0.033]#[0.033, 0.1]#[0.001,0.0033,0.01,0.033,0.1,0.33] # default to full

@@ -1,0 +1,42 @@
+# strings
+mpc # sim
+mpc_unk # sim_save
+1.5lim0.0625_mpc # data_folder
+L1 # reward_type
+small # reward_region
+false # cross_entropy
+false # save_last
+false # save_best
+false # state_mean
+true # saving
+false # param_change
+none # param_type
+false # fullobs
+true # print_iters
+false # quick_run
+true # ukf_flag
+2D # prob
+# ints
+100 # numtrials
+40 # trials_offset
+3000 # n_iters
+5 # samples_per_state
+22 # samples_per_act
+12 # depths
+# floats
+26.6 # expl_constant
+5.0 # fRange
+0.0625 # state_min_tol
+# arrays (floats), put spaces without brackets between all values
+0.005 0.01 0.015 0.02 0.025 0.03 # processNoiseList
+0.5 # paramNoiseList
+# cross entropy variables (floats)
+1.0 # states_m
+1.0 # states_std
+20.5 # act_m
+8.0 # act_std
+10.5 # depth_m
+4.0 # depth_std
+20.5 # expl_m
+9.0 # expl_std
+# No blank lines beyond this

@@ -261,7 +261,6 @@ if bounds || bounds_print
       lb_clip_lim = [-Inf*ones(6); state_init*state_min_tol*ones(5)]
   end
   include("EllipseBounds.jl")
-  # will need to precompute this for each ProcessNoise case in the sim file so add it to main simulation.jl soon #TODO
   n_w = 100 #30
   n_out_w = 100 #10
   F = 1.96 #2.34

@@ -19,7 +19,7 @@ true # ukf_flag
 2D # prob
 # ints
 100 # numtrials
-40 # trials_offset
+61 # trials_offset
 3000 # n_iters
 5 # samples_per_state
 22 # samples_per_act
@@ -30,7 +30,7 @@ true # ukf_flag
 5.0 # fRange
 0.05 # state_min_tol
 # arrays (floats), put spaces without brackets between all values
-0.01 0.04 0.07 # processNoiseList
+0.01 # processNoiseList
 0.5 # paramNoiseList
 # cross entropy variables (floats)
 1.0 # states_m

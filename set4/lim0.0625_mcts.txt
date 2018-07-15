@@ -19,7 +19,7 @@ true # ukf_flag
 2D # prob
 # ints
 100 # numtrials
-40 # trials_offset
+70 # trials_offset
 3000 # n_iters
 5 # samples_per_state
 22 # samples_per_act

@@ -52,26 +52,28 @@ if prob == "2D"
 end
 
 # Packages
-if (sim == "mcts") || (sim == "qmdp")
-  using Distributions, CSV, POMDPs, MCTS, POMDPToolbox # for MCTS
-    if tree_vis
-      using D3Trees
-    end
-  if !ukf_flag
-      using ForwardDiff
-  end
-  if (rollout[1:3] == "mpc")# || (rollout[1:3] == "mpc")
-      using Convex, SCS, ECOS
-  end
-elseif (sim == "mpc") || (sim == "smpc") || (sim == "snmpc")
-  using Distributions, CSV, Convex, SCS, ECOS# for MPC
-  if fullobs
-    rollout = "fobs"
-  else
-    rollout = "unk"
-  end
-end
+using Distributions
+# if (sim == "mcts") || (sim == "qmdp")
+#   using Distributions, CSV, POMDPs, MCTS, POMDPToolbox # for MCTS
+#     if tree_vis
+#       using D3Trees
+#     end
+#   if !ukf_flag
+#       using ForwardDiff
+#   end
+#   if (rollout[1:3] == "mpc")# || (rollout[1:3] == "mpc")
+#       using Convex, SCS, ECOS
+#   end
+# elseif (sim == "mpc") || (sim == "smpc") || (sim == "snmpc")
+#   using Distributions, CSV, Convex, SCS, ECOS# for MPC
+#   if fullobs
+#     rollout = "fobs"
+#   else
+#     rollout = "unk"
+#   end
+# end
 #using ForwardDiff # for EKF
+
 if saving || save_last
   include("Save.jl")
 end
@@ -118,50 +120,50 @@ else
 end
 if prob == "2D" # load files for 2D problem
   include("LimitChecks_2D.jl") # checks for control bounds and state/est values
-  if sim == "mcts"
-    include("POMDP_2D.jl") # functions for POMDP definition
-    if (rollout[1:3] == "mpc")# || (rollout == "mpc2")
-        if reward_type == "region"
-            include("SMPC_Constrained_2D.jl") # function to set up MPC opt and solve
-            #include("MPC_2D.jl") # function to set up MPC opt and solve
-            #include("SMPC_2D.jl") # function to set up MPC opt and solve
-        else
-            include("SMPC_2D.jl") # function to set up MPC opt and solve
-            #include("SMPC_2D.jl") # function to set up MPC opt and solve
-        end
-    end
-  elseif sim == "qmdp"
-    include("QMDP_2D.jl")
-    if (rollout[1:3] == "mpc")# || (rollout == "mpc2")
-        if reward_type == "region"
-            include("SMPC_Constrained_2D.jl") # function to set up MPC opt and solve
-            #include("MPC_2D.jl") # function to set up MPC opt and solve
-            #include("SMPC_2D.jl") # function to set up MPC opt and solve
-        else
-            include("SMPC_2D.jl") # function to set up MPC opt and solve
-            #include("SMPC_2D.jl") # function to set up MPC opt and solve
-        end
-    end
-  elseif sim == "mpc"
-      if reward_type == "region"
-          #include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
-          if lin_params
-              include("linMPC_2D.jl")
-          else
-              include("MPC_2D.jl") # function to set up MPC opt and solve
-          end
-      else
-          if lin_params
-              include("linMPC_2D.jl")
-          else
-              include("MPC_2D.jl") # function to set up MPC opt and solve
-          end
-      end
-  elseif sim == "smpc"
-    include("SMPC_2D.jl") # function to set up MPC opt and solve
-  elseif sim == "snmpc"
-    include("SNMPC_2D.jl") # function to set up MPC opt and solve
-  end
+  # if sim == "mcts"
+  #   include("POMDP_2D.jl") # functions for POMDP definition
+  #   if (rollout[1:3] == "mpc")# || (rollout == "mpc2")
+  #       if reward_type == "region"
+  #           include("SMPC_Constrained_2D.jl") # function to set up MPC opt and solve
+  #           #include("MPC_2D.jl") # function to set up MPC opt and solve
+  #           #include("SMPC_2D.jl") # function to set up MPC opt and solve
+  #       else
+  #           include("SMPC_2D.jl") # function to set up MPC opt and solve
+  #           #include("SMPC_2D.jl") # function to set up MPC opt and solve
+  #       end
+  #   end
+  # elseif sim == "qmdp"
+  #   include("QMDP_2D.jl")
+  #   if (rollout[1:3] == "mpc")# || (rollout == "mpc2")
+  #       if reward_type == "region"
+  #           include("SMPC_Constrained_2D.jl") # function to set up MPC opt and solve
+  #           #include("MPC_2D.jl") # function to set up MPC opt and solve
+  #           #include("SMPC_2D.jl") # function to set up MPC opt and solve
+  #       else
+  #           include("SMPC_2D.jl") # function to set up MPC opt and solve
+  #           #include("SMPC_2D.jl") # function to set up MPC opt and solve
+  #       end
+  #   end
+  # elseif sim == "mpc"
+  #     if reward_type == "region"
+  #         #include("MPC_Constrained_2D.jl") # function to set up MPC opt and solve
+  #         if lin_params
+  #             include("linMPC_2D.jl")
+  #         else
+  #             include("MPC_2D.jl") # function to set up MPC opt and solve
+  #         end
+  #     else
+  #         if lin_params
+  #             include("linMPC_2D.jl")
+  #         else
+  #             include("MPC_2D.jl") # function to set up MPC opt and solve
+  #         end
+  #     end
+  # elseif sim == "smpc"
+  #   include("SMPC_2D.jl") # function to set up MPC opt and solve
+  # elseif sim == "snmpc"
+  #   include("SNMPC_2D.jl") # function to set up MPC opt and solve
+  # end
 end
 
 
@@ -290,3 +292,15 @@ else
     end
     pmapInput = noiseList
 end
+
+
+
+x0_state = state_init*ones(ssm.nx) # actual initial state
+
+Qadd = diagm(add_noise*ones(ssm.nx))
+Q = diagm(processNoise*ones(ssm.nx))
+R = diagm(measNoise*ones(ssm.ny))
+w = MvNormal(zeros(ssm.nx),Q) # process noise distribution
+w_add = MvNormal(zeros(ssm.nx),Q+Qadd) # process noise distribution
+v = MvNormal(zeros(ssm.ny),measNoise*eye(ssm.ny,ssm.ny)) #measurement noise distribution
+step = 1 # count steps

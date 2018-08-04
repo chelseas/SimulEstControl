@@ -1,6 +1,6 @@
 
-settings_file = "lim0.0875_mcts"#mpc_unk_reg_depth10" # name of data file to load
-settings_folder = "set4" # store data files here
+settings_file = "none" #lim0.0875_mcts"#mpc_unk_reg_depth10" # name of data file to load
+settings_folder = "" #set4" # store data files here
 
 # SIM SETTINGS
 prob = "2D" # set to the "1D" or "2D" problems defined
@@ -13,7 +13,7 @@ bounds = false # set bounds for mcts solver
 bounds_print = false # print results for bounds
 bounds_save = false # save file with bounds trial data
 desired_bounds = 6.0 # norm(1.2*ones(ssm.nx,1)) # setting for the limit to the ||Xt+1|| (maybe make in addition to the previous state?)
-quick_run = false
+quick_run = true
 numtrials = 5 # number of simulation runs
 noiseList = []
 cond1 = "full"
